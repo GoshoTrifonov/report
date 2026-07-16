@@ -29,44 +29,59 @@ const SHIFT_MAP = {
 };
 
 function parseExcelToRows(workbook) {
-  // Find the first sheet
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  // Convert to array of arrays (raw, header row included)
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-  
+  if (raw.length < 2) return [];
+
+  // Auto-detect columns from header row (row 0)
+  const header = raw[0].map(h => String(h || "").trim().toUpperCase());
+
+  // Find columns by name first, fall back to fixed Excel-column positions
+  const colIdx = (names, fallback) => {
+    for (const name of names) {
+      const idx = header.indexOf(name);
+      if (idx >= 0) return idx;
+    }
+    return fallback;
+  };
+
+  const COL_DATE     = colIdx(["TRANSACTION_DATE", "DATE"],          2);   // C
+  const COL_RESOURCE = colIdx(["RESOURCE_ID", "RESOURCE"],           3);   // D
+  const COL_HRS      = colIdx(["HOURS_WORKED", "HRS", "HOURS"],      4);   // E
+  const COL_QTY      = colIdx(["GOOD_QTY", "QTY", "UNITS"],          7);   // H
+  const COL_SHIFT    = colIdx(["SHIFT", "SHIFT_CODE"],               11);   // L
+  const COL_EARNED   = colIdx(["EARNED", "EARNED_HRS"],              19);   // T
+  const COL_LEAD     = colIdx(["UNIT LEAD", "UNIT_LEAD", "AT"],      45);   // AT
+
   const rows = [];
-  // Skip row 0 (header). Columns are 0-indexed: C=2, D=3, E=4, H=7, L=11, T=19, AT=45
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
-    const unitLead = String(r[45] || "").trim();
-    // Skip rows with no unit lead
+    const unitLead = String(r[COL_LEAD] || "").trim();
     if (!unitLead) continue;
 
-    // Parse date (col C = index 2) — Excel serial or string
-    let dateVal = r[2];
+    // Parse date — Excel serial number or string
+    let dateVal = r[COL_DATE];
     let dateStr = "";
     if (typeof dateVal === "number") {
-      // Excel date serial
       const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
       dateStr = d.toISOString().slice(0, 10);
     } else if (dateVal) {
-      // Try to parse string dates like "5/1/2026" or "2026-05-01"
       const d = new Date(dateVal);
       if (!isNaN(d)) dateStr = d.toISOString().slice(0, 10);
       else dateStr = String(dateVal).trim();
     }
     if (!dateStr) continue;
 
-    const resource = String(r[3] || "").trim();   // D
-    const hrs = parseFloat(r[4]) || 0;            // E
-    const qty = parseFloat(r[7]) || 0;            // H
-    const shiftCode = String(r[11] || "").trim(); // L
-    const earned = parseFloat(r[19]) || 0;        // T
-    const shift = SHIFT_MAP[shiftCode] || shiftCode;
+    const resource  = String(r[COL_RESOURCE] || "").trim();
+    const hrs       = parseFloat(r[COL_HRS])    || 0;
+    const qty       = parseFloat(r[COL_QTY])    || 0;
+    const shiftCode = String(r[COL_SHIFT] || "").trim();
+    const earned    = parseFloat(r[COL_EARNED]) || 0;
+    const shift     = SHIFT_MAP[shiftCode] || shiftCode;
 
     if (!resource) continue;
-    rows.push({ date: dateStr, resource, hrs, qty, wo: "", shiftCode, shift, earned, unitLead: unitLead.trim() });
+    rows.push({ date: dateStr, resource, hrs, qty, wo: "", shiftCode, shift, earned, unitLead });
   }
   return rows;
 }
@@ -180,7 +195,7 @@ function ProductionReportTool() {
         const wb = XLSX.read(data, { type: "array" });
         const rows = parseExcelToRows(wb);
         if (rows.length === 0) {
-          setUploadStatus({ ok: false, msg: "No rows found for George in column AT. Check the file." });
+          setUploadStatus({ ok: false, msg: "No rows found. Check that column AT contains Unit Lead names." });
         } else {
           setUploadedData(rows);
           setUploadStatus({ ok: true, msg: `Loaded ${rows.length.toLocaleString()} rows from ${file.name}` });
@@ -203,7 +218,7 @@ function ProductionReportTool() {
   const allResources = React.useMemo(() => [...new Set(allRows.map(r => r.resource))].sort(), [allRows]);
   const allUnitLeaders = React.useMemo(() => [...new Set(allRows.map(r => r.unitLead).filter(Boolean))].sort(), [allRows]);
 
-  // Filter state
+  // Filter state — must be declared BEFORE any memos that reference them
   const [dateMode, setDateMode] = React.useState("single");
   const [singleDate, setSingleDate] = React.useState(maxDate);
   const [rangeStart, setRangeStart] = React.useState(maxDate);
@@ -211,6 +226,22 @@ function ProductionReportTool() {
   const [selectedShifts, setSelectedShifts] = React.useState([]);
   const [selectedResources, setSelectedResources] = React.useState([]);
   const [selectedUnitLeaders, setSelectedUnitLeaders] = React.useState([]);
+
+  // Lines filtered to only those belonging to selected unit leaders (or all if none selected)
+  const availableResources = React.useMemo(() => {
+    const rows = selectedUnitLeaders.length > 0
+      ? allRows.filter(r => selectedUnitLeaders.includes(r.unitLead))
+      : allRows;
+    return [...new Set(rows.map(r => r.resource))].sort();
+  }, [allRows, selectedUnitLeaders]);
+
+  // When available lines change, drop any selected lines that are no longer valid
+  React.useEffect(() => {
+    const invalid = selectedResources.filter(r => !availableResources.includes(r));
+    if (invalid.length > 0) {
+      setSelectedResources(prev => prev.filter(r => availableResources.includes(r)));
+    }
+  }, [availableResources]);
 
   const applyPreset = (preset) => {
     const idx = allDates.indexOf(maxDate);
@@ -396,7 +427,7 @@ function ProductionReportTool() {
           {/* Multi-select: Line */}
           <MultiSelect
             label="Line"
-            options={allResources}
+            options={availableResources}
             selected={selectedResources}
             onChange={setSelectedResources}
             allLabel="All lines"
