@@ -65,7 +65,7 @@ function parseExcelToRows(workbook) {
   const COL_QTY      = colIdx(["GOOD_QTY", "QTY", "UNITS"],          7);
   const COL_SHIFT    = colIdx(["SHIFT", "SHIFT_CODE"],               11);
   const COL_EARNED   = colIdx(["EARNED", "EARNED_HRS"],              19);
-  const COL_LEAD     = colIdx(["UNIT LEAD", "UNIT_LEAD", "AT"],      45);
+  const COL_LEAD     = colIdx(["UNIT LEAD", "UNIT_LEAD", "AU"],      46);
 
   const rows = [];
   for (let i = 1; i < raw.length; i++) {
@@ -276,6 +276,12 @@ function ProductionReportTool() {
 
   const allUnitLeaders = React.useMemo(() => [...new Set(allRows.map(r => r.unitLead).filter(Boolean))].sort(), [allRows]);
 
+  // Shifts present in data, sorted by the canonical order
+  const allShifts = React.useMemo(() => {
+    const inData = new Set(allRows.map(r => r.shift).filter(Boolean));
+    return SHIFT_ORDER.filter(s => inData.has(s));
+  }, [allRows]);
+
   // Filter state
   const [dateMode, setDateMode] = React.useState("single");
   const [singleDate, setSingleDate] = React.useState("");
@@ -477,17 +483,6 @@ function ProductionReportTool() {
         <div className="px-4 md:px-6 py-4 flex flex-wrap items-end gap-4">
 
           <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Unit Leader</label>
-            <select className="px-3 py-2 text-sm font-semibold border border-stone-300 rounded-md bg-white min-w-[200px]">
-              <option>BU Verathon — George</option>
-              <option disabled>BU Molding — Andrew B. (soon)</option>
-              <option disabled>BU Tier 1 — Mark P. (soon)</option>
-              <option disabled>BU Tier 2 — Lori F. (soon)</option>
-              <option disabled>BU Bellfarm — Rob S. (soon)</option>
-            </select>
-          </div>
-
-          <div>
             <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Date</label>
             <div className="flex items-center gap-2">
               <div className="flex rounded-md border border-stone-300 overflow-hidden">
@@ -515,15 +510,15 @@ function ProductionReportTool() {
             </div>
           </div>
 
-          <MultiSelect label="Unit Leader" options={allUnitLeaders} selected={selectedUnitLeaders} onChange={setSelectedUnitLeaders} allLabel="All leaders"/>
-          <MultiSelect label="Shift" options={SHIFT_ORDER} selected={selectedShifts} onChange={setSelectedShifts} allLabel="All shifts"/>
+          <MultiSelect label="Business Unit" options={allUnitLeaders} selected={selectedUnitLeaders} onChange={setSelectedUnitLeaders} allLabel="All BUs"/>
+          <MultiSelect label="Shift" options={allShifts} selected={selectedShifts} onChange={setSelectedShifts} allLabel="All shifts"/>
           <MultiSelect label="Line" options={availableResources} selected={selectedResources} onChange={setSelectedResources} allLabel="All lines"/>
 
           {(selectedUnitLeaders.length > 0 || selectedShifts.length > 0 || selectedResources.length > 0) && (
             <div className="flex flex-wrap gap-1.5 items-center pt-5">
               {selectedUnitLeaders.map(u => (
                 <span key={u} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
-                  👤 {u}
+                  🏭 {u}
                   <button onClick={() => setSelectedUnitLeaders(selectedUnitLeaders.filter(x => x !== u))} className="hover:text-blue-600 ml-0.5">×</button>
                 </span>
               ))}
