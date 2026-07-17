@@ -76,10 +76,11 @@ function parseExcelToRows(workbook) {
   const COL_RESOURCE = colIdx(["RESOURCE_ID", "RESOURCE"],           3);
   const COL_HRS      = colIdx(["HOURS_WORKED", "HRS", "HOURS"],      4);
   const COL_QTY      = colIdx(["GOOD_QTY", "QTY", "UNITS"],          7);
-  const COL_SHIFT    = colIdx(["SHIFT", "SHIFT_CODE"],               11);
+  const COL_SHIFT    = colIdx(["ID", "SHIFT", "SHIFT_CODE"],         11);
   const COL_EARNED   = colIdx(["EARNED", "EARNED_HRS"],              19);
-  const COL_LEAD     = colIdx(["UNIT LEAD", "UNIT_LEAD", "AU"],      46);
+  const COL_LEAD     = colIdx(["BU", "UNIT LEAD", "UNIT_LEAD"],      46);
 
+  console.log("Column indices → SHIFT:", COL_SHIFT, "header:", header[COL_SHIFT], "| BU:", COL_LEAD, "header:", header[COL_LEAD]);
   const rows = [];
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
