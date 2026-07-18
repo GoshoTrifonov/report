@@ -524,7 +524,16 @@ function BuildTracker() {
           if (woTotals[row.wo] !== undefined) {
             const key = rowKey({ ...row, _idx: idx });
             const existing = nextOverrides[key] || {};
-            nextOverrides[key] = { ...existing, comp_qty: woTotals[row.wo], _updatedAt: new Date().toISOString() };
+            const newQty = woTotals[row.wo];
+            const startQty = row.start_qty || 0;
+            // Auto-set status: done if qty met, wip if partial, keep existing if already post-production
+            const currentStatus = existing.status || row.status;
+            let newStatus = currentStatus;
+            if (!POST_PRODUCTION_STATUSES.has(currentStatus)) {
+              if (startQty > 0 && newQty >= startQty) newStatus = "done";
+              else if (newQty > 0) newStatus = "wip";
+            }
+            nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, _updatedAt: new Date().toISOString() };
             matchCount++;
           }
         });
