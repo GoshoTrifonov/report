@@ -562,9 +562,9 @@ function BuildTracker() {
 
   const allRows = useMemo(() => {
     const rows = BUILD_DATA.rows.map((r, idx) => {
-      const tagged = { ...r, _idx: idx };
+      const tagged = { ...r, _idx: idx, comp_qty: parseFloat(r.comp_qty) || 0 };
       const o = overrides[rowKey(tagged)];
-      return o ? { ...tagged, ...o, _override: true } : tagged;
+      return o ? { ...tagged, ...o, comp_qty: parseFloat(o.comp_qty ?? tagged.comp_qty) || 0, _override: true } : tagged;
     });
 
     // Auto-tool inheritance: if a todo WO has the same tool_id as any currently-active
@@ -2470,7 +2470,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
           )}
 
           {/* Context actions */}
-          {row.status === "wip" && info && sdone > 0 && sdone < info.total && (
+          {row.status === "wip" && false && (
             <button
               onClick={cutShortToAbr}
               className="w-full px-3 py-2.5 bg-orange-50 border border-orange-300 text-orange-800 hover:bg-orange-100 rounded-md text-sm font-medium flex items-center justify-center gap-2 transition-colors"
