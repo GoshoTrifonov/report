@@ -818,7 +818,12 @@ function BuildTracker() {
       let cursor = 0;
       const items = line.rows.map(r => {
         const start = cursor;
-        const length = Math.max(0, r.run_hrs || 0);
+        // For WIP rows: show only remaining hours so the bar reflects real time left
+        let length = Math.max(0, r.run_hrs || 0);
+        if (r.status === "wip" && r.start_qty > 0 && r.comp_qty > 0) {
+          const pct = Math.min(1, r.comp_qty / r.start_qty);
+          length = Math.max(0.25, length * (1 - pct));
+        }
         cursor += length;
         return { row: r, start, length };
       });
@@ -1472,6 +1477,8 @@ function StatWithIcon({ label, value, accent, icon: Icon, fill }) {
 
 // Progress overlay — green fill showing comp_qty / start_qty
 function ProgressOverlay({ row }) {
+  // For WIP rows the bar itself is already sized to remaining time — no fill needed
+  if (row.status === "wip") return null;
   if (!row.start_qty || row.start_qty <= 0 || !row.comp_qty || row.comp_qty <= 0) return null;
   const fillPct = Math.min(100, (row.comp_qty / row.start_qty) * 100);
   return (
