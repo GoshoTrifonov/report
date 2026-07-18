@@ -446,11 +446,21 @@ const dayLabel = (date, today) => {
 };
 const dateLabel = (date) => date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+// Auto-refresh component for presentation mode
+function PresentationRefresh() {
+  useEffect(() => {
+    const timer = setInterval(() => window.location.reload(), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  return null;
+}
+
 function BuildTracker() {
   const [overrides, setOverrides] = useState({});
   const [selectedWo, setSelectedWo] = useState(null);
   const [zoom, setZoom] = useState(14);
-  const [fbStatus, setFbStatus] = useState("loading"); // "loading"|"live"|"error"
+  const [fbStatus, setFbStatus] = useState("loading");
+  const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
   const [lastSync, setLastSync] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null); // null | {type, msg, ok}
   const buildPlanInputRef = useRef(null);
@@ -664,6 +674,16 @@ function BuildTracker() {
     try { localStorage.setItem(LEADER_STORAGE, name); } catch {}
   };
 
+  // Presentation mode keyboard exit (Escape)
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") setPresentationMode(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  // Running lines filter
+  const [lineFilter, setLineFilter] = useState("all"); // "all" | "running" | "running_down"
+
   // User initials — soft attribution (not security). Asks once per device,
   // stamps every action so we know who did what for shift reports.
   const INITIALS_STORAGE = "build_tracker_initials";
@@ -768,7 +788,20 @@ function BuildTracker() {
         doneCount: allInResource.length - productionActive.length,
         totalHrs,
       };
-    }).filter(l => l.rows.length > 0);
+    }).filter(l => {
+      if (l.rows.length === 0) return false;
+      if (lineFilter === "all") return true;
+      const hasWip = l.rows.some(r => r.status === "wip");
+      if (lineFilter === "running") return hasWip;
+      if (lineFilter === "running_down") {
+        const { shiftId, shiftDate } = getCurrentShift(new Date());
+        const isDown = ((lineDown[l.resource] || []).find(e =>
+          shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(shiftDate, shiftId)
+        )) ? true : false;
+        return hasWip || isDown;
+      }
+      return true;
+    });
   }, [allRows, selectedLeader]);
 
   // ABR + BRS lists (across all the leader's lines, not just top 3)
@@ -805,7 +838,10 @@ function BuildTracker() {
     for (const l of lines) {
       const nextRow = l.rows[1]; // POS_LABELS = ['NOW', 'NEXT', 'THEN'] → index 1 = NEXT
       if (nextRow && nextRow.status === "todo" && !isReady(nextRow)) {
-        nextNotReadyList.push(nextRow);
+        // Attach the NOW WO's remaining run_hrs so modal can show urgency
+        const nowRow = l.rows[0];
+        const nowHrs = nowRow ? (nowRow.run_hrs || 0) : 0;
+        nextNotReadyList.push({ ...nextRow, _nowRunHrs: nowHrs });
       }
     }
     return {
@@ -982,6 +1018,89 @@ function BuildTracker() {
   const [lineDownTarget, setLineDownTarget] = useState(null); // resource name or null
   const [showNextNotReady, setShowNextNotReady] = useState(false);
 
+  // ── Presentation Mode ─────────────────────────────────────────────────────
+  if (presentationMode) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
+        {/* Exit button — subtle, corner */}
+        <button
+          onClick={() => setPresentationMode(false)}
+          className="fixed top-3 right-3 z-50 opacity-20 hover:opacity-80 transition-opacity px-2 py-1 rounded bg-white/20 text-white text-xs"
+          title="Exit presentation mode (or press Escape)"
+        >✕ Exit</button>
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center font-bold text-lg">B/P</div>
+            <div>
+              <div className="text-2xl font-bold">{buName(selectedLeader)}</div>
+              <div className="text-sm text-white/60">Build Plan Tracker · {lines.length} lines · {stats.wip} WIP</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 text-right">
+            {stats.nextNotReady > 0 && (
+              <div>
+                <div className="text-3xl font-bold text-rose-400">{stats.nextNotReady}</div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">Next Not Ready</div>
+              </div>
+            )}
+            <div>
+              <div className="text-3xl font-bold text-amber-400">{stats.wip}</div>
+              <div className="text-xs text-white/60 uppercase tracking-wider">WIP</div>
+            </div>
+            <div className="text-sm text-white/40 font-mono">{new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</div>
+          </div>
+        </div>
+
+        {/* Lines grid */}
+        <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 overflow-auto" style={{ maxHeight: "calc(100vh - 100px)" }}>
+          {lines.map(line => {
+            const { shiftId, shiftDate } = getCurrentShift(new Date());
+            const isDown = ((lineDown[line.resource] || []).find(e =>
+              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(shiftDate, shiftId)
+            )) ? true : false;
+            const hasWip = line.rows.some(r => r.status === "wip");
+            const hasNotReady = line.rows.some(r => r.status === "todo" && !isReady(r));
+            const bgClass = isDown ? "bg-rose-900/60 border-rose-500" : hasWip ? "bg-amber-900/40 border-amber-500/50" : "bg-white/5 border-white/10";
+            return (
+              <div key={line.resource} className={`rounded-xl border p-4 ${bgClass}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-lg truncate">{line.resource}</span>
+                  <div className="flex gap-1.5 shrink-0">
+                    {isDown && <span className="text-xs font-bold px-2 py-0.5 rounded bg-rose-600 text-white">DOWN</span>}
+                    {hasWip && !isDown && <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500 text-slate-900">RUN</span>}
+                    {hasNotReady && <span className="text-xs font-bold px-2 py-0.5 rounded bg-rose-500 text-white">⚠ NOT READY</span>}
+                  </div>
+                </div>
+                {line.rows.slice(0, 3).map((r, i) => {
+                  const pct = r.start_qty > 0 ? Math.min(100, ((r.comp_qty || 0) / r.start_qty) * 100) : 0;
+                  const posLabel = ["NOW", "NEXT", "THEN"][i];
+                  return (
+                    <div key={r.wo} className="mb-2">
+                      <div className="flex items-baseline gap-2 mb-0.5">
+                        <span className={`text-[10px] font-bold uppercase ${i === 0 ? "text-amber-400" : "text-white/40"}`}>{posLabel}</span>
+                        <span className="font-mono text-sm font-semibold text-white/90 truncate">{r.wo}</span>
+                      </div>
+                      {pct > 0 && (
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Auto-refresh every 60s */}
+        <PresentationRefresh />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
       <header ref={headerRef} className="border-b border-stone-200 bg-white sticky top-0 z-40 shadow-sm">
@@ -1016,6 +1135,22 @@ function BuildTracker() {
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
               </svg>
             </div>
+            {/* Line filter */}
+            <div className="relative">
+              <select
+                value={lineFilter}
+                onChange={e => setLineFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 text-sm font-semibold bg-white border border-stone-300 rounded-md hover:border-stone-400 cursor-pointer focus:outline-none"
+              >
+                <option value="all">All lines</option>
+                <option value="running">Running only</option>
+                <option value="running_down">Running + Down</option>
+              </select>
+              <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
+              </svg>
+            </div>
+
             {/* Upload buttons */}
             <div className="flex items-center gap-1.5 ml-2">
               <input ref={buildPlanInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleBuildPlanUpload}/>
@@ -1041,6 +1176,15 @@ function BuildTracker() {
                 {uploadStatus.msg}
               </div>
             )}
+
+            {/* Presentation mode button */}
+            <button
+              onClick={() => setPresentationMode(true)}
+              title="Presentation / TV Mode"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-slate-900 hover:bg-slate-900 hover:text-white bg-white text-slate-700 text-[11px] font-semibold transition-colors"
+            >
+              📺 TV Mode
+            </button>
 
             {/* Initials badge — soft attribution */}
             {userInitials && (
@@ -1688,6 +1832,12 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
 }
 
 function NextNotReadyModal({ rows, onSelect, onClose }) {
+  // Sort by run_hrs offset as proxy for urgency (earlier in queue = more urgent)
+  // and attach a projected "starts in ~Xh" label based on position
+  const sorted = useMemo(() => {
+    return [...rows].sort((a, b) => (a._idx || 0) - (b._idx || 0));
+  }, [rows]);
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-20" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
@@ -1697,28 +1847,35 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
               <AlertTriangle className="w-5 h-5 text-rose-600" fill="currentColor" />
               Next WOs Not Ready ({rows.length})
             </h2>
-            <p className="text-xs text-slate-500">These are NEXT slot WOs missing Tool / Labels / Kit verification</p>
+            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness — sorted by urgency</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
         <div className="max-h-[60vh] overflow-auto divide-y divide-stone-100">
-          {rows.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready 🎉</div>
-          ) : rows.map((r, i) => {
+          ) : sorted.map((r, i) => {
             const ready = r.readiness || {};
             const missing = [];
             if (!ready.tool?.ok) missing.push("Tool");
             if (!ready.labels?.ok) missing.push("Labels");
             if (!ready.kit?.ok) missing.push("Kit");
+            // Estimate urgency from run_hrs of current NOW WO on this line
+            const nowHrs = r._nowRunHrs || 0;
+            const isUrgent = nowHrs > 0 && nowHrs < 4;
             return (
               <button
                 key={i}
                 onClick={() => onSelect(r)}
-                className="w-full text-left px-4 py-3 hover:bg-rose-50 transition-colors"
+                className={`w-full text-left px-4 py-3 transition-colors ${isUrgent ? "bg-rose-50 border-l-4 border-rose-500 hover:bg-rose-100" : "hover:bg-stone-50"}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-slate-500 mb-0.5">{r.resource}</div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
+                      {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ NOW WO ~{nowHrs.toFixed(0)}h left</span>}
+                    </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
                   </div>
@@ -1736,7 +1893,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
-          Click a WO to open it and verify readiness
+          Click a WO to open it and verify readiness · Red border = NOW WO finishing in under 4h
         </div>
       </div>
     </div>
@@ -2166,8 +2323,9 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
   const expectedShift = Math.round(ratePerHour * 8);
   const tolerance = 0.95;
   const enteredQty = Number(qty) || 0;
+  const isOver  = expectedShift > 0 && enteredQty > 0 && enteredQty > expectedShift * 1.15;
   const isShort = expectedShift > 0 && enteredQty > 0 && enteredQty < expectedShift * tolerance;
-  const REASONS = ["Quality", "Tooling", "Machinery", "Other"];
+  const REASONS = ["Quality", "Tooling", "Machinery", "Materials", "Other"];
 
   const submit = () => {
     const n = Number(qty);
@@ -2178,11 +2336,11 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
     if (n > remaining + 0.5) {
       if (!confirm(`Logging ${n} but only ${remaining} units remain. Continue?`)) return;
     }
-    if (isShort && !reason) {
-      alert(`Quantity is below 95% of expected (${expectedShift}). Please pick a reason.`);
+    if ((isShort || isOver) && !reason) {
+      alert(`Quantity is ${isOver ? "above 115%" : "below 95%"} of expected (${expectedShift}). Please pick a reason.`);
       return;
     }
-    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: n, notes, reason: isShort ? reason : "" });
+    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: n, notes, reason: (isShort || isOver) ? reason : "" });
     setQty("");
     setNotes("");
     setReason("");
@@ -2255,10 +2413,10 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
       </div>
 
       {/* Reason dropdown — shown only when entered qty is below 95% of target */}
-      {isShort && (
+      {(isShort || isOver) && (
         <div className="mb-2.5 p-2.5 rounded-md bg-amber-50 border-2 border-amber-300">
           <label className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block mb-1.5">
-            ⚠ Below target — pick a reason <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
+            {isOver ? "⬆ Above target — pick a reason" : "⚠ Below target — pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {REASONS.map(r => (
