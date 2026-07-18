@@ -227,8 +227,6 @@ function parseLabourTicketsForWOs(workbook) {
   return totals;
 }
 const SHIFT_HOURS = 8;
-const SKID_SIZE = 150;
-
 // Business Unit display names — maps internal leader keys to BU labels shown in the UI.
 // Internal data still uses leader names (e.g. "George") for filtering; this is display-only.
 const LEADER_TO_BU = {
@@ -239,11 +237,6 @@ const LEADER_TO_BU = {
   "Rob S.":    "BU Bellfarm",
 };
 const buName = (leader) => LEADER_TO_BU[leader] || leader;
-// Skid tracking is currently Lopro-specific (150-unit skids).
-// Other resources have varying packing sizes — we'll add per-resource configuration
-// later when the user provides a packing/skid size table.
-const usesSkids = (resource) => /^lopro/i.test(resource || "");
-
 const STATUS = {
   done:   { label: "Done",          dot: "bg-emerald-500", bar: "bg-emerald-500", chip: "bg-emerald-50 text-emerald-700 border-emerald-200", border: "border-emerald-500", textOnBar: "text-white" },
   brs:    { label: "BR Submitted",  dot: "bg-indigo-500",  bar: "bg-indigo-400",  chip: "bg-indigo-50 text-indigo-700 border-indigo-200",    border: "border-indigo-500",  textOnBar: "text-white" },
@@ -262,23 +255,6 @@ const fmtHrs = (n) => n == null || n === 0 ? "—" : `${Number(n).toLocaleString
 const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}__${row._idx ?? ""}`;
 const isLopro = (name) => /^lopro/i.test(name);
-
-const skidInfo = (startQty, resource) => {
-  if (resource && !usesSkids(resource)) return null;
-  if (!startQty || startQty <= 0) return null;
-  const total = Math.ceil(startQty / SKID_SIZE);
-  const lastSkidSize = startQty - (total - 1) * SKID_SIZE;
-  return { total, lastSkidSize };
-};
-const skidEndQty = (n, startQty) => Math.min(n * SKID_SIZE, startQty);
-const isSkidDone = (n, compQty, startQty) => (compQty || 0) >= skidEndQty(n, startQty);
-const skidsCompleted = (compQty, startQty, resource) => {
-  if (resource && !usesSkids(resource)) return 0;
-  if (!startQty || startQty <= 0) return 0;
-  const cq = compQty || 0;
-  if (cq >= startQty) return Math.ceil(startQty / SKID_SIZE);
-  return Math.floor(cq / SKID_SIZE);
-};
 
 // Readiness: tool, labels, kit. Default = not ready.
 const READINESS_KEYS = ["tool", "labels", "kit"];
@@ -544,15 +520,15 @@ function BuildTracker() {
         let matchCount = 0;
         const currentOverrides = overrides;
         const nextOverrides = { ...currentOverrides };
-        for (const row of BUILD_DATA.rows) {
+        BUILD_DATA.rows.forEach((row, idx) => {
           const woBase = row.wo.split("/")[0].trim();
           if (woTotals[woBase] !== undefined) {
-            const key = rowKey({ ...row, _idx: BUILD_DATA.rows.indexOf(row) });
+            const key = rowKey({ ...row, _idx: idx });
             const existing = nextOverrides[key] || {};
             nextOverrides[key] = { ...existing, comp_qty: woTotals[woBase], _updatedAt: new Date().toISOString() };
             matchCount++;
           }
-        }
+        });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
         // Also save full rows to shared production_data doc for Production Report Tool
         const sheetName = wb.SheetNames[0];
@@ -777,8 +753,7 @@ function BuildTracker() {
 
   const stats = useMemo(() => {
     const flat = lines.flatMap(l => l.rows);
-    const totalSkids = flat.reduce((s, r) => s + (skidInfo(r.start_qty, r.resource)?.total || 0), 0);
-    const doneSkids = flat.reduce((s, r) => s + skidsCompleted(r.comp_qty, r.start_qty, r.resource), 0);
+
     const notReady = flat.filter(r => r.status === "todo" && !isReady(r)).length;
     // "Next not ready" = WOs in the NEXT slot (position 1) of each line that are todo + not ready.
     // These are the most urgent because they're the next thing to start once NOW finishes.
@@ -796,8 +771,7 @@ function BuildTracker() {
       brs: brsList.length,
       activeWO: flat.length,
       hrsShown: flat.reduce((s, r) => s + (r.run_hrs || 0), 0),
-      totalSkids,
-      doneSkids,
+
       notReady,
       nextNotReady: nextNotReadyList.length,
       nextNotReadyList,
@@ -869,8 +843,7 @@ function BuildTracker() {
     }
 
     if (changes.comp_qty != null && changes.status == null) {
-      // All skids done → ABR (unless already in post-production). Allowed regardless of readiness
-      // because production has already happened.
+            // If qty meets or exceeds start_qty → move to ABR
       if (startQty > 0 && resultCompQty >= startQty && !POST_PRODUCTION_STATUSES.has(merged.status ?? row.status)) {
         merged.status = "abr";
       } else if (resultCompQty > 0 && (merged.status ?? row.status) === "todo" && isReady(merged_for_ready_check)) {
@@ -897,7 +870,7 @@ function BuildTracker() {
   };
 
   // Log a shift entry. Adds qty (delta) to comp_qty and appends to shifts history.
-  // Auto-ticks skids and triggers status transitions via updateRow.
+  // Adds qty delta to comp_qty and triggers status transitions via updateRow.
   const logShiftEntry = (row, { shiftId, shiftDate, qty, notes, reason }) => {
     const existingShifts = row.shifts || [];
     const newShifts = [
@@ -922,13 +895,12 @@ function BuildTracker() {
   };
 
   const exportOverrides = () => {
-    const out = ["resource,workorder,new_status,new_comp_qty,skids_done,updated_at"];
+    const out = ["resource,workorder,new_status,new_comp_qty,updated_at"];
     for (const [key, ov] of Object.entries(overrides)) {
       const src = allRows.find(r => rowKey(r) === key);
       if (!src) continue;
       const newCompQty = ov.comp_qty != null ? ov.comp_qty : src.comp_qty;
-      const sd = skidsCompleted(newCompQty, src.start_qty, src.resource);
-      out.push([src.resource, src.wo || "", ov.status || src.status, newCompQty, sd, ov._updatedAt || ""]
+      out.push([src.resource, src.wo || "", ov.status || src.status, newCompQty, ov._updatedAt || ""]
         .map(x => `"${String(x).replace(/"/g, '""')}"`).join(","));
     }
     const blob = new Blob([out.join("\n")], { type: "text/csv" });
@@ -975,7 +947,7 @@ function BuildTracker() {
             <div>
               <div className="text-sm font-semibold text-slate-900">Build Plan Tracker</div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · 150-unit skids · Bars by run hours</span>
+                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours</span>
                 {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ⏳ Connecting…</span>}
                 {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· 🔄 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
                 {fbStatus === "error" && <span className="text-rose-600 font-medium">· ⚠ Offline</span>}
@@ -1056,7 +1028,7 @@ function BuildTracker() {
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
             <Stat label="Production WOs" value={stats.activeWO} />
-            <Stat label="Skids" value={`${stats.doneSkids} / ${stats.totalSkids}`} accent="emerald" />
+
             <Stat label="Hrs Shown" value={fmtNum(stats.hrsShown)} />
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 ml-auto md:ml-0">
@@ -1078,7 +1050,6 @@ function BuildTracker() {
           onSelect={setSelectedWo}
           tone="yellow"
           icon={<Flag className="w-4 h-4 fill-yellow-400 text-yellow-700" />}
-          showSkids
         />
       )}
       {brsList.length > 0 && (
@@ -1192,7 +1163,7 @@ function BuildTracker() {
   );
 }
 
-function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, showSkids, stripRef, stickyTop = 0, zIndex = 30 }) {
+function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, stripRef, stickyTop = 0, zIndex = 30 }) {
   const toneStyles = {
     yellow: { wrap: "border-yellow-300 bg-yellow-50", titleColor: "text-yellow-900", chipBorder: "border-yellow-300 hover:border-yellow-500" },
     indigo: { wrap: "border-indigo-300 bg-indigo-50", titleColor: "text-indigo-900", chipBorder: "border-indigo-300 hover:border-indigo-500" },
@@ -1212,20 +1183,12 @@ function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, showSkids, 
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {rows.map(r => {
-            const info = skidInfo(r.start_qty, r.resource);
-            const sd = skidsCompleted(r.comp_qty, r.start_qty, r.resource);
-            const cutShort = info && sd < info.total;
             return (
               <button key={rowKey(r)} onClick={() => onSelect(r)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md hover:shadow-sm transition-all text-xs ${toneStyles.chipBorder}`}>
                 <span className="font-mono font-semibold text-slate-800">{r.wo}</span>
                 <span className="text-slate-400">·</span>
                 <span className="text-slate-700 truncate max-w-[120px]">{r.resource}</span>
-                {showSkids && info && (
-                  <span className={`text-[10px] tabular-nums font-bold ${cutShort ? "text-orange-700" : "text-emerald-700"}`}>
-                    {sd}/{info.total}{cutShort ? " ✂" : ""}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -1260,41 +1223,8 @@ function StatWithIcon({ label, value, accent, icon: Icon, fill }) {
   );
 }
 
-function SkidOverlay({ row }) {
-  const info = skidInfo(row.start_qty, row.resource);
-  if (!info || row.start_qty <= 0) return null;
-  const compQty = row.comp_qty || 0;
-  return (
-    <div className="absolute inset-0 flex pointer-events-none">
-      {Array.from({ length: info.total }, (_, i) => {
-        const n = i + 1;
-        const isLast = n === info.total;
-        const skidSize = isLast ? info.lastSkidSize : SKID_SIZE;
-        const widthPct = (skidSize / row.start_qty) * 100;
-        const skidStartQty = (n - 1) * SKID_SIZE;
-        const skidEndQ = skidStartQty + skidSize;
-        let fillPct = 0;
-        if (compQty >= skidEndQ) fillPct = 100;
-        else if (compQty > skidStartQty) fillPct = ((compQty - skidStartQty) / skidSize) * 100;
-        return (
-          <div key={n}
-               className={`h-full relative ${n > 1 ? "border-l border-white/50" : ""}`}
-               style={{ width: `${widthPct}%` }}>
-            {fillPct > 0 && (
-              <div className="absolute inset-y-0 left-0 bg-emerald-500/85"
-                   style={{ width: `${fillPct}%` }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// For non-Lopro lines (no skids), show a simple green fill from the left
-// representing comp_qty / start_qty as a single continuous bar.
+// Progress overlay — green fill showing comp_qty / start_qty
 function ProgressOverlay({ row }) {
-  if (usesSkids(row.resource)) return null; // Lopro lines use SkidOverlay instead
   if (!row.start_qty || row.start_qty <= 0 || !row.comp_qty || row.comp_qty <= 0) return null;
   const fillPct = Math.min(100, (row.comp_qty / row.start_qty) * 100);
   return (
@@ -1470,8 +1400,6 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                 </div>
                 {line.rows.map((r, i) => {
                   const meta = STATUS[r.status] || STATUS.todo;
-                  const info = skidInfo(r.start_qty, r.resource);
-                  const sd = skidsCompleted(r.comp_qty, r.start_qty, r.resource);
                   const showNotReady = r.status === "todo" && !isReady(r);
                   return (
                     <div key={rowKey(r)}
@@ -1484,11 +1412,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                       )}
                       <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "—"}</span>
-                      {info && (
-                        <span className={`text-[9px] tabular-nums shrink-0 font-semibold ${sd === info.total ? "text-emerald-700" : sd > 0 ? "text-amber-700" : "text-slate-400"}`}>
-                          {sd}/{info.total}
-                        </span>
-                      )}
+
                       {r._override && <Pencil className="w-2.5 h-2.5 text-slate-400 shrink-0" />}
                     </div>
                   );
@@ -1559,7 +1483,6 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${meta.bar} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
                              style={{ left: `${x}px`, width: `${w}px` }}
                              title={`${r.wo} · ${r.descr || r.part || ""} · ${fmtHrs(r.run_hrs)} · ${meta.label}${showNotReady ? " · NOT READY" : ""}`}>
-                          <SkidOverlay row={r} />
                           <ProgressOverlay row={r} />
                           {w > 50 && (
                             <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none gap-1.5 min-w-0">
@@ -1596,7 +1519,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
           const s = STATUS[key];
           return <span key={key} className="flex items-center gap-1.5"><span className={`w-3 h-3 rounded-sm ${s.bar}`} />{s.label}</span>;
         })}
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500/85" />Skid done</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500/85" />Progress</span>
         <span className="flex items-center gap-1.5"><Flag className="w-3 h-3 fill-yellow-400 text-yellow-700" />Awaiting BR (in strip above)</span>
         <span className="flex items-center gap-1.5"><FileCheck2 className="w-3 h-3 text-indigo-700" />BR Submitted (in strip above)</span>
         <span className="flex items-center gap-1.5"><span className="border-r border-dashed border-slate-400 h-3" />Shift (8h)</span>
@@ -2362,10 +2285,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
   const meta = STATUS[row.status] || STATUS.todo;
   const pct = row.start_qty > 0 ? Math.min(100, ((row.comp_qty || 0) / row.start_qty) * 100) : 0;
   const [qtyInput, setQtyInput] = useState(String(row.comp_qty ?? 0));
-  const info = skidInfo(row.start_qty, row.resource);
-  const sdone = skidsCompleted(row.comp_qty, row.start_qty, row.resource);
-  const cutShort = info && sdone < info.total && (row.status === "abr" || row.status === "brs");
-  const skidsLocked = row.status === "abr" || row.status === "brs" || row.status === "done";
+  const cutShort = false;
   const ready = isReady(row);
   const rdyCount = readyCount(row);
   const showReadiness = row.status === "todo"; // only show for queued WOs
@@ -2377,14 +2297,10 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
     if (Number.isFinite(n) && n !== row.comp_qty) updateRow(row, { comp_qty: n });
   };
 
-  const toggleSkid = (n) => {
-    const isDone = isSkidDone(n, row.comp_qty || 0, row.start_qty);
-    const newCompQty = isDone ? skidEndQty(n - 1, row.start_qty) : skidEndQty(n, row.start_qty);
-    updateRow(row, { comp_qty: newCompQty });
-  };
+
 
   const cutShortToAbr = () => {
-    if (confirm(`Mark this WO as Awaiting Batch Record with ${sdone} of ${info?.total} skids complete?`)) {
+    if (confirm("Mark this WO as Awaiting Batch Record?")) {
       updateRow(row, { status: "abr" });
     }
   };
@@ -2539,45 +2455,8 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
             </div>
           )}
 
-          {info && (
-            <div>
-              <div className="flex items-baseline justify-between mb-2">
-                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Skids Completed</div>
-                <div className={`text-xs tabular-nums font-semibold ${sdone === info.total ? "text-emerald-700" : sdone > 0 ? "text-amber-700" : "text-slate-500"}`}>
-                  {sdone} / {info.total} · {fmtNum(SKID_SIZE)} units each
-                </div>
-              </div>
-              <div className={`grid gap-2 ${info.total <= 4 ? "grid-cols-4" : "grid-cols-5"}`}>
-                {Array.from({ length: info.total }, (_, i) => {
-                  const n = i + 1;
-                  const isLast = n === info.total;
-                  const sz = isLast ? info.lastSkidSize : SKID_SIZE;
-                  const isDone = isSkidDone(n, row.comp_qty || 0, row.start_qty);
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => toggleSkid(n)}
-                      disabled={skidsLocked}
-                      className={`relative px-1 py-3 rounded-md border-2 transition-all flex flex-col items-center gap-0.5 ${
-                        isDone
-                          ? "bg-emerald-500 border-emerald-600 text-white shadow-sm hover:bg-emerald-600 disabled:hover:bg-emerald-500"
-                          : "bg-white border-stone-300 text-slate-700 hover:border-emerald-400 hover:bg-emerald-50"
-                      } disabled:opacity-70 disabled:cursor-not-allowed`}
-                    >
-                      {isDone && <Check className="absolute top-1 right-1 w-3 h-3" strokeWidth={3} />}
-                      <span className="text-base font-bold tabular-nums">#{n}</span>
-                      <span className={`text-[9px] tabular-nums ${isDone ? "text-emerald-50" : "text-slate-500"}`}>{sz}u</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="text-[10px] text-slate-500 mt-2 italic">
-                {skidsLocked ? "Skids locked — change status to edit." : "Tap each skid as it's ready. Updates qty automatically."}
-              </div>
-            </div>
-          )}
 
-          {/* Shift entry — only for production-active WOs (todo & wip) */}
+                    {/* Shift entry — only for production-active WOs (todo & wip) */}
           {(row.status === "todo" || row.status === "wip") && (
             <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} />
           )}
