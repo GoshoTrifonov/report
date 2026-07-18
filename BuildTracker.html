@@ -1019,87 +1019,144 @@ function BuildTracker() {
   const [showNextNotReady, setShowNextNotReady] = useState(false);
 
   // ── Presentation Mode ─────────────────────────────────────────────────────
-  if (presentationMode) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
-        {/* Exit button — subtle, corner */}
-        <button
-          onClick={() => setPresentationMode(false)}
-          className="fixed top-3 right-3 z-50 opacity-20 hover:opacity-80 transition-opacity px-2 py-1 rounded bg-white/20 text-white text-xs"
-          title="Exit presentation mode (or press Escape)"
-        >✕ Exit</button>
+  const [tvExcluded, setTvExcluded] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bt_tv_excluded") || "[]"); } catch(e) { return []; }
+  });
+  const [showTvConfig, setShowTvConfig] = useState(false);
 
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center font-bold text-lg">B/P</div>
-            <div>
-              <div className="text-2xl font-bold">{buName(selectedLeader)}</div>
-              <div className="text-sm text-white/60">Build Plan Tracker · {lines.length} lines · {stats.wip} WIP</div>
-            </div>
+  const saveTvExcluded = (list) => {
+    setTvExcluded(list);
+    try { localStorage.setItem("bt_tv_excluded", JSON.stringify(list)); } catch(e) {}
+  };
+
+  const tvLines = useMemo(() => lines.filter(l => !tvExcluded.includes(l.resource)), [lines, tvExcluded]);
+
+  if (presentationMode) {
+    const now = new Date();
+    const { shiftId: curShift, shiftDate: curShiftDate } = getCurrentShift(now);
+    const colCount = tvLines.length <= 6 ? 2 : tvLines.length <= 12 ? 3 : tvLines.length <= 20 ? 4 : 5;
+
+    return (
+      <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#0f172a", color: "white", fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif", display: "flex", flexDirection: "column" }}>
+        {/* Exit — invisible until hover */}
+        <button onClick={() => setPresentationMode(false)}
+          style={{ position: "fixed", top: 8, right: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+          onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
+        >✕ Exit (Esc)</button>
+
+        {/* Config button */}
+        <button onClick={() => setShowTvConfig(v => !v)}
+          style={{ position: "fixed", top: 8, left: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+          onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
+        >⚙ Lines</button>
+
+        {/* Line exclusion config panel */}
+        {showTvConfig && (
+          <div style={{ position: "fixed", top: 36, left: 8, zIndex: 50, background: "#1e293b", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: 12, width: 220, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>Hide from TV</div>
+            {lines.map(l => (
+              <label key={l.resource} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", cursor: "pointer", fontSize: 12 }}>
+                <input type="checkbox" checked={tvExcluded.includes(l.resource)}
+                  onChange={e => {
+                    const next = e.target.checked
+                      ? [...tvExcluded, l.resource]
+                      : tvExcluded.filter(x => x !== l.resource);
+                    saveTvExcluded(next);
+                  }}
+                />
+                <span style={{ color: tvExcluded.includes(l.resource) ? "rgba(255,255,255,0.3)" : "white" }}>{l.resource}</span>
+              </label>
+            ))}
+            <button onClick={() => setShowTvConfig(false)}
+              style={{ marginTop: 10, width: "100%", padding: "4px 0", background: "rgba(255,255,255,0.1)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}>
+              Done
+            </button>
           </div>
-          <div className="flex items-center gap-6 text-right">
-            {stats.nextNotReady > 0 && (
-              <div>
-                <div className="text-3xl font-bold text-rose-400">{stats.nextNotReady}</div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">Next Not Ready</div>
-              </div>
-            )}
-            <div>
-              <div className="text-3xl font-bold text-amber-400">{stats.wip}</div>
-              <div className="text-xs text-white/60 uppercase tracking-wider">WIP</div>
-            </div>
-            <div className="text-sm text-white/40 font-mono">{new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</div>
+        )}
+
+        {/* Compact header — single row */}
+        <div style={{ padding: "6px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{buName(selectedLeader)}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{tvLines.length} lines</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>{stats.wip} WIP</span>
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>⚠ {stats.nextNotReady} Not Ready</span>}
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "monospace" }}>{now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}</span>
           </div>
         </div>
 
-        {/* Lines grid */}
-        <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 overflow-auto" style={{ maxHeight: "calc(100vh - 100px)" }}>
-          {lines.map(line => {
-            const { shiftId, shiftDate } = getCurrentShift(new Date());
+        {/* Lines grid — fills remaining height exactly */}
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gap: 6, padding: 6, overflow: "hidden", alignContent: "start" }}>
+          {tvLines.map(line => {
             const isDown = ((lineDown[line.resource] || []).find(e =>
-              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(shiftDate, shiftId)
+              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
             )) ? true : false;
+            const nowRow = line.rows[0];
             const hasWip = line.rows.some(r => r.status === "wip");
             const hasNotReady = line.rows.some(r => r.status === "todo" && !isReady(r));
-            const bgClass = isDown ? "bg-rose-900/60 border-rose-500" : hasWip ? "bg-amber-900/40 border-amber-500/50" : "bg-white/5 border-white/10";
+
+            // Remaining hours on NOW WO
+            let remainHrs = null;
+            if (nowRow && nowRow.start_qty > 0 && nowRow.run_hrs > 0) {
+              const pct = Math.min(1, (nowRow.comp_qty || 0) / nowRow.start_qty);
+              remainHrs = nowRow.run_hrs * (1 - pct);
+            }
+
+            const borderColor = isDown ? "#ef4444" : hasNotReady ? "#f87171" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
+            const bgColor = isDown ? "rgba(239,68,68,0.12)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
+
             return (
-              <div key={line.resource} className={`rounded-xl border p-4 ${bgClass}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-lg truncate">{line.resource}</span>
-                  <div className="flex gap-1.5 shrink-0">
-                    {isDown && <span className="text-xs font-bold px-2 py-0.5 rounded bg-rose-600 text-white">DOWN</span>}
-                    {hasWip && !isDown && <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500 text-slate-900">RUN</span>}
-                    {hasNotReady && <span className="text-xs font-bold px-2 py-0.5 rounded bg-rose-500 text-white">⚠ NOT READY</span>}
+              <div key={line.resource} style={{ border: `1px solid ${borderColor}`, borderRadius: 8, padding: "6px 8px", background: bgColor, display: "flex", flexDirection: "column", gap: 3, minHeight: 0 }}>
+                {/* Line name + badges */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{line.resource}</span>
+                  <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                    {isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>DOWN</span>}
+                    {hasWip && !isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#d97706", color: "#1c1917" }}>RUN</span>}
+                    {hasNotReady && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>⚠</span>}
                   </div>
                 </div>
-                {line.rows.slice(0, 3).map((r, i) => {
-                  const pct = r.start_qty > 0 ? Math.min(100, ((r.comp_qty || 0) / r.start_qty) * 100) : 0;
-                  const posLabel = ["NOW", "NEXT", "THEN"][i];
-                  return (
-                    <div key={r.wo} className="mb-2">
-                      <div className="flex items-baseline gap-2 mb-0.5">
-                        <span className={`text-[10px] font-bold uppercase ${i === 0 ? "text-amber-400" : "text-white/40"}`}>{posLabel}</span>
-                        <span className="font-mono text-sm font-semibold text-white/90 truncate">{r.wo}</span>
-                      </div>
-                      {pct > 0 && (
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
-                        </div>
+
+                {/* NOW WO with remaining time + progress */}
+                {nowRow && (
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: "#f59e0b" }}>NOW</span>
+                      <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60%" }}>{nowRow.wo}</span>
+                      {remainHrs !== null && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: remainHrs < 4 ? "#f87171" : "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
+                          {remainHrs < 1 ? `${Math.round(remainHrs * 60)}m` : `${remainHrs.toFixed(1)}h`} left
+                        </span>
                       )}
                     </div>
-                  );
-                })}
+                    {nowRow.start_qty > 0 && (
+                      <div style={{ height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, marginTop: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", background: "#10b981", borderRadius: 2, width: `${Math.min(100,(nowRow.comp_qty||0)/nowRow.start_qty*100)}%` }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* NEXT WO */}
+                {line.rows[1] && (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>NEXT</span>
+                    <span style={{ fontFamily: "monospace", fontSize: 9, color: "rgba(255,255,255,0.45)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{line.rows[1].wo}</span>
+                    {!isReady(line.rows[1]) && <span style={{ fontSize: 9, color: "#f87171" }}>⚠</span>}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Auto-refresh every 60s */}
         <PresentationRefresh />
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
