@@ -1146,13 +1146,39 @@ function BuildTracker() {
                 )}
 
                 {/* NEXT WO */}
-                {line.rows[1] && (
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>NEXT</span>
-                    <span style={{ fontFamily: "monospace", fontSize: 9, color: "rgba(255,255,255,0.45)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{line.rows[1].wo}</span>
-                    {!isReady(line.rows[1]) && <span style={{ fontSize: 9, color: "#f87171" }}>⚠</span>}
-                  </div>
-                )}
+                {line.rows[1] && (() => {
+                  const nr = line.rows[1];
+                  const rd = nr.readiness || {};
+                  const checks = [
+                    { key: "tool",   label: "Tool",   ok: rd.tool?.ok,   auto: rd.tool?.auto, na: rd.tool?.na },
+                    { key: "labels", label: "Labels", ok: rd.labels?.ok },
+                    { key: "kit",    label: "Kit",    ok: rd.kit?.ok },
+                  ];
+                  return (
+                    <div style={{ marginTop: 3 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 3 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)" }}>NEXT</span>
+                        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nr.wo}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 3 }}>
+                        {checks.map(c => {
+                          const bg = c.ok
+                            ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a")
+                            : "transparent";
+                          const border = c.ok ? "none" : "1px solid #ef4444";
+                          const color = c.ok ? "white" : "#f87171";
+                          const badge = c.na ? "N/A" : c.auto ? "AUTO" : null;
+                          return (
+                            <div key={c.key} style={{ background: bg, border, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700, color, display: "flex", alignItems: "center", gap: 2, position: "relative" }}>
+                              {c.label}
+                              {badge && <span style={{ fontSize: 7, opacity: 0.8 }}>{badge}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
