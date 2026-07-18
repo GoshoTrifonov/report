@@ -1588,15 +1588,25 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
               {shiftLines.map((h, i) => (
                 <div key={`s-${i}`} className="absolute top-0 bottom-0 border-r border-dashed border-slate-300" style={{ left: `${h * zoom}px` }} />
               ))}
-              {ticks.map((h, i) => (
+              {ticks.map((h, i) => {
+                  const wallClock = projectDate(h, now, DEFAULT_COVERAGE);
+                  const clockHr = wallClock.getHours();
+                  const clockMin = wallClock.getMinutes();
+                  const ampm = clockHr >= 12 ? "pm" : "am";
+                  const hr12 = clockHr % 12 || 12;
+                  const timeLabel = clockMin === 0
+                    ? `${hr12}${ampm}`
+                    : `${hr12}:${String(clockMin).padStart(2, "0")}${ampm}`;
+                  return (
                 <div key={`t-${i}`} className="absolute top-0 bottom-0 flex flex-col justify-end pb-1" style={{ left: `${h * zoom}px` }}>
                   <div className="border-l border-stone-300 h-2" />
                   <div className="text-[10px] tabular-nums text-slate-600 -translate-x-1/2 ml-px font-semibold">{h}h</div>
-                  {h > 0 && h % SHIFT_HOURS === 0 && (
-                    <div className="text-[9px] uppercase text-slate-400 -translate-x-1/2 ml-px">S{h / SHIFT_HOURS}</div>
+                  {h > 0 && (
+                    <div className="text-[9px] text-slate-400 -translate-x-1/2 ml-px whitespace-nowrap">{timeLabel}</div>
                   )}
                 </div>
-              ))}
+                  );
+                })}
             </div>
           </div>
         </div>
