@@ -456,6 +456,40 @@ function BuildTracker() {
   const buildPlanInputRef = useRef(null);
   const labourInputRef = useRef(null);
 
+  // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
+  const resourceLeaderMap = useMemo(() => {
+    const map = {};
+    for (const r of BUILD_DATA.rows) {
+      if (r.resource && r.leader) map[r.resource] = r.leader;
+    }
+    return map;
+  }, []);
+
+  // ── Live build plan from Firestore (falls back to BUILD_DATA if none uploaded) ──
+  const [buildPlanRows, setBuildPlanRows] = useState(null); // null = use BUILD_DATA
+  useEffect(() => {
+    const unsub = BT_BUILDPLAN_REF.onSnapshot(snap => {
+      const data = fbParse(snap);
+      if (data && data.rows && data.rows.length > 0) {
+        // Inject leader from resource map, sanitize comp_qty
+        const rows = data.rows.map((r, idx) => ({
+          ...r,
+          _idx: idx,
+          leader: resourceLeaderMap[r.resource] || r.leader || "",
+          comp_qty: parseFloat(r.comp_qty) || 0,
+          status: r.status || "todo",
+        }));
+        setBuildPlanRows(rows);
+      } else {
+        setBuildPlanRows(null); // fall back to BUILD_DATA
+      }
+    }, err => {
+      console.error("Build plan listener:", err);
+      setBuildPlanRows(null);
+    });
+    return () => unsub();
+  }, [resourceLeaderMap]);
+
   // ── Real-time overrides listener ──────────────────────────────────────────
   useEffect(() => {
     const unsub = BT_OVERRIDES_REF.onSnapshot(snap => {
@@ -520,7 +554,8 @@ function BuildTracker() {
         const nextOverrides = { ...currentOverrides };
 
 
-        BUILD_DATA.rows.forEach((row, idx) => {
+        const sourceRows = buildPlanRows || BUILD_DATA.rows;
+        sourceRows.forEach((row, idx) => {
           if (woTotals[row.wo] !== undefined) {
             const key = rowKey({ ...row, _idx: idx });
             const existing = nextOverrides[key] || {};
@@ -561,7 +596,8 @@ function BuildTracker() {
   };
 
   const allRows = useMemo(() => {
-    const rows = BUILD_DATA.rows.map((r, idx) => {
+    const sourceRows = buildPlanRows || BUILD_DATA.rows;
+    const rows = sourceRows.map((r, idx) => {
       const tagged = { ...r, _idx: idx, comp_qty: parseFloat(r.comp_qty) || 0 };
       const o = overrides[rowKey(tagged)];
       return o ? { ...tagged, ...o, comp_qty: parseFloat(o.comp_qty ?? tagged.comp_qty) || 0, _override: true } : tagged;
@@ -611,7 +647,7 @@ function BuildTracker() {
         },
       };
     });
-  }, [overrides]);
+  }, [overrides, buildPlanRows]);
 
   // Unit Leader picker state — defaults to Andrew B. for the launch.
   // Persists in localStorage so each device remembers its leader.
@@ -959,6 +995,8 @@ function BuildTracker() {
                 {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ⏳ Connecting…</span>}
                 {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· 🔄 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
                 {fbStatus === "error" && <span className="text-rose-600 font-medium">· ⚠ Offline</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">· 📋 Custom build plan</span>}
+                {!buildPlanRows && <span className="text-slate-400 font-medium">· using baked-in build plan</span>}
               </div>
             </div>
             {/* Leader picker */}
