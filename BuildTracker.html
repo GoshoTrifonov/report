@@ -12,6 +12,7 @@
     body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
     .timeline-scroll::-webkit-scrollbar { height: 8px; }
     .timeline-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .bar-ready { background-color: #15803d !important; }
   </style>
 
 <!-- Firebase v10 compat CDN -->
@@ -1742,11 +1743,11 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     const isSelected = selectedKey === rowKey(r);
                     const showNotReady = r.status === "todo" && !isReady(r);
                     const isReadyTodo = r.status === "todo" && !showNotReady;
-                    const barColor = isReadyTodo ? "" : meta.bar;
+                    const barColor = isReadyTodo ? "bar-ready" : meta.bar;
                     return (
                       <div key={rowKey(r)} className="h-7 bg-white relative">
                         <div onClick={() => onSelect(r)}
-                             style={isReadyTodo ? { backgroundColor: "#16a34a" } : {}}
+                             
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${barColor} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
                              style={{ left: `${x}px`, width: `${w}px` }}
                              title={`${r.wo} · ${r.descr || r.part || ""} · ${fmtHrs(r.run_hrs)} · ${meta.label}${showNotReady ? " · NOT READY" : ""}`}>
