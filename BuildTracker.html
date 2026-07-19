@@ -1941,8 +1941,6 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
 }
 
 function NextNotReadyModal({ rows, onSelect, onClose }) {
-  // Sort by _nowRunHrs ascending — smallest remaining = most urgent = top
-  // Lines with no NOW WO (nowHrs=0) go to bottom
   const sorted = useMemo(() => {
     return [...rows].sort((a, b) => {
       const aHrs = a._nowRunHrs || 9999;
@@ -1977,9 +1975,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
             const nowHrs = r._nowRunHrs || 0;
             const isUrgent = nowHrs > 0 && nowHrs < 4;
             return (
-              <button
-                key={i}
-                onClick={() => onSelect(r)}
+              <button key={i} onClick={() => onSelect(r)}
                 className={`w-full text-left px-4 py-3 transition-colors ${isUrgent ? "bg-rose-50 border-l-4 border-rose-500 hover:bg-rose-100" : "hover:bg-stone-50"}`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -1987,7 +1983,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ NOW WO ~{nowHrs.toFixed(0)}h left</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ ~{nowHrs.toFixed(0)}h left</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
@@ -1997,8 +1993,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex flex-wrap gap-1 justify-end">
                       {missing.map(m => (
                         <span key={m.label} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                          {m.label}
-                          {m.extra && <span className="font-mono text-rose-600">· {m.extra}</span>}
+                          {m.label}{m.extra && <span className="font-mono"> · {m.extra}</span>}
                         </span>
                       ))}
                     </div>
@@ -2016,61 +2011,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
   );
 }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-20" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-rose-600" fill="currentColor" />
-              Next WOs Not Ready ({rows.length})
-            </h2>
-            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness — sorted by urgency</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="max-h-[60vh] overflow-auto divide-y divide-stone-100">
-          {sorted.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready 🎉</div>
-          ) : sorted.map((r, i) => {
-            const ready = r.readiness || {};
-            const missing = [];
-            if (!ready.tool?.ok) missing.push("Tool");
-            if (!ready.labels?.ok) missing.push("Labels");
-            if (!ready.kit?.ok) missing.push("Kit");
-            // Estimate urgency from run_hrs of current NOW WO on this line
-            const nowHrs = r._nowRunHrs || 0;
-            const isUrgent = nowHrs > 0 && nowHrs < 4;
-            return (
-              <button
-                key={i}
-                onClick={() => onSelect(r)}
-                className={`w-full text-left px-4 py-3 transition-colors ${isUrgent ? "bg-rose-50 border-l-4 border-rose-500 hover:bg-rose-100" : "hover:bg-stone-50"}`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
-                      {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ NOW WO ~{nowHrs.toFixed(0)}h left</span>}
-                    </div>
-                    <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
-                    <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[10px] uppercase tracking-wider text-rose-700 font-bold mb-1">Missing:</div>
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {missing.map(m => (
-                        <span key={m} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">{m}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
+function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
   const { shiftId: defaultShift, shiftDate: defaultDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [shiftId, setShiftId] = useState(existing?.shiftId || defaultShift);
   const [reason, setReason] = useState(existing?.reason || "");
