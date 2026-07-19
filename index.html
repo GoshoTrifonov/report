@@ -303,6 +303,13 @@ function ProductionReportTool() {
   const [rangeEnd, setRangeEnd] = React.useState("");
   const [selectedShifts, setSelectedShifts] = React.useState([]);
   const [selectedResources, setSelectedResources] = React.useState([]);
+  const [sortCol, setSortCol] = React.useState("qty"); // "resource"|"qty"|"hours"|"pph"|"eff"
+  const [sortDir, setSortDir] = React.useState("desc"); // "asc"|"desc"
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortCol(col); setSortDir(col === "resource" ? "asc" : "desc"); }
+  };
   const [selectedUnitLeaders, setSelectedUnitLeaders] = React.useState([]);
 
   // Update default date when data loads
@@ -380,7 +387,7 @@ function ProductionReportTool() {
     let qty = 0, earned = 0, hours = 0;
     for (const r of filteredRows) { qty += r.qty; earned += r.earned; hours += r.hrs; }
     return { qty, earned, hours, eff: hours ? (earned/hours*100) : 0, pph: hours ? (qty/hours) : 0 };
-  }, [filteredRows]);
+  }, [filteredRows, sortCol, sortDir]);
 
   const byShift = React.useMemo(() => {
     const map = new Map();
@@ -402,7 +409,20 @@ function ProductionReportTool() {
       const s = g.shifts.get(r.shift);
       s.qty += r.qty; s.hours += r.hrs;
     }
-    return [...map.entries()].sort((a,b) => b[1].qty - a[1].qty);
+    return [...map.entries()].sort((a,b) => {
+      const [ra, da] = a; const [rb, db] = b;
+      const effA = da.hours ? (da.earned/da.hours*100) : 0;
+      const effB = db.hours ? (db.earned/db.hours*100) : 0;
+      const pphA = da.hours ? (da.qty/da.hours) : 0;
+      const pphB = db.hours ? (db.qty/db.hours) : 0;
+      let diff = 0;
+      if (sortCol === "resource") diff = ra.localeCompare(rb);
+      else if (sortCol === "qty")   diff = da.qty - db.qty;
+      else if (sortCol === "hours") diff = da.hours - db.hours;
+      else if (sortCol === "pph")   diff = pphA - pphB;
+      else if (sortCol === "eff")   diff = effA - effB;
+      return sortDir === "asc" ? diff : -diff;
+    });
   }, [filteredRows]);
 
   const totalColors = effColors(totals.eff);
@@ -640,11 +660,15 @@ function ProductionReportTool() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white text-[10px] uppercase tracking-wider">
-                <th className="text-left px-3 py-2.5 rounded-l-md">Resource</th>
-                <th className="text-right px-3 py-2.5">Units</th>
-                <th className="text-right px-3 py-2.5">Hrs Worked</th>
-                <th className="text-right px-3 py-2.5">PPH</th>
-                <th className="text-right px-3 py-2.5 rounded-r-md">Efficiency</th>
+                {[["resource","Resource","text-left","rounded-l-md"],["qty","Units","text-right",""],["hours","Hrs Worked","text-right",""],["pph","PPH","text-right",""],["eff","Efficiency","text-right","rounded-r-md"]].map(([col,label,align,rnd]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className={`${align} px-3 py-2.5 ${rnd} cursor-pointer select-none hover:bg-slate-700 transition-colors`}>
+                    <span className="inline-flex items-center gap-1">
+                      {label}
+                      {sortCol === col ? (sortDir === "desc" ? " ↓" : " ↑") : <span className="opacity-30"> ↕</span>}
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
