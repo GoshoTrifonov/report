@@ -387,7 +387,7 @@ function ProductionReportTool() {
     let qty = 0, earned = 0, hours = 0;
     for (const r of filteredRows) { qty += r.qty; earned += r.earned; hours += r.hrs; }
     return { qty, earned, hours, eff: hours ? (earned/hours*100) : 0, pph: hours ? (qty/hours) : 0 };
-  }, [filteredRows, sortCol, sortDir]);
+  }, [filteredRows]);
 
   const byShift = React.useMemo(() => {
     const map = new Map();
@@ -423,7 +423,7 @@ function ProductionReportTool() {
       else if (sortCol === "eff")   diff = effA - effB;
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [filteredRows]);
+  }, [filteredRows, sortCol, sortDir]);
 
   const totalColors = effColors(totals.eff);
 
@@ -610,7 +610,7 @@ function ProductionReportTool() {
       <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto">
 
         <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-          <div className="text-xl font-bold">Production Report — BU Verathon · George</div>
+          <div className="text-xl font-bold">Production Report — {selectedUnitLeaders.length === 1 ? selectedUnitLeaders[0] : selectedUnitLeaders.length > 1 ? selectedUnitLeaders.join(", ") : "All Business Units"}</div>
           <div className="text-sm text-slate-600">{dateLabel()}{filterSummary ? ` · ${filterSummary}` : ""}</div>
           <div className="text-xs text-slate-400 mt-1">Generated {new Date().toLocaleString()} · {filteredRows.length.toLocaleString()} records</div>
         </div>
@@ -618,7 +618,7 @@ function ProductionReportTool() {
         <div className="no-print">
           <div className="text-xs text-slate-400 mb-1">{filteredRows.length.toLocaleString()} records in current filter</div>
           <h1 className="text-2xl font-bold text-slate-900 mb-0.5">{dateLabel()}</h1>
-          <div className="text-sm text-slate-500 mb-6">BU Verathon · George{filterSummary ? ` · ${filterSummary}` : ""}</div>
+          <div className="text-sm text-slate-500 mb-6">{selectedUnitLeaders.length === 1 ? selectedUnitLeaders[0] : selectedUnitLeaders.length > 1 ? selectedUnitLeaders.join(" · ") : "All Business Units"}{filterSummary ? ` · ${filterSummary}` : ""}</div>
         </div>
 
         {/* Summary tiles */}
