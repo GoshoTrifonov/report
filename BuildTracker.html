@@ -1110,8 +1110,10 @@ function BuildTracker() {
               remainHrs = nowRow.run_hrs * (1 - pct);
             }
 
-            const borderColor = isDown ? "#ef4444" : hasNotReady ? "#f87171" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
-            const bgColor = isDown ? "rgba(239,68,68,0.12)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
+            const nextRow = line.rows[1];
+            const nextReady = nextRow && isReady(nextRow);
+            const borderColor = isDown ? "#ef4444" : hasNotReady ? "#f87171" : nextReady ? "#22c55e" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
+            const bgColor = isDown ? "rgba(239,68,68,0.12)" : nextReady ? "rgba(34,197,94,0.06)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
 
             return (
               <div key={line.resource} style={{ border: `1px solid ${borderColor}`, borderRadius: 8, padding: "6px 8px", background: bgColor, display: "flex", flexDirection: "column", gap: 3, minHeight: 0 }}>
