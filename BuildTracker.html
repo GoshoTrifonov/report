@@ -1542,14 +1542,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
   const now = useMemo(() => new Date(), []);
   const today = useMemo(() => { const d = new Date(now); d.setHours(0,0,0,0); return d; }, [now]);
   const calSegs = useMemo(() => calendarSegments(maxHours, now), [maxHours, now]);
-  const offShiftsByLine = useMemo(() => {
-    const map = new Map();
-    for (const line of lines) {
-      const cov = coverageFor(line.resource);
-      map.set(line.resource, offShiftIntervals(maxHours, now, cov));
-    }
-    return map;
-  }, [lines, maxHours, now]);
+
 
   // Use the offset passed in from the parent — accounts for header + visible closeout strips.
   const headerOffset = externalStickyTop;
@@ -1739,7 +1732,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
             {lines.map(line => {
               const layout = queueLayout.layout.get(line.resource);
               const hasWip = line.rows.some(r => r.status === "wip");
-              const offShifts = offShiftsByLine.get(line.resource) || [];
+
               // Re-evaluate down state for body styling
               const { shiftId: nowShift2, shiftDate: nowDate2 } = getCurrentShift(new Date());
               const isDown = ((lineDown[line.resource] || []).find(e =>
@@ -1748,21 +1741,9 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
               const bgClass = isDown ? "bg-rose-100" : hasWip ? "bg-amber-100" : "bg-stone-100";
               return (
                 <div key={line.resource} className={`relative ${bgClass}`}>
-                  {/* Off-shift dark overlay — shows when this line is NOT producing
-                      (e.g., midnight shift on 16h lines). Behind bars (z-0). */}
-                  {offShifts.map((iv, i) => (
-                    <div
-                      key={`off-${line.resource}-${i}`}
-                      className="absolute top-0 bottom-0 pointer-events-none z-0"
-                      style={{
-                        left: `${iv.startH * zoom}px`,
-                        width: `${(iv.endH - iv.startH) * zoom}px`,
-                        background: "repeating-linear-gradient(45deg, rgba(15,23,42,0.18) 0 4px, rgba(15,23,42,0.05) 4px 8px)",
-                      }}
-                    />
-                  ))}
+
                   <div
-                    className={`sticky z-20 border-b border-stone-200 ${bgClass}`}
+                    className={`sticky z-20 ${bgClass}`}
                     style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem" }}
                   >
                     <span className="sr-only">{line.resource}</span>
@@ -1777,7 +1758,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     const isReadyTodo = r.status === "todo" && !showNotReady;
                     const barColor = isReadyTodo ? "bar-ready" : meta.bar;
                     return (
-                      <div key={rowKey(r)} className="h-7 relative">
+                      <div key={rowKey(r)} className="h-7 bg-white relative">
                         <div onClick={() => onSelect(r)}
                              
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${barColor} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
