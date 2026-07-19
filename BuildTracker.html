@@ -1762,7 +1762,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     />
                   ))}
                   <div
-                    className={`sticky z-20 ${bgClass}`}
+                    className={`sticky z-20 border-b border-stone-200 ${bgClass}`}
                     style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem" }}
                   >
                     <span className="sr-only">{line.resource}</span>
@@ -1777,7 +1777,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     const isReadyTodo = r.status === "todo" && !showNotReady;
                     const barColor = isReadyTodo ? "bar-ready" : meta.bar;
                     return (
-                      <div key={rowKey(r)} className="h-7 bg-white relative">
+                      <div key={rowKey(r)} className="h-7 relative">
                         <div onClick={() => onSelect(r)}
                              
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${barColor} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
