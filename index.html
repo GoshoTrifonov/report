@@ -327,12 +327,40 @@ function ProductionReportTool() {
   }, [availableResources]);
 
   const applyPreset = (preset) => {
-    const idx = allDates.indexOf(maxDate);
-    if (preset === "today")     { setDateMode("single"); setSingleDate(maxDate); }
-    else if (preset === "yesterday") { const p = allDates[Math.max(0, idx-1)]; setDateMode("single"); setSingleDate(p); }
-    else if (preset === "7d")   { setDateMode("range"); setRangeStart(allDates[Math.max(0,idx-6)]); setRangeEnd(maxDate); }
-    else if (preset === "30d")  { setDateMode("range"); setRangeStart(allDates[Math.max(0,idx-29)]); setRangeEnd(maxDate); }
-    else if (preset === "all")  { setDateMode("range"); setRangeStart(minDate); setRangeEnd(maxDate); }
+    // Helper: clamp a date string to available data range
+    const clamp = (d) => {
+      if (d < minDate) return minDate;
+      if (d > maxDate) return maxDate;
+      return d;
+    };
+    const toISO = (d) => d.toISOString().slice(0, 10);
+
+    const now = new Date(maxDate + "T00:00:00");
+
+    if (preset === "today") {
+      setDateMode("single"); setSingleDate(maxDate);
+    } else if (preset === "yesterday") {
+      const y = new Date(now); y.setDate(y.getDate() - 1);
+      setDateMode("single"); setSingleDate(clamp(toISO(y)));
+    } else if (preset === "thisweek") {
+      // Week starts Sunday
+      const day = now.getDay(); // 0=Sun
+      const sun = new Date(now); sun.setDate(now.getDate() - day);
+      setDateMode("range"); setRangeStart(clamp(toISO(sun))); setRangeEnd(maxDate);
+    } else if (preset === "lastweek") {
+      const day = now.getDay();
+      const thisSun = new Date(now); thisSun.setDate(now.getDate() - day);
+      const lastSun = new Date(thisSun); lastSun.setDate(thisSun.getDate() - 7);
+      const lastSat = new Date(thisSun); lastSat.setDate(thisSun.getDate() - 1);
+      setDateMode("range"); setRangeStart(clamp(toISO(lastSun))); setRangeEnd(clamp(toISO(lastSat)));
+    } else if (preset === "thismonth") {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDateMode("range"); setRangeStart(clamp(toISO(first))); setRangeEnd(maxDate);
+    } else if (preset === "lastmonth") {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateMode("range"); setRangeStart(clamp(toISO(first))); setRangeEnd(clamp(toISO(last)));
+    }
   };
 
   const filteredRows = React.useMemo(() => {
@@ -522,7 +550,7 @@ function ProductionReportTool() {
           <div>
             <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Quick range</label>
             <div className="flex gap-1.5">
-              {[["today","Today"],["yesterday","Yesterday"],["7d","Last 7d"],["30d","Last 30d"],["all","All data"]].map(([k,l]) => (
+              {[["today","Today"],["yesterday","Yesterday"],["thisweek","This week"],["lastweek","Last week"],["thismonth","This month"],["lastmonth","Last month"]].map(([k,l]) => (
                 <button key={k} onClick={() => applyPreset(k)} className="px-2.5 py-2 text-xs font-medium border border-stone-300 rounded-md bg-white hover:bg-stone-50 text-slate-600">{l}</button>
               ))}
             </div>
