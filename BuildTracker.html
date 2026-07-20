@@ -144,6 +144,16 @@ const WO_TOOL_MAP = {"W1021601/1":"07-020","W1026833/1":"5","W1026834/1":"5","W1
 const STORAGE_KEY = "build_tracker_overrides";
 
 // ── Firebase helpers ──────────────────────────────────────────────────────────
+// ── Password protection ───────────────────────────────────────────────────────
+const AUTH_KEY = "bt_authed";
+function isAuthed() { return sessionStorage.getItem(AUTH_KEY) === "1"; }
+function checkAuth() {
+  if (isAuthed()) return true;
+  const pw = prompt("Enter password to continue:");
+  if (pw === "smi1234") { sessionStorage.setItem(AUTH_KEY, "1"); return true; }
+  if (pw !== null) alert("Incorrect password.");
+  return false;
+}
 async function fbSave(ref, data) {
   await ref.set({ data: JSON.stringify(data), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
 }
@@ -526,6 +536,7 @@ function BuildTracker() {
   const handleBuildPlanUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!checkAuth()) { e.target.value = ""; return; }
     setUploadStatus({ type: "build", msg: "Parsing build plan…", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -550,6 +561,7 @@ function BuildTracker() {
   const handleLabourUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!checkAuth()) { e.target.value = ""; return; }
     setUploadStatus({ type: "labour", msg: "Parsing labour tickets…", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -977,6 +989,7 @@ function BuildTracker() {
   };
 
   const resetAllOverrides = () => {
+    if (!checkAuth()) return;
     if (confirm(`Reset all ${Object.keys(overrides).length} updates? This clears data for ALL users.`)) saveOverrides({});
   };
 
