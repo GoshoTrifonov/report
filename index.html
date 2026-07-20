@@ -34,6 +34,18 @@
 <div id="root"></div>
 
 <script type="text/babel" data-presets="react">
+// ── Password protection ───────────────────────────────────────────────────────
+const AUTH_KEY = "pr_authed";
+function isAuthed() { return sessionStorage.getItem(AUTH_KEY) === "1"; }
+function checkAuth() {
+  if (isAuthed()) return true;
+  const pw = prompt("Enter password to continue:");
+  if (pw === "smi1234") { sessionStorage.setItem(AUTH_KEY, "1"); return true; }
+  if (pw !== null) alert("Incorrect password.");
+  return false;
+}
+
+
 
 // ── Shift code → human label map ─────────────────────────────────────────
 const SHIFT_MAP = {
@@ -258,6 +270,7 @@ function ProductionReportTool() {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!checkAuth()) { e.target.value = ""; return; }
     setUploadStatus("saving");
     const reader = new FileReader();
     reader.onload = async (evt) => {
