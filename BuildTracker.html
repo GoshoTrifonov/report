@@ -35,8 +35,6 @@
   const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
-  // Shared with Production Report Tool
-  const LABOUR_TICKETS_REF = db.collection("production_data").doc("latest");
 </script>
 </head>
 <body class="bg-stone-50">
@@ -596,19 +594,7 @@ function BuildTracker() {
           }
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
-        // Also save full rows to shared production_data doc for Production Report Tool
-        const sheetName = wb.SheetNames[0];
-        const sheet = wb.Sheets[sheetName];
-        const allRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-        await LABOUR_TICKETS_REF.set({
-          rows: allRows.slice(1).map(r => ({
-            wo: String(r[10] || "").trim(),
-            qty: parseFloat(r[7]) || 0,
-            date: String(r[2] || "").trim(),
-          })),
-          uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          fileName: file.name,
-        });
+        // Production Report Tool manages its own data via its own upload button
         setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · ${matchedWOs.length} unique WOs in file`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
