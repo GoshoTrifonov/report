@@ -97,7 +97,9 @@ function parseExcelToRows(workbook) {
   const rows = [];
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
-    const unitLead = String(r[COL_LEAD] || "").trim();
+    const rawLead = String(r[COL_LEAD] || "").trim();
+    const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm"]);
+    const unitLead = KNOWN_BUS.has(rawLead) ? rawLead : (rawLead === "" ? null : "Other");
     if (!unitLead) continue;
 
     let dateVal = r[COL_DATE];
@@ -303,7 +305,14 @@ function ProductionReportTool() {
   const minDate = allDates[0] || "";
   const maxDate = allDates[allDates.length - 1] || "";
 
-  const allUnitLeaders = React.useMemo(() => [...new Set(allRows.map(r => r.unitLead).filter(Boolean))].sort(), [allRows]);
+  const allUnitLeaders = React.useMemo(() => {
+    const all = [...new Set(allRows.map(r => r.unitLead).filter(Boolean))];
+    return all.sort((a, b) => {
+      if (a === "Other") return 1;
+      if (b === "Other") return -1;
+      return a.localeCompare(b);
+    });
+  }, [allRows]);
 
   // Shifts present in data, sorted by the canonical order
   const allShifts = React.useMemo(() => {
