@@ -1308,9 +1308,7 @@ function BuildTracker() {
             {stats.notReady > 0 && <StatWithIcon label="Not Ready" value={stats.notReady} accent="rose" icon={AlertTriangle} fill />}
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
-            <Stat label="Production WOs" value={stats.activeWO} />
 
-            <Stat label="Hrs Shown" value={fmtNum(stats.hrsShown)} />
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 ml-auto md:ml-0">
             <span>Zoom</span>
