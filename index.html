@@ -94,6 +94,9 @@ function parseExcelToRows(workbook) {
   const COL_LEAD     = colIdx(["BU", "UNIT LEAD", "UNIT_LEAD"],      46);
 
   console.log("Column indices → SHIFT:", COL_SHIFT, "header:", header[COL_SHIFT], "| BU:", COL_LEAD, "header:", header[COL_LEAD]);
+  // Debug: show first 10 unique BU values found
+  const buSample = [...new Set(raw.slice(1,50).map(r => String(r[COL_LEAD] || "")).filter(Boolean))];
+  console.log("BU sample values from col", COL_LEAD, ":", buSample);
   const rows = [];
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
