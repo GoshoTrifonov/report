@@ -893,10 +893,12 @@ function BuildTracker() {
     for (const l of lines) {
       const nextRow = l.rows[1]; // POS_LABELS = ['NOW', 'NEXT', 'THEN'] → index 1 = NEXT
       if (nextRow && nextRow.status === "todo" && !isReady(nextRow)) {
-        // Attach the NOW WO's remaining run_hrs so modal can show urgency
+        // Attach remaining hours on NOW WO so modal can show urgency
         const nowRow = l.rows[0];
-        const nowHrs = nowRow ? (nowRow.run_hrs || 0) : 0;
-        nextNotReadyList.push({ ...nextRow, _nowRunHrs: nowHrs });
+        const nowRemainHrs = nowRow && nowRow.run_hrs > 0
+          ? nowRow.run_hrs * (1 - Math.min(1, (nowRow.comp_qty || 0) / (nowRow.start_qty || 1)))
+          : 0;
+        nextNotReadyList.push({ ...nextRow, _nowRunHrs: nowRemainHrs });
       }
     }
     return {
@@ -914,8 +916,10 @@ function BuildTracker() {
         const nextRow = l.rows[1];
         if (!nextRow) return null;
         const nowRow = l.rows[0];
-        const nowHrs = nowRow ? (nowRow.run_hrs || 0) : 0;
-        return { ...nextRow, _nowRunHrs: nowHrs };
+        const nowRemainHrs = nowRow && nowRow.run_hrs > 0
+          ? nowRow.run_hrs * (1 - Math.min(1, (nowRow.comp_qty || 0) / (nowRow.start_qty || 1)))
+          : 0;
+        return { ...nextRow, _nowRunHrs: nowRemainHrs };
       }).filter(Boolean),
     };
   }, [lines, abrList, brsList]);
