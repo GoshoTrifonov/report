@@ -2101,7 +2101,54 @@ function NextSummaryModal({ rows, allRows, onSelect, onClose, setReadinessCheck 
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center gap-2">
           <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness</span>
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              const now = new Date().toLocaleString();
+              const rows_html = sorted.map(r => {
+                const liveRow = getLiveRow(r);
+                const ready = liveRow.readiness || {};
+                const nowHrs = r._nowRunHrs || 0;
+                const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
+                const checks = [
+                  { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
+                  { label: "Labels", ok: ready.labels?.ok },
+                  { label: "Kit",    ok: ready.kit?.ok },
+                ];
+                const allReady = isReady(liveRow);
+                const isUrgent = nowHrs > 0 && nowHrs < 4;
+                const pillsHtml = checks.map(c => {
+                  const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "#fff";
+                  const border = c.ok ? "none" : "2px solid #ef4444";
+                  const color = c.ok ? "#fff" : "#f87171";
+                  const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
+                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}</span>`;
+                }).join("");
+                const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">URGENT</span>' : '';
+                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
+                const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">⏱ ~${nowHrs.toFixed(0)}h left</span>` : '';
+                return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
+                  <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${readyBadge}${timeLeft}</td>
+                  <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
+                  <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
+                  <td style="padding:6px 8px;white-space:nowrap">${pillsHtml}</td>
+                </tr>`;
+              }).join("");
+              const win = window.open("", "_blank");
+              win.document.write(`<!DOCTYPE html><html><head><title>Next WOs Summary</title>
+                <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} @media print{button{display:none}}</style>
+              </head><body>
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+                  <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}</p></div>
+                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
+                </div>
+                <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">
+                  <th style="padding:6px 8px;text-align:left">Resource</th>
+                  <th style="padding:6px 8px;text-align:left">WO</th>
+                  <th style="padding:6px 8px;text-align:left">Description</th>
+                  <th style="padding:6px 8px;text-align:left">Readiness</th>
+                </tr></thead><tbody>${rows_html}</tbody></table>
+              </body></html>`);
+              win.document.close();
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
           >
             🖨 Print
