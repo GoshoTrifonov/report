@@ -1085,7 +1085,21 @@ function BuildTracker() {
   if (presentationMode) {
     const now = new Date();
     const { shiftId: curShift, shiftDate: curShiftDate } = getCurrentShift(now);
-    const colCount = tvLines.length <= 6 ? 2 : tvLines.length <= 12 ? 3 : tvLines.length <= 20 ? 4 : 5;
+    // Calculate cols/rows to best fill the screen
+    const totalLines = tvLines.length;
+    // Try different col counts and pick the one that minimises empty space
+    // while keeping rows reasonable
+    let bestCols = 4;
+    let bestEmpty = 999;
+    for (let c = 2; c <= 6; c++) {
+      const rows = Math.ceil(totalLines / c);
+      const empty = (rows * c) - totalLines;
+      if (empty < bestEmpty || (empty === bestEmpty && c < bestCols)) {
+        bestEmpty = empty;
+        bestCols = c;
+      }
+    }
+    const colCount = bestCols;
 
     return (
       <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#0f172a", color: "white", fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif", display: "flex", flexDirection: "column" }}>
@@ -1139,7 +1153,7 @@ function BuildTracker() {
         </div>
 
         {/* Lines grid — fills remaining height exactly */}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gap: 6, padding: 6, overflow: "hidden", alignContent: "start" }}>
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gridTemplateRows: `repeat(${Math.ceil(tvLines.length / colCount)}, 1fr)`, gap: 6, padding: 6, overflow: "hidden" }}>
           {tvLines.map(line => {
             const isDown = ((lineDown[line.resource] || []).find(e =>
               shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
@@ -1158,10 +1172,11 @@ function BuildTracker() {
             const nextRow = line.rows[1];
             const nextReady = nextRow && isReady(nextRow);
             const borderColor = isDown ? "#ef4444" : hasNotReady ? "#f87171" : nextReady ? "#22c55e" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
+            const borderWidth = (isDown || nextReady || hasNotReady) ? "3px" : "1px";
             const bgColor = isDown ? "rgba(239,68,68,0.12)" : nextReady ? "rgba(34,197,94,0.06)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
 
             return (
-              <div key={line.resource} style={{ border: `1px solid ${borderColor}`, borderRadius: 8, padding: "6px 8px", background: bgColor, display: "flex", flexDirection: "column", gap: 3, minHeight: 0 }}>
+              <div key={line.resource} style={{ border: `${borderWidth} solid ${borderColor}`, borderRadius: 8, padding: "6px 8px", background: bgColor, display: "flex", flexDirection: "column", gap: 3, minHeight: 0 }}>
                 {/* Line name + badges */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
                   <span style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{line.resource}</span>
