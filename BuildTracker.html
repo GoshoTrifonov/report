@@ -14,11 +14,11 @@
     .timeline-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .bar-ready { background-color: #86efac !important; }
     @media print {
-      body > div > *:not(.print-modal) { display: none !important; }
-      .print-modal { position: fixed !important; inset: 0 !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; border-radius: 0 !important; }
+      body * { visibility: hidden; }
+      .print-modal, .print-modal * { visibility: visible; }
+      .print-modal { position: fixed !important; inset: 0 !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; border-radius: 0 !important; background: white !important; }
       .print-modal [style*="maxHeight"] { max-height: none !important; overflow: visible !important; }
       .print-modal button { display: none !important; }
-      .print-modal .print-btn { display: none !important; }
     }
   </style>
 
