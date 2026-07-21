@@ -35,6 +35,7 @@
   const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
+  const BT_META_REF       = db.collection("buildtracker").doc("meta");
 </script>
 </head>
 <body class="bg-stone-50">
@@ -469,6 +470,8 @@ function BuildTracker() {
   const [selectedWo, setSelectedWo] = useState(null);
   const [zoom, setZoom] = useState(14);
   const [fbStatus, setFbStatus] = useState("loading");
+  const [lastBuildPlanUpdate, setLastBuildPlanUpdate] = useState(null);
+  const [lastLabourUpdate, setLastLabourUpdate] = useState(null);
   const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
   const [lastSync, setLastSync] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null); // null | {type, msg, ok}
@@ -499,6 +502,7 @@ function BuildTracker() {
           status: r.status || "todo",
         }));
         setBuildPlanRows(rows);
+          if (data.uploadedAt) setLastBuildPlanUpdate(new Date(data.uploadedAt));
       } else {
         setBuildPlanRows(null); // fall back to BUILD_DATA
       }
@@ -511,6 +515,13 @@ function BuildTracker() {
 
   // ── Real-time overrides listener ──────────────────────────────────────────
   useEffect(() => {
+    // Load meta (last labour upload time)
+    BT_META_REF.get().then(snap => {
+      if (snap.exists && snap.data().lastLabourUpload) {
+        setLastLabourUpdate(snap.data().lastLabourUpload.toDate());
+      }
+    }).catch(() => {});
+
     const unsub = BT_OVERRIDES_REF.onSnapshot(snap => {
       const parsed = fbParse(snap);
       setOverrides(parsed || {});
@@ -625,6 +636,8 @@ function BuildTracker() {
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
         // Production Report Tool manages its own data via its own upload button
+        setLastLabourUpdate(new Date());
+        BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
         setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · ${matchedWOs.length} unique WOs in file`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
@@ -1172,7 +1185,7 @@ function BuildTracker() {
             const nextRow = line.rows[1];
             const nextReady = nextRow && isReady(nextRow);
             const borderColor = isDown ? "#ef4444" : nextReady ? "#22c55e" : hasNotReady ? "#f87171" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
-            const borderWidth = (isDown || nextReady || hasNotReady) ? "3px" : "1px";
+            const borderWidth = nextReady ? "4px" : (isDown || hasNotReady) ? "3px" : "1px";
             const bgColor = isDown ? "rgba(239,68,68,0.12)" : nextReady ? "rgba(34,197,94,0.06)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
 
             return (
@@ -1306,20 +1319,26 @@ function BuildTracker() {
             <div className="flex items-center gap-1.5 ml-2">
               <input ref={buildPlanInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleBuildPlanUpload}/>
               <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
-              <button
-                onClick={() => buildPlanInputRef.current && buildPlanInputRef.current.click()}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
-                title="Upload new Build Plan Excel (Database Query sheet)"
-              >
-                📋 Build Plan
-              </button>
-              <button
-                onClick={() => labourInputRef.current && labourInputRef.current.click()}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
-                title="Upload Labour Tickets — updates comp_qty on all matched WOs"
-              >
-                📂 Labour Tickets
-              </button>
+              <div className="flex flex-col items-start gap-0.5">
+                <button
+                  onClick={() => buildPlanInputRef.current && buildPlanInputRef.current.click()}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
+                  title="Upload new Build Plan Excel (Database Query sheet)"
+                >
+                  📋 Build Plan
+                </button>
+                {lastBuildPlanUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastBuildPlanUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
+              </div>
+              <div className="flex flex-col items-start gap-0.5">
+                <button
+                  onClick={() => labourInputRef.current && labourInputRef.current.click()}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
+                  title="Upload Labour Tickets — updates comp_qty on all matched WOs"
+                >
+                  📂 Labour Tickets
+                </button>
+                {lastLabourUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastLabourUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
+              </div>
             </div>
             {/* Upload status toast */}
             {uploadStatus && (
