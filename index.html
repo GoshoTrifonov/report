@@ -127,8 +127,10 @@ function parseExcelToRows(workbook) {
     const lost = parseFloat(r[COL_LOST]) || 0;
     if (!resource && lost === 0) continue; // skip rows with no resource AND no lost hours
     const resourceLabel = resource || "(No Resource)";
+    // Skip rows with no BU AND no hours AND no lost hours (empty Excel rows)
+    if (!unitLead && hrs === 0 && lost === 0) continue;
     // For no-resource rows with lost hours but no BU, assign to Other
-    const effectiveUnitLead = unitLead || (lost > 0 ? "Other" : null);
+    const effectiveUnitLead = unitLead || (lost !== 0 ? "Other" : null);
     if (!effectiveUnitLead) continue;
     rows.push({ date: dateStr, resource: resourceLabel, hrs, qty, wo: "", shiftCode, shift, earned, lost, unitLead: effectiveUnitLead });
   }
@@ -142,7 +144,16 @@ async function saveToFirebase(rows, fileName) {
   // Firestore docs max ~1MB. Split rows into chunks of 500 and store as array.
   // For simplicity we store everything in one doc as a JSON string (≤ 5MB limit is fine for typical exports).
   const payload = {
-    rows: rows,
+    rows: rows.map(r => ({
+      date: r.date,
+      resource: r.resource,
+      hrs: r.hrs,
+      qty: r.qty,
+      shift: r.shift,
+      earned: r.earned,
+      lost: r.lost,
+      unitLead: r.unitLead,
+    })),
     uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
     uploadedBy: "web-upload",
     fileName: fileName,
