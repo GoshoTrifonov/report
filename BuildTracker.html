@@ -1167,7 +1167,16 @@ function BuildTracker() {
 
         {/* Lines grid — fills remaining height exactly */}
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gridTemplateRows: `repeat(${Math.ceil(tvLines.length / colCount)}, 1fr)`, gap: 6, padding: 6, overflow: "hidden" }}>
-          {tvLines.map(line => {
+        {/* Sort lines by remaining hours on NOW WO — soonest changeover top-left */}
+        {[...tvLines].sort((a, b) => {
+          const getRemain = (line) => {
+            const nowRow = line.rows[0];
+            if (!nowRow || !nowRow.start_qty || !nowRow.run_hrs) return 9999;
+            const pct = Math.min(1, (nowRow.comp_qty || 0) / nowRow.start_qty);
+            return nowRow.run_hrs * (1 - pct);
+          };
+          return getRemain(a) - getRemain(b);
+        }).map(line => {
             const isDown = ((lineDown[line.resource] || []).find(e =>
               shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
             )) ? true : false;
