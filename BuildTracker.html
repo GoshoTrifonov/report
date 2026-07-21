@@ -1994,7 +1994,7 @@ function NextSummaryModal({ rows, onSelect, onClose }) {
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
-        <div className="max-h-[65vh] overflow-auto divide-y divide-stone-100">
+        <div style={{ maxHeight: "65vh", overflowY: "auto" }} className="divide-y divide-stone-100">
           {sorted.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-slate-500 italic">No NEXT WOs</div>
           ) : sorted.map((r, i) => {
