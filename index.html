@@ -126,9 +126,10 @@ function parseExcelToRows(workbook) {
     const earned    = parseFloat(r[COL_EARNED]) || 0;
     const shift     = SHIFT_MAP[shiftCode] || shiftCode;
 
-    if (!resource) continue;
     const lost = parseFloat(r[COL_LOST]) || 0;
-    rows.push({ date: dateStr, resource, hrs, qty, wo: "", shiftCode, shift, earned, lost, unitLead });
+    if (!resource && lost === 0) continue; // skip rows with no resource AND no lost hours
+    const resourceLabel = resource || "(No Resource)";
+    rows.push({ date: dateStr, resource: resourceLabel, hrs, qty, wo: "", shiftCode, shift, earned, lost, unitLead });
   }
   return rows;
 }
