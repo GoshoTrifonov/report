@@ -1463,8 +1463,10 @@ function BuildTracker() {
       {showNextSummary && (
         <NextSummaryModal
           rows={stats.nextAllList}
+          allRows={allRows}
           onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }}
           onClose={() => setShowNextSummary(false)}
+          setReadinessCheck={setReadinessCheck}
         />
       )}
       {showNextNotReady && (
@@ -1975,7 +1977,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
   );
 }
 
-function NextSummaryModal({ rows, onSelect, onClose }) {
+function NextSummaryModal({ rows, allRows, onSelect, onClose, setReadinessCheck }) {
   const sorted = useMemo(() => {
     return [...rows].sort((a, b) => {
       const aHrs = a._nowRunHrs || 9999;
@@ -1984,13 +1986,24 @@ function NextSummaryModal({ rows, onSelect, onClose }) {
     });
   }, [rows]);
 
+  // Find the live row from allRows so readiness changes reflect immediately
+  const getLiveRow = (r) => allRows.find(ar => ar.resource === r.resource && ar.wo === r.wo) || r;
+
+  const toggleCheck = (e, r, kind) => {
+    e.stopPropagation();
+    const liveRow = getLiveRow(r);
+    const cur = liveRow.readiness || {};
+    const isOk = cur[kind]?.ok === true;
+    setReadinessCheck(liveRow, kind, !isOk);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-20" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
-            <p className="text-xs text-slate-500">All NEXT slot WOs — sorted by urgency</p>
+            <p className="text-xs text-slate-500">All NEXT slot WOs — click Tool / Labels / Kit to toggle readiness</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -1998,15 +2011,16 @@ function NextSummaryModal({ rows, onSelect, onClose }) {
           {sorted.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-slate-500 italic">No NEXT WOs</div>
           ) : sorted.map((r, i) => {
-            const ready = r.readiness || {};
-            const allReady = isReady(r);
+            const liveRow = getLiveRow(r);
+            const ready = liveRow.readiness || {};
+            const allReady = isReady(liveRow);
             const nowHrs = r._nowRunHrs || 0;
             const isUrgent = nowHrs > 0 && nowHrs < 4;
-            const toolId = WO_TOOL_MAP[r.wo] || r.tool_id || null;
+            const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
             const checks = [
-              { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
-              { label: "Labels", ok: ready.labels?.ok },
-              { label: "Kit",    ok: ready.kit?.ok },
+              { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
+              { key: "labels", label: "Labels", ok: ready.labels?.ok },
+              { key: "kit",    label: "Kit",    ok: ready.kit?.ok },
             ];
             return (
               <button key={i} onClick={() => onSelect(r)}
@@ -2015,24 +2029,29 @@ function NextSummaryModal({ rows, onSelect, onClose }) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
+                      <span className="text-xs font-semibold text-slate-500">{liveRow.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
                       {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left</span>}
                     </div>
-                    <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
-                    <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
+                    <div className="font-mono text-sm font-bold text-slate-900">{liveRow.wo}</div>
+                    <div className="text-xs text-slate-600 truncate">{liveRow.descr || liveRow.part}</div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
+                  <div className="flex gap-1.5 shrink-0">
                     {checks.map(c => {
                       const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "transparent";
-                      const border = c.ok ? "none" : "1px solid #ef4444";
+                      const border = c.ok ? "2px solid transparent" : "2px solid #ef4444";
                       const color = c.ok ? "white" : "#f87171";
+                      const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
                       return (
-                        <div key={c.label} style={{ background: bg, border, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700, color }}>
-                          {c.label}{c.extra && !c.ok ? ` · ${c.extra}` : ""}
-                          {c.auto && c.ok ? " AUTO" : ""}
-                          {c.na && c.ok ? " N/A" : ""}
+                        <div
+                          key={c.key}
+                          onClick={(e) => toggleCheck(e, r, c.key)}
+                          title={`Click to ${c.ok ? "uncheck" : "check"} ${c.label}`}
+                          style={{ background: bg, border, borderRadius: 4, padding: "3px 7px", fontSize: 10, fontWeight: 700, color, cursor: "pointer", userSelect: "none", transition: "all 0.15s" }}
+                          className="hover:opacity-80"
+                        >
+                          {c.label}{badge}{c.extra && !c.ok ? ` · ${c.extra}` : ""}
                         </div>
                       );
                     })}
@@ -2043,7 +2062,7 @@ function NextSummaryModal({ rows, onSelect, onClose }) {
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
-          Click a WO to open it · Green = fully ready · Red border = missing checks
+          Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness
         </div>
       </div>
     </div>
