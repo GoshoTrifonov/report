@@ -105,8 +105,6 @@ function parseExcelToRows(workbook) {
     const unitLead = KNOWN_BUS.has(rawLead) ? (rawLead === "BU Bell Farm" ? "BU Bellfarm" : rawLead) 
       : OTHER_VALS.has(rawLead) ? "Other"
       : (rawLead === "" ? null : "Other");
-    if (!unitLead) continue;
-
     let dateVal = r[COL_DATE];
     let dateStr = "";
     if (typeof dateVal === "number") {
@@ -129,7 +127,10 @@ function parseExcelToRows(workbook) {
     const lost = parseFloat(r[COL_LOST]) || 0;
     if (!resource && lost === 0) continue; // skip rows with no resource AND no lost hours
     const resourceLabel = resource || "(No Resource)";
-    rows.push({ date: dateStr, resource: resourceLabel, hrs, qty, wo: "", shiftCode, shift, earned, lost, unitLead });
+    // For no-resource rows with lost hours but no BU, assign to Other
+    const effectiveUnitLead = unitLead || (lost > 0 ? "Other" : null);
+    if (!effectiveUnitLead) continue;
+    rows.push({ date: dateStr, resource: resourceLabel, hrs, qty, wo: "", shiftCode, shift, earned, lost, unitLead: effectiveUnitLead });
   }
   return rows;
 }
