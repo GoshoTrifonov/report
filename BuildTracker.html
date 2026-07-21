@@ -13,6 +13,13 @@
     .timeline-scroll::-webkit-scrollbar { height: 8px; }
     .timeline-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .bar-ready { background-color: #86efac !important; }
+    @media print {
+      body > div > *:not(.print-modal) { display: none !important; }
+      .print-modal { position: fixed !important; inset: 0 !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; border-radius: 0 !important; }
+      .print-modal [style*="maxHeight"] { max-height: none !important; overflow: visible !important; }
+      .print-modal button { display: none !important; }
+      .print-modal .print-btn { display: none !important; }
+    }
   </style>
 
 <!-- Firebase v10 compat CDN -->
@@ -515,12 +522,12 @@ function BuildTracker() {
 
   // ── Real-time overrides listener ──────────────────────────────────────────
   useEffect(() => {
-    // Load meta (last labour upload time)
-    BT_META_REF.get().then(snap => {
+    // Load meta (last labour upload time) - use onSnapshot so it updates live
+    const unsubMeta = BT_META_REF.onSnapshot(snap => {
       if (snap.exists && snap.data().lastLabourUpload) {
         setLastLabourUpdate(snap.data().lastLabourUpload.toDate());
       }
-    }).catch(() => {});
+    }, () => {});
 
     const unsub = BT_OVERRIDES_REF.onSnapshot(snap => {
       const parsed = fbParse(snap);
@@ -1383,20 +1390,6 @@ function BuildTracker() {
           </div>
           <div className="flex items-center gap-5 ml-auto flex-wrap">
             <Stat label="Lines" value={stats.lines} />
-            <Stat label="WIP" value={stats.wip} accent="amber" />
-            {stats.nextNotReady > 0 && (
-              <button
-                onClick={() => setShowNextNotReady(v => !v)}
-                className="text-left flex flex-col items-start hover:opacity-80 transition-opacity"
-                title="Click to see which Next WOs are not ready"
-              >
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3 text-rose-600" fill="currentColor" />
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Next Not Ready</span>
-                </div>
-                <span className="text-lg font-bold tabular-nums text-rose-700 leading-tight">{stats.nextNotReady} <span className="text-[10px] font-normal text-slate-400 ml-0.5">▾</span></span>
-              </button>
-            )}
             <button
               onClick={() => setShowNextSummary(v => !v)}
               className="text-left flex flex-col items-start hover:opacity-80 transition-opacity"
@@ -1407,7 +1400,6 @@ function BuildTracker() {
               </div>
               <span className="text-lg font-bold tabular-nums text-slate-700 leading-tight">{stats.nextAllList.length} <span className="text-[10px] font-normal text-slate-400 ml-0.5">▾</span></span>
             </button>
-            {stats.notReady > 0 && <StatWithIcon label="Not Ready" value={stats.notReady} accent="rose" icon={AlertTriangle} fill />}
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
 
@@ -2002,8 +1994,8 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                           </div>
                           <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "—"}</div>
                           <div className="flex flex-wrap gap-2 items-center text-[10px] text-slate-500">
-                            {kind === "tool" && WO_TOOL_MAP[e.row.wo] && (
-                              <span className="font-mono font-semibold text-slate-700">Tool: {WO_TOOL_MAP[e.row.wo]}</span>
+                            {kind === "tool" && (WO_TOOL_MAP[e.row.wo] || e.row.tool_id) && (
+                              <span className="font-mono font-semibold text-slate-700">Tool: {WO_TOOL_MAP[e.row.wo] || e.row.tool_id}</span>
                             )}
                             {kind === "tool" && !WO_TOOL_MAP[e.row.wo] && (
                               <span className="italic">No tool ID on file</span>
@@ -2054,7 +2046,7 @@ function NextSummaryModal({ rows, allRows, onSelect, onClose, setReadinessCheck 
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-20" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full print-modal" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
@@ -2116,8 +2108,14 @@ function NextSummaryModal({ rows, allRows, onSelect, onClose, setReadinessCheck 
             );
           })}
         </div>
-        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
-          Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness
+        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center gap-2">
+          <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness</span>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
+          >
+            🖨 Print
+          </button>
         </div>
       </div>
     </div>
@@ -2904,7 +2902,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                   const isAuto = ok && item?.auto === true;
                   const isNA = ok && item?.na === true;
                   const I = READINESS_ICONS[k];
-                  const toolId = k === "tool" ? WO_TOOL_MAP[row.wo] : null;
+                  const toolId = k === "tool" ? (WO_TOOL_MAP[row.wo] || row.tool_id || null) : null;
                   return (
                     <button
                       key={k}
