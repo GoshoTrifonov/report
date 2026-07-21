@@ -1091,7 +1091,7 @@ function BuildTracker() {
     // while keeping rows reasonable
     let bestCols = 4;
     let bestEmpty = 999;
-    for (let c = 2; c <= 6; c++) {
+    for (let c = 3; c <= 6; c++) {
       const rows = Math.ceil(totalLines / c);
       const empty = (rows * c) - totalLines;
       if (empty < bestEmpty || (empty === bestEmpty && c < bestCols)) {
@@ -1171,7 +1171,7 @@ function BuildTracker() {
 
             const nextRow = line.rows[1];
             const nextReady = nextRow && isReady(nextRow);
-            const borderColor = isDown ? "#ef4444" : hasNotReady ? "#f87171" : nextReady ? "#22c55e" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
+            const borderColor = isDown ? "#ef4444" : nextReady ? "#22c55e" : hasNotReady ? "#f87171" : hasWip ? "#f59e0b" : "rgba(255,255,255,0.08)";
             const borderWidth = (isDown || nextReady || hasNotReady) ? "3px" : "1px";
             const bgColor = isDown ? "rgba(239,68,68,0.12)" : nextReady ? "rgba(34,197,94,0.06)" : hasWip ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)";
 
