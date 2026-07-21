@@ -463,15 +463,6 @@ const dayLabel = (date, today) => {
 };
 const dateLabel = (date) => date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-// Auto-refresh component for presentation mode
-function PresentationRefresh() {
-  useEffect(() => {
-    const timer = setInterval(() => window.location.reload(), 60000);
-    return () => clearInterval(timer);
-  }, []);
-  return null;
-}
-
 function BuildTracker() {
   const [overrides, setOverrides] = useState({});
   const [selectedWo, setSelectedWo] = useState(null);
@@ -1279,7 +1270,6 @@ function BuildTracker() {
           })}
         </div>
 
-        <PresentationRefresh />
       </div>
     );
   }
