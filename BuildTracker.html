@@ -582,7 +582,6 @@ function BuildTracker() {
             const existing = nextOverrides[key] || {};
             const newQty = woTotals[row.wo];
             const startQty = row.start_qty || 0;
-            // Auto-set status: done if qty met, wip if partial, keep existing if already post-production
             const currentStatus = existing.status || row.status;
             let newStatus = currentStatus;
             if (!POST_PRODUCTION_STATUSES.has(currentStatus)) {
@@ -591,6 +590,37 @@ function BuildTracker() {
             }
             nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, _updatedAt: new Date().toISOString() };
             matchCount++;
+          }
+        });
+
+        // Second pass: for each resource line, if a WO is wip/done,
+        // mark all preceding WOs on the same line as done too
+        const byResource = {};
+        sourceRows.forEach((row, idx) => { 
+          if (!byResource[row.resource]) byResource[row.resource] = [];
+          byResource[row.resource].push({ row, idx });
+        });
+        Object.values(byResource).forEach(items => {
+          // Find the last WO on this line that is wip or done
+          let lastActiveIdx = -1;
+          items.forEach(({ row, idx }) => {
+            const key = rowKey({ ...row, _idx: idx });
+            const status = nextOverrides[key]?.status || row.status;
+            if (status === "wip" || POST_PRODUCTION_STATUSES.has(status)) {
+              lastActiveIdx = idx;
+            }
+          });
+          // Mark all WOs before lastActiveIdx as done
+          if (lastActiveIdx >= 0) {
+            items.forEach(({ row, idx }) => {
+              if (idx >= lastActiveIdx) return; // skip current and after
+              const key = rowKey({ ...row, _idx: idx });
+              const existing = nextOverrides[key] || {};
+              const currentStatus = existing.status || row.status;
+              if (!POST_PRODUCTION_STATUSES.has(currentStatus)) {
+                nextOverrides[key] = { ...existing, status: "done", comp_qty: row.start_qty || existing.comp_qty || 0, _updatedAt: new Date().toISOString() };
+              }
+            });
           }
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
@@ -859,6 +889,13 @@ function BuildTracker() {
       notReady,
       nextNotReady: nextNotReadyList.length,
       nextNotReadyList,
+      nextAllList: lines.map(l => {
+        const nextRow = l.rows[1];
+        if (!nextRow) return null;
+        const nowRow = l.rows[0];
+        const nowHrs = nowRow ? (nowRow.run_hrs || 0) : 0;
+        return { ...nextRow, _nowRunHrs: nowHrs };
+      }).filter(Boolean),
     };
   }, [lines, abrList, brsList]);
 
@@ -1022,6 +1059,7 @@ function BuildTracker() {
   const [showShiftReport, setShowShiftReport] = useState(false);
   const [lineDownTarget, setLineDownTarget] = useState(null); // resource name or null
   const [showNextNotReady, setShowNextNotReady] = useState(false);
+  const [showNextSummary, setShowNextSummary] = useState(false);
 
   // ── Presentation Mode ─────────────────────────────────────────────────────
   const [tvExcluded, setTvExcluded] = useState(() => {
@@ -1304,6 +1342,16 @@ function BuildTracker() {
                 <span className="text-lg font-bold tabular-nums text-rose-700 leading-tight">{stats.nextNotReady} <span className="text-[10px] font-normal text-slate-400 ml-0.5">▾</span></span>
               </button>
             )}
+            <button
+              onClick={() => setShowNextSummary(v => !v)}
+              className="text-left flex flex-col items-start hover:opacity-80 transition-opacity"
+              title="Click to see all Next WOs"
+            >
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Next WOs</span>
+              </div>
+              <span className="text-lg font-bold tabular-nums text-slate-700 leading-tight">{stats.nextAllList.length} <span className="text-[10px] font-normal text-slate-400 ml-0.5">▾</span></span>
+            </button>
             {stats.notReady > 0 && <StatWithIcon label="Not Ready" value={stats.notReady} accent="rose" icon={AlertTriangle} fill />}
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
@@ -1412,6 +1460,13 @@ function BuildTracker() {
       )}
 
       {showInitialsModal && <InitialsModal current={userInitials} onSave={saveInitials} onCancel={userInitials ? () => setShowInitialsModal(false) : null} />}
+      {showNextSummary && (
+        <NextSummaryModal
+          rows={stats.nextAllList}
+          onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }}
+          onClose={() => setShowNextSummary(false)}
+        />
+      )}
       {showNextNotReady && (
         <NextNotReadyModal
           rows={stats.nextNotReadyList}
@@ -1914,6 +1969,81 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex gap-2 print:hidden">
           <button onClick={onClose} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Close</button>
           <button onClick={printReport} className="ml-auto px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Print</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NextSummaryModal({ rows, onSelect, onClose }) {
+  const sorted = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const aHrs = a._nowRunHrs || 9999;
+      const bHrs = b._nowRunHrs || 9999;
+      return aHrs - bHrs;
+    });
+  }, [rows]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-20" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
+            <p className="text-xs text-slate-500">All NEXT slot WOs — sorted by urgency</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="max-h-[65vh] overflow-auto divide-y divide-stone-100">
+          {sorted.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">No NEXT WOs</div>
+          ) : sorted.map((r, i) => {
+            const ready = r.readiness || {};
+            const allReady = isReady(r);
+            const nowHrs = r._nowRunHrs || 0;
+            const isUrgent = nowHrs > 0 && nowHrs < 4;
+            const toolId = WO_TOOL_MAP[r.wo] || r.tool_id || null;
+            const checks = [
+              { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
+              { label: "Labels", ok: ready.labels?.ok },
+              { label: "Kit",    ok: ready.kit?.ok },
+            ];
+            return (
+              <button key={i} onClick={() => onSelect(r)}
+                className={`w-full text-left px-4 py-3 transition-colors ${isUrgent ? "border-l-4 border-rose-500 bg-rose-50 hover:bg-rose-100" : "hover:bg-stone-50"}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
+                      {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
+                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left</span>}
+                    </div>
+                    <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
+                    <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {checks.map(c => {
+                      const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "transparent";
+                      const border = c.ok ? "none" : "1px solid #ef4444";
+                      const color = c.ok ? "white" : "#f87171";
+                      return (
+                        <div key={c.label} style={{ background: bg, border, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700, color }}>
+                          {c.label}{c.extra && !c.ok ? ` · ${c.extra}` : ""}
+                          {c.auto && c.ok ? " AUTO" : ""}
+                          {c.na && c.ok ? " N/A" : ""}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
+          Click a WO to open it · Green = fully ready · Red border = missing checks
         </div>
       </div>
     </div>
