@@ -97,12 +97,14 @@ function parseExcelToRows(workbook) {
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
     const rawLeadVal = r[COL_LEAD];
-    // Use != null check instead of || "" to catch 0 values; handle SheetJS error objects
     const rawLead = (rawLeadVal == null || (typeof rawLeadVal === 'object' && rawLeadVal.t === 'e')) 
       ? "" 
       : String(rawLeadVal).trim();
     const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm"]);
-    const unitLead = KNOWN_BUS.has(rawLead) ? (rawLead === "BU Bell Farm" ? "BU Bellfarm" : rawLead) : (rawLead === "" ? null : "Other");
+    const OTHER_VALS = new Set(["#N/A","#NA","0","N/A"]);
+    const unitLead = KNOWN_BUS.has(rawLead) ? (rawLead === "BU Bell Farm" ? "BU Bellfarm" : rawLead) 
+      : OTHER_VALS.has(rawLead) ? "Other"
+      : (rawLead === "" ? null : "Other");
     if (!unitLead) continue;
 
     let dateVal = r[COL_DATE];
