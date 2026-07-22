@@ -702,7 +702,7 @@ function BuildTracker() {
   // Unit Leader picker state — defaults to Andrew B. for the launch.
   // Persists in localStorage so each device remembers its leader.
   const LEADER_STORAGE = "build_tracker_leader";
-  const [selectedLeader, setSelectedLeader] = useState("Andrew B.");
+  const [selectedLeader, setSelectedLeader] = useState("__ALL__");
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LEADER_STORAGE);
@@ -819,13 +819,14 @@ function BuildTracker() {
     const seen = new Set();
     const ordered = [];
     for (const r of allRows) {
-      if (r.leader === selectedLeader && !seen.has(r.resource)) {
+      if ((selectedLeader === "__ALL__" || r.leader === selectedLeader) && !seen.has(r.resource)) {
         seen.add(r.resource);
         ordered.push(r.resource);
       }
     }
     return ordered.map(res => {
       const allInResource = allRows.filter(r => r.resource === res).sort((a, b) => a._idx - b._idx);
+      const resLeader = allInResource[0]?.leader || "";
       const productionActive = allInResource.filter(r => !POST_PRODUCTION_STATUSES.has(r.status));
       const top3 = productionActive.slice(0, 3);
       const totalHrs = top3.reduce((s, r) => s + (r.run_hrs || 0), 0);
@@ -854,7 +855,7 @@ function BuildTracker() {
 
   // ABR + BRS lists (across all the leader's lines, not just top 3)
   const allLeaderActive = useMemo(() => {
-    return allRows.filter(r => r.leader === selectedLeader && r.status !== "done");
+    return allRows.filter(r => (selectedLeader === "__ALL__" || r.leader === selectedLeader) && r.status !== "done");
   }, [allRows, selectedLeader]);
   const abrList = useMemo(() => allLeaderActive.filter(r => r.status === "abr"), [allLeaderActive]);
   const brsList = useMemo(() => allLeaderActive.filter(r => r.status === "brs"), [allLeaderActive]);
@@ -933,7 +934,7 @@ function BuildTracker() {
     const lists = { tool: [], labels: [], kit: [] };
     const byResource = new Map();
     for (const r of allRows) {
-      if (r.leader !== selectedLeader) continue;
+      if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
       if (POST_PRODUCTION_STATUSES.has(r.status)) continue;
       if (!byResource.has(r.resource)) byResource.set(r.resource, []);
       byResource.get(r.resource).push(r);
@@ -1157,7 +1158,7 @@ function BuildTracker() {
         {/* Compact header — single row */}
         <div style={{ padding: "6px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontWeight: 800, fontSize: 18 }}>{buName(selectedLeader)}</span>
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
             <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{tvLines.length} lines</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -1284,7 +1285,7 @@ function BuildTracker() {
             <div>
               <div className="text-sm font-semibold text-slate-900">Build Plan Tracker</div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours</span>
+                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours · {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
                 {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ⏳ Connecting…</span>}
                 {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· 🔄 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
                 {fbStatus === "error" && <span className="text-rose-600 font-medium">· ⚠ Offline</span>}
@@ -1299,6 +1300,7 @@ function BuildTracker() {
                 onChange={e => changeLeader(e.target.value)}
                 className="appearance-none pl-3 pr-8 py-2 text-sm font-semibold bg-slate-900 text-white rounded-md border-2 border-slate-900 hover:bg-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400"
               >
+                <option value="__ALL__">All BUs</option>
                 {leaderList.map(l => (
                   <option key={l.name} value={l.name}>
                     {buName(l.name)} ({l.count})
@@ -1900,62 +1902,93 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
 function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose }) {
   const KIND_META = {
-    tool: { label: "Tools", icon: Wrench, color: "amber", description: "WOs needing Tool verification (auto-covered WOs excluded)" },
-    labels: { label: "Labels", icon: Tag, color: "amber", description: "WOs needing Label verification" },
-    kit: { label: "Kits", icon: Package, color: "amber", description: "WOs needing Kit verification" },
+    tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed — physical staging required" },
+    labels: { label: "Labels", icon: Tag,     description: "WOs needing Label verification" },
+    kit:    { label: "Kits",   icon: Package, description: "WOs needing Kit verification" },
   };
   const meta = KIND_META[kind];
   const I = meta.icon;
 
-  // Group by resource
+  // Group by resource, sort by startsInHrs ascending
   const byResource = useMemo(() => {
     const map = new Map();
-    for (const e of entries) {
+    const sorted = [...entries].sort((a, b) => a.startsInHrs - b.startsInHrs);
+    for (const e of sorted) {
       if (!map.has(e.row.resource)) map.set(e.row.resource, []);
       map.get(e.row.resource).push(e);
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return [...map.entries()].sort((a, b) => (a[1][0]?.startsInHrs || 0) - (b[1][0]?.startsInHrs || 0));
   }, [entries]);
 
+  const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
+
   const formatStartsIn = (hrs) => {
-    if (hrs < 1) return "now";
-    if (hrs < 36) return `in ${Math.round(hrs)}h`;
-    return "—";
+    if (hrs <= 0) return "now";
+    if (hrs < 1) return `${Math.round(hrs * 60)}m`;
+    return `in ${Math.round(hrs)}h`;
   };
   const formatWallClock = (date) =>
     date.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-  const printReport = () => window.print();
+  const handlePrint = () => {
+    const rows_html = byResource.map(([res, items]) => {
+      const resRows = items.map(e => {
+        const toolId = WO_TOOL_MAP[e.row.wo] || e.row.tool_id || "";
+        return `<tr style="border-bottom:1px solid #e2e8f0">
+          <td style="padding:5px 8px;font-size:11px;color:#64748b">${res}</td>
+          <td style="padding:5px 8px;font-family:monospace;font-size:12px;font-weight:700">${e.row.wo}</td>
+          <td style="padding:5px 8px;font-size:11px;color:#475569">${e.row.descr || e.row.part || ""}</td>
+          ${kind === "tool" ? `<td style="padding:5px 8px;font-family:monospace;font-size:11px;font-weight:600;color:#92400e">${toolId}</td>` : ""}
+          <td style="padding:5px 8px;font-size:11px;color:#f59e0b;font-weight:600">${formatStartsIn(e.startsInHrs)}</td>
+          <td style="padding:5px 8px;font-size:10px;color:#94a3b8">${formatWallClock(e.startsAt)}</td>
+        </tr>`;
+      }).join("");
+      return resRows;
+    }).join("");
+
+    const toolHeader = kind === "tool" ? "<th style='padding:5px 8px;text-align:left'>Tool ID</th>" : "";
+    const win = window.open("", "_blank");
+    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed — ${buLabel}</title>
+      <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 4px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}</style>
+    </head><body>
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+        <div><h2>${meta.label} Needed in Next 36h — ${buLabel}</h2>
+        <p>${entries.length} WOs across ${byResource.length} lines · Generated ${new Date().toLocaleString()}</p></div>
+        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
+      </div>
+      <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase">
+        <th style="padding:5px 8px;text-align:left">Resource</th>
+        <th style="padding:5px 8px;text-align:left">WO</th>
+        <th style="padding:5px 8px;text-align:left">Description</th>
+        ${toolHeader}
+        <th style="padding:5px 8px;text-align:left">Starts In</th>
+        <th style="padding:5px 8px;text-align:left">Wall Clock</th>
+      </tr></thead><tbody>${rows_html}</tbody></table>
+    </body></html>`);
+    win.document.close();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-12 overflow-auto print:bg-white print:p-0">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[85vh] print:max-h-none print:shadow-none print:rounded-none">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between print:hidden">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-12 overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col" style={{ maxHeight: "85vh" }}>
+        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <I className="w-5 h-5 text-amber-600" />
               {meta.label} Needed in Next 36h
             </h2>
-            <p className="text-xs text-slate-500">{meta.description} · {buName(selectedLeader)}</p>
+            <p className="text-xs text-slate-500">{meta.description} · {buLabel}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
 
-        {/* Print-only header */}
-        <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-          <h1 className="text-xl font-bold">{meta.label} Needed in Next 36 Hours</h1>
-          <p className="text-sm">BU: {buName(selectedLeader)} · Generated: {new Date().toLocaleString()}</p>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-auto p-5 print:p-0">
+        <div style={{ overflowY: "auto", flex: 1 }}>
           {entries.length === 0 ? (
-            <div className="text-center py-8 text-sm text-slate-500 italic">
+            <div className="text-center py-8 text-sm text-slate-500 italic px-5">
               ✓ All {meta.label.toLowerCase()} are ready for WOs starting in the next 36 hours.
             </div>
           ) : (
-            <>
+            <div className="p-5">
               <div className="mb-3 text-xs text-slate-600">
                 <span className="font-bold tabular-nums text-slate-900">{entries.length}</span> WO{entries.length !== 1 ? "s" : ""} across <span className="font-bold tabular-nums text-slate-900">{byResource.length}</span> {byResource.length === 1 ? "line" : "lines"}
               </div>
@@ -1967,44 +2000,47 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                       <span className="text-[10px] font-normal text-slate-500">{items.length} WO{items.length !== 1 ? "s" : ""}</span>
                     </div>
                     <div className="divide-y divide-stone-100">
-                      {items.map((e, i) => (
-                        <button
-                          key={i}
-                          onClick={() => onSelect(e.row)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-amber-50 transition-colors print:hover:bg-transparent print:cursor-default"
-                        >
-                          <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                            <span className="font-mono font-bold text-slate-900 text-sm">{e.row.wo}</span>
-                            <span className="text-[10px] font-semibold text-amber-700 tabular-nums shrink-0">
-                              {formatStartsIn(e.startsInHrs)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "—"}</div>
-                          <div className="flex flex-wrap gap-2 items-center text-[10px] text-slate-500">
-                            {kind === "tool" && (WO_TOOL_MAP[e.row.wo] || e.row.tool_id) && (
-                              <span className="font-mono font-semibold text-slate-700">Tool: {WO_TOOL_MAP[e.row.wo] || e.row.tool_id}</span>
-                            )}
-                            {kind === "tool" && !WO_TOOL_MAP[e.row.wo] && (
-                              <span className="italic">No tool ID on file</span>
-                            )}
-                            <span>Qty: <span className="font-mono">{fmtNum(e.row.start_qty)}</span></span>
-                            <span className="text-stone-400">·</span>
-                            <span>Starts ~{formatWallClock(e.startsAt)}</span>
-                          </div>
-                        </button>
-                      ))}
+                      {items.map((e, i) => {
+                        const toolId = WO_TOOL_MAP[e.row.wo] || e.row.tool_id || null;
+                        const isNow = e.startsInHrs <= 0;
+                        const isUrgent = e.startsInHrs > 0 && e.startsInHrs < 4;
+                        return (
+                          <button key={i} onClick={() => onSelect(e.row)}
+                            className={`w-full text-left px-3 py-2.5 hover:bg-amber-50 transition-colors ${isNow ? "bg-amber-50" : ""}`}>
+                            <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                              <span className="font-mono font-bold text-slate-900 text-sm">{e.row.wo}</span>
+                              <span className={`text-[11px] font-semibold tabular-nums shrink-0 ${isNow ? "text-rose-600" : isUrgent ? "text-amber-700" : "text-slate-500"}`}>
+                                {formatStartsIn(e.startsInHrs)}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "—"}</div>
+                            <div className="flex flex-wrap gap-2 items-center text-[10px] text-slate-500">
+                              {kind === "tool" && toolId && (
+                                <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Tool: {toolId}</span>
+                              )}
+                              {kind === "tool" && !toolId && (
+                                <span className="italic text-slate-400">No tool ID on file</span>
+                              )}
+                              <span className="text-stone-400">·</span>
+                              <span>~{formatWallClock(e.startsAt)}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
 
-        {/* Footer actions */}
-        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex gap-2 print:hidden">
+        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center gap-2">
+          <span className="text-[10px] text-slate-500 italic flex-1">Click a WO to open its detail panel</span>
           <button onClick={onClose} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Close</button>
-          <button onClick={printReport} className="ml-auto px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Print</button>
+          <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">
+            🖨 Print
+          </button>
         </div>
       </div>
     </div>
@@ -2391,7 +2427,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
       if (r.leader === selectedLeader) leaderResources.add(r.resource);
     }
     for (const r of allRows) {
-      if (r.leader !== selectedLeader) continue;
+      if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
       const matchingEntries = (r.shifts || []).filter(s =>
         shiftEntryKey(new Date(s.shiftDateISO), s.shiftId) === targetKey
       );
