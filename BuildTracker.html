@@ -1742,7 +1742,6 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
           {lines.map(line => {
             const hasWip = line.rows.some(r => r.status === "wip");
             const cov = coverageFor(line.resource);
-            const isLimitedCoverage = cov.endHour - cov.startHour < 24;
             // Check if line is marked down for current shift
             const { shiftId: nowShift, shiftDate: nowDate } = getCurrentShift(new Date());
             const downEntry = (() => {
@@ -1762,9 +1761,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                   {downEntry && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " — " + downEntry.notes : ""} (by ${downEntry.by || "—"})`}>DOWN</span>
                   )}
-                  {!downEntry && isLimitedCoverage && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-sky-100 text-sky-700" title="2-shift line: 7am–11pm (16h/day)">16h</span>
-                  )}
+
                   {!downEntry && hasWip && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-200 text-amber-900">RUN</span>}
                   <span className="text-[10px] text-slate-500 tabular-nums shrink-0">{fmtHrs(line.totalHrs)}</span>
                   <button
