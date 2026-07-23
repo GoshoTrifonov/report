@@ -268,7 +268,7 @@ const POST_PRODUCTION_STATUSES = new Set(["abr", "brs", "done"]);
 
 const fmtHrs = (n) => n == null || n === 0 ? "—" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
 const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
-const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}`;
+const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}__${row._idx ?? ""}`;
 const isLopro = (name) => /^lopro/i.test(name);
 
 // Readiness: tool, labels, kit. Default = not ready.
@@ -587,7 +587,7 @@ function BuildTracker() {
         const sourceRows = buildPlanRows || BUILD_DATA.rows;
         sourceRows.forEach((row, idx) => {
           if (woTotals[row.wo] !== undefined) {
-            const key = rowKey(row);
+            const key = rowKey({ ...row, _idx: idx });
             const existing = nextOverrides[key] || {};
             const newQty = woTotals[row.wo];
             const startQty = row.start_qty || 0;
@@ -613,7 +613,7 @@ function BuildTracker() {
           // Find the last WO on this line that is wip or done
           let lastActiveIdx = -1;
           items.forEach(({ row, idx }) => {
-            const key = rowKey(row);
+            const key = rowKey({ ...row, _idx: idx });
             const status = nextOverrides[key]?.status || row.status;
             if (status === "wip" || POST_PRODUCTION_STATUSES.has(status)) {
               lastActiveIdx = idx;
@@ -623,7 +623,7 @@ function BuildTracker() {
           if (lastActiveIdx >= 0) {
             items.forEach(({ row, idx }) => {
               if (idx >= lastActiveIdx) return; // skip current and after
-              const key = rowKey(row);
+              const key = rowKey({ ...row, _idx: idx });
               const existing = nextOverrides[key] || {};
               const currentStatus = existing.status || row.status;
               if (!POST_PRODUCTION_STATUSES.has(currentStatus)) {
