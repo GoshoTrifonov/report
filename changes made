@@ -1,0 +1,97 @@
+Most of the BuildTracker work happened in this current conversation. Here's the full summary of everything done in the last 10 days:
+
+🔥 Firebase Integration (foundational)
+
+Migrated from localStorage to Firestore for real-time sync across all devices
+buildtracker/overrides — WO status, comp_qty, readiness checks
+buildtracker/line_down — line down markers
+buildtracker/build_plan — uploaded build plan
+buildtracker/meta — labour tickets upload timestamp
+Live onSnapshot listeners — everyone sees changes instantly
+
+📋 Build Plan Upload
+
+New "📋 Build Plan" button — upload weekly Excel, replaces baked-in BUILD_DATA
+Leaders auto-injected from resource→leader map since build plan has no leader column
+Timestamp shown under button
+
+📂 Labour Tickets Upload
+
+New "📂 Labour Tickets" button — parses same Excel as Production Report
+Sums GOOD_QTY by WO (column K = WORKORDER_ID), updates comp_qty overrides
+Second pass: marks all preceding WOs on same line as done if a later WO is active
+Auto-promotes status: done if qty ≥ start_qty, wip if partial
+Timestamp shown under button (based on Firestore, persists across reloads)
+No longer writes to production_data/latest (was corrupting Production Report)
+
+🔑 Password Protection
+
+All uploads + Reset button require password smi1234
+Remembered for the browser session (sessionStorage)
+
+📺 TV Mode
+
+Full-screen via browser Fullscreen API (Escape to exit)
+Auto-fit grid — cards fill entire screen, minimum 3 columns
+Cards sorted by remaining hours on NOW WO (soonest changeover top-left)
+Green border (4px) = NEXT WO fully ready; red = not ready; amber = WIP
+NEXT WO shows Tool/Labels/Kit readiness pills with colors
+Line exclusion panel (hidden ⚙ button) — saved to localStorage
+Remaining time shown: X.Xh left
+
+📊 Timeline improvements
+
+WIP bar width = remaining hours only (run_hrs × (1 - comp_qty/start_qty))
+Ready WOs = light green bars (
+#86efac)
+Not ready = grey with red ring
+Wall-clock times on timeline ticks (7am, 3pm, 11pm) instead of S1/S2/S3
+Removed diagonal grey stripes for off-shift hours
+Removed thin line artifact from sticky header
+
+📋 Next WOs Summary modal
+
+New "Next WOs" counter in header — shows ALL next slot WOs (not just not-ready)
+Sorted by urgency (remaining hours ascending)
+URGENT badge for lines with <4h remaining
+Tool/Labels/Kit pills clickable to toggle readiness directly from the list
+Clock time shown: ~6h left (Thu 2:00 PM) — based on last labour upload time
+Print button — opens clean new tab with full table, printable
+Initials shown on manually checked pills
+
+⚠️ Next Not Ready modal
+
+Sorted by urgency (soonest first)
+URGENT badge + red border for <4h
+Tool number shown in missing badge: Tool · 13-018
+
+🔧 Tools/Labels/Kits Needed (36h) modal
+
+Redesigned to match Next WOs style
+Grouped by resource, sorted by time
+Tool number shown prominently
+Print button opens clean printable table
+
+🏭 All BUs filter
+
+"All BUs" option added to BU dropdown — shows all lines across every BU
+Tools/Labels/Kits lists, timeline, TV mode all respect this
+
+🔢 rowKey fix
+
+Changed from resource__wo__idx to resource__wo
+Readiness (Tool ✓, Labels ✓, Kit ✓) now survives build plan uploads
+
+👤 Accountability — Initials on readiness checks
+
+Session initials auto-stamped when checking Tool/Labels/Kit
+Shown on buttons in detail panel: Tool then GT underneath
+Shown in Next WOs Summary pills: Labels · GT
+
+🧹 Removed
+
+16h badge from resource headers
+Skid concept entirely
+WIP and NOT READY from header stats
+Auto page-reload every 60s (was exiting TV mode)
+Production WOs and Hrs Shown from header
