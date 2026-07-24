@@ -2694,7 +2694,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
   const enteredQty = Number(qty) || 0;
   const isOver  = expectedShift > 0 && enteredQty > 0 && enteredQty > expectedShift * 1.15;
   const isShort = expectedShift > 0 && enteredQty > 0 && enteredQty < expectedShift * tolerance;
-  const REASONS = ["Quality", "Tooling", "Machinery", "Materials", "Other"];
+  const REASONS = ["Quality", "Tooling", "Machinery", "Materials", "No Manpower", "Other"];
 
   const submit = () => {
     const n = Number(qty);
