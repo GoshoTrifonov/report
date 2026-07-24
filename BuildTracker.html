@@ -851,7 +851,7 @@ function BuildTracker() {
       }
       return true;
     });
-  }, [allRows, selectedLeader]);
+  }, [allRows, selectedLeader, lineFilter, lineDown]);
 
   // ABR + BRS lists (across all the leader's lines, not just top 3)
   const allLeaderActive = useMemo(() => {
