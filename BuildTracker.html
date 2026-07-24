@@ -2089,9 +2089,9 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
             const isUrgent = nowHrs > 0 && nowHrs < 4;
             const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
             const checks = [
-              { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
-              { key: "labels", label: "Labels", ok: ready.labels?.ok },
-              { key: "kit",    label: "Kit",    ok: ready.kit?.ok },
+              { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId, by: ready.tool?.by },
+              { key: "labels", label: "Labels", ok: ready.labels?.ok, by: ready.labels?.by },
+              { key: "kit",    label: "Kit",    ok: ready.kit?.ok,    by: ready.kit?.by },
             ];
             return (
               <button key={i} onClick={() => onSelect(r)}
@@ -2123,6 +2123,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                           className="hover:opacity-80"
                         >
                           {c.label}{badge}{c.extra && !c.ok ? ` · ${c.extra}` : ""}
+                          {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
                       );
                     })}
@@ -3002,6 +3003,9 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                       )}
                       <I className="w-4 h-4" />
                       <span className="text-[11px] font-semibold leading-tight">{READINESS_LABELS[k]}</span>
+                      {ok && !isAuto && !isNA && item?.by && (
+                        <span className="text-[9px] font-bold leading-tight opacity-80">{item.by}</span>
+                      )}
                       {k === "tool" && (
                         <span className={`text-[10px] font-mono leading-tight ${ok ? (isNA ? "text-slate-100" : isAuto ? "text-sky-50" : "text-emerald-50") : "text-rose-600"}`}>
                           {toolId || (isNA ? "none" : "—")}
