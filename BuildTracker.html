@@ -2698,18 +2698,20 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
 
   const submit = () => {
     const n = Number(qty);
-    if (!Number.isFinite(n) || n <= 0) {
-      alert("Enter a quantity greater than 0.");
+    const hasQty = Number.isFinite(n) && n > 0;
+    const hasNotes = notes.trim().length > 0;
+    if (!hasQty && !hasNotes) {
+      alert("Enter a quantity or add a note.");
       return;
     }
-    if (n > remaining + 0.5) {
+    if (hasQty && n > remaining + 0.5) {
       if (!confirm(`Logging ${n} but only ${remaining} units remain. Continue?`)) return;
     }
-    if ((isShort || isOver) && !reason) {
+    if (hasQty && (isShort || isOver) && !reason) {
       alert(`Quantity is ${isOver ? "above 115%" : "below 95%"} of expected (${expectedShift}). Please pick a reason.`);
       return;
     }
-    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: n, notes, reason: (isShort || isOver) ? reason : "" });
+    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: hasQty ? n : 0, notes, reason: hasQty && (isShort || isOver) ? reason : "" });
     setQty("");
     setNotes("");
     setReason("");
@@ -2825,7 +2827,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         disabled={!qty || Number(qty) <= 0}
         className="w-full px-3 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-stone-300 disabled:text-slate-500 text-white rounded-md text-sm font-semibold transition-colors"
       >
-        Log shift entry
+        {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
       </button>
 
       {/* History */}
