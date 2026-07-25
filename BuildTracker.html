@@ -2824,7 +2824,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
 
       <button
         onClick={submit}
-        disabled={!qty || Number(qty) <= 0}
+        disabled={(!qty || Number(qty) <= 0) && !notes.trim()}
         className="w-full px-3 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-stone-300 disabled:text-slate-500 text-white rounded-md text-sm font-semibold transition-colors"
       >
         {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
