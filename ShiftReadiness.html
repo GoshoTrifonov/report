@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#1a1a2e"/>
+<link rel="manifest" href="manifest.json"/>
+<title>GT Shift Readiness</title>
+<style>
+:root {
+  --accent:    #f59e0b;
+  --accent2:   #10b981;
+  --danger:    #ef4444;
+  --bg-page:   #f7f5f0;
+  --bg-card:   #ffffff;
+  --ink:       #1a1a1a;
+  --ink-soft:  #6b7280;
+  --line:      #e5e7eb;
+  --radius:    10px;
+  --shadow:    0 2px 8px rgba(0,0,0,.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-page); color: var(--ink); min-height: 100vh; }
+
+.appbar {
+  position: sticky; top: 0; z-index: 100;
+  background: #1a1a2e; color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px; height: 52px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.appbar-title { font-size: 15px; font-weight: 800; letter-spacing: .04em; }
+.appbar-title span { color: var(--accent); }
+.appbar-nav { display: flex; gap: 4px; }
+.nav-btn {
+  padding: 6px 10px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  border: none; cursor: pointer; background: rgba(255,255,255,.1); color: #fff;
+  transition: background .15s;
+}
+.nav-btn.active { background: var(--accent); color: #1a1a2e; }
+.nav-btn:active { opacity: .7; }
+
+.screen { display: none; padding: 14px; max-width: 680px; margin: 0 auto; }
+.screen.active { display: block; }
+
+.card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--line); padding: 14px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-soft); margin-bottom: 10px;
+}
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; font-weight: 600;
+  color: var(--ink-soft); margin-bottom: 4px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--bg-page);
+  font-size: 14px; color: var(--ink); font-family: inherit; transition: border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 60px; }
+
+.score-wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #1a1a2e; border-radius: var(--radius);
+  margin-bottom: 14px; color: #fff;
+}
+.score-label { font-size: 13px; font-weight: 600; }
+.score-num { font-size: 26px; font-weight: 900; color: var(--accent); }
+.score-denom { font-size: 14px; color: rgba(255,255,255,.5); }
+.score-pct { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 2px; }
+
+.area-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-soft);
+  padding: 10px 0 4px; border-bottom: 1px solid var(--line); margin-bottom: 6px;
+}
+.check-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 6px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.check-row:last-child { border-bottom: none; }
+.check-info { min-width: 0; }
+.check-item { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.check-std { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+.check-comment-wrap { grid-column: 1 / -1; padding-top: 2px; }
+.check-comment {
+  width: 100%; padding: 6px 10px; border-radius: 6px;
+  border: 1.5px solid var(--line); background: var(--bg-page);
+  font-size: 12px; font-family: inherit; resize: none;
+}
+.check-comment:focus { outline: none; border-color: var(--accent); }
+.yn-btns { display: flex; gap: 4px; }
+.yn-btn {
+  width: 38px; height: 34px; border-radius: 7px; font-size: 12px;
+  font-weight: 800; border: 1.5px solid var(--line);
+  background: var(--bg-page); color: var(--ink-soft); cursor: pointer; transition: all .15s;
+}
+.yn-btn.yes.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+.yn-btn.no.active  { background: var(--danger);  color: #fff; border-color: var(--danger); }
+
+.no-checklist-notice {
+  text-align: center; padding: 32px 20px; color: var(--ink-soft);
+  font-size: 14px; border: 2px dashed var(--line); border-radius: var(--radius);
+  margin-bottom: 12px;
+}
+
+.submit-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius);
+  background: var(--accent); color: #1a1a2e; font-size: 16px;
+  font-weight: 800; border: none; cursor: pointer; margin-top: 8px; transition: opacity .15s;
+}
+.submit-btn:active { opacity: .8; }
+.submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.feed-header h2 { font-size: 16px; font-weight: 800; }
+.feed-filter { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.feed-filter select {
+  padding: 6px 10px; border-radius: 7px; border: 1.5px solid var(--line);
+  background: var(--bg-card); font-size: 13px; color: var(--ink);
+}
+.audit-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--line); padding: 12px 14px; margin-bottom: 10px;
+  box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s;
+}
+.audit-card:hover { border-color: var(--accent); }
+.audit-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.audit-line { font-size: 15px; font-weight: 800; }
+.audit-score-badge { padding: 3px 10px; border-radius: 20px; font-size: 13px; font-weight: 800; }
+.audit-score-badge.good { background: #d1fae5; color: #065f46; }
+.audit-score-badge.warn { background: #fef3c7; color: #92400e; }
+.audit-score-badge.fail { background: #fee2e2; color: #991b1b; }
+.audit-meta { font-size: 12px; color: var(--ink-soft); }
+.audit-fails { margin-top: 6px; }
+.fail-chip {
+  display: inline-block; background: #fee2e2; color: #991b1b;
+  border-radius: 4px; font-size: 11px; font-weight: 600; padding: 2px 7px; margin: 2px 2px 0 0;
+}
+.feed-empty { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 14px; }
+.live-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent2); margin-right: 6px; animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.5); overflow-y: auto; padding: 20px 14px;
+}
+.modal-overlay.open { display: block; }
+.modal {
+  background: var(--bg-card); border-radius: 14px; max-width: 640px;
+  margin: 0 auto; padding: 18px; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.modal-header h3 { font-size: 17px; font-weight: 800; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--bg-page); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.detail-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 7px 0; border-bottom: 1px solid var(--line); gap: 8px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-item-text { font-size: 13px; flex: 1; }
+.detail-std { font-size: 11px; color: var(--ink-soft); }
+.detail-yn { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+.detail-yn.yes { background: #d1fae5; color: #065f46; }
+.detail-yn.no  { background: #fee2e2; color: #991b1b; }
+.detail-yn.na  { background: var(--bg-page); color: var(--ink-soft); }
+.detail-comment { font-size: 11px; color: var(--ink-soft); font-style: italic; margin-top: 2px; }
+
+.hist-controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.hist-controls input, .hist-controls select {
+  padding: 7px 10px; border-radius: 7px; border: 1.5px solid var(--line);
+  background: var(--bg-card); font-size: 13px; color: var(--ink); flex: 1; min-width: 120px;
+}
+.no-records { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 14px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 30px;
+  font-size: 13px; font-weight: 600; z-index: 999;
+  opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+
+/* PASSWORD MODAL */
+.pw-overlay {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.6); align-items: center; justify-content: center; padding: 20px;
+}
+.pw-overlay.open { display: flex; }
+.pw-box {
+  background: var(--bg-card); border-radius: 16px; padding: 28px 24px;
+  max-width: 340px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center;
+}
+.pw-box h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+.pw-box p  { font-size: 13px; color: var(--ink-soft); margin-bottom: 18px; }
+.pw-input {
+  width: 100%; padding: 11px 14px; border-radius: 8px; font-size: 16px;
+  border: 1.5px solid var(--line); font-family: inherit; text-align: center;
+  letter-spacing: .1em; margin-bottom: 12px;
+}
+.pw-input:focus { outline: none; border-color: var(--accent); }
+.pw-error { font-size: 12px; color: var(--danger); margin-bottom: 10px; min-height: 16px; }
+.pw-actions { display: flex; gap: 8px; }
+.pw-btn { flex: 1; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: 700; border: none; cursor: pointer; }
+.pw-btn.primary { background: var(--accent); color: #1a1a2e; }
+.pw-btn.secondary { background: var(--bg-page); color: var(--ink-soft); border: 1.5px solid var(--line); }
+
+/* CONFIG SCREEN */
+.cfg-layout { display: grid; grid-template-columns: 180px 1fr; gap: 12px; align-items: start; }
+@media (max-width: 520px) { .cfg-layout { grid-template-columns: 1fr; } }
+.cfg-line-list {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow);
+}
+.cfg-line-item {
+  padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; transition: background .12s;
+}
+.cfg-line-item:last-child { border-bottom: none; }
+.cfg-line-item:hover { background: var(--bg-page); }
+.cfg-line-item.active { background: #1a1a2e; color: #fff; }
+.cfg-has-custom {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+  background: var(--accent); color: #1a1a2e;
+}
+.cfg-line-item.active .cfg-has-custom { background: rgba(255,255,255,.25); color: #fff; }
+
+.cfg-editor { min-width: 0; }
+.cfg-editor-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cfg-editor-header h3 { font-size: 15px; font-weight: 800; }
+.cfg-btn {
+  padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  border: none; cursor: pointer; transition: opacity .15s;
+}
+.cfg-btn:active { opacity: .7; }
+.cfg-btn.primary { background: var(--accent); color: #1a1a2e; }
+.cfg-btn.ghost   { background: var(--bg-page); color: var(--ink); border: 1.5px solid var(--line); }
+.cfg-btn.success { background: #d1fae5; color: #065f46; }
+
+.cfg-section {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--line); margin-bottom: 10px; overflow: hidden; box-shadow: var(--shadow);
+}
+.cfg-section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--bg-page);
+}
+.cfg-section-name {
+  flex: 1; font-size: 13px; font-weight: 700; padding: 6px 8px;
+  border-radius: 6px; border: 1.5px solid transparent; background: transparent; font-family: inherit; color: var(--ink);
+}
+.cfg-section-name:focus { outline: none; border-color: var(--accent); background: var(--bg-card); }
+.cfg-section-del {
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: #fee2e2; color: #991b1b; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.cfg-item-row { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.cfg-item-row:last-of-type { border-bottom: none; }
+.cfg-item-text {
+  flex: 1; font-size: 13px; padding: 5px 8px; border-radius: 6px;
+  border: 1.5px solid transparent; background: transparent; font-family: inherit; color: var(--ink);
+}
+.cfg-item-text:focus { outline: none; border-color: var(--accent); background: var(--bg-card); }
+.cfg-item-std {
+  width: 140px; font-size: 11px; padding: 5px 8px; border-radius: 6px;
+  border: 1.5px solid transparent; background: transparent; font-family: inherit; color: var(--ink-soft);
+}
+.cfg-item-std:focus { outline: none; border-color: var(--accent); background: var(--bg-card); }
+.cfg-item-del {
+  width: 26px; height: 26px; border-radius: 5px; border: none;
+  background: #fee2e2; color: #991b1b; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.cfg-add-item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bg-page); }
+.cfg-add-item input {
+  flex: 1; padding: 6px 10px; border-radius: 6px; border: 1.5px solid var(--line);
+  font-size: 13px; font-family: inherit; background: var(--bg-card);
+}
+.cfg-add-item input:focus { outline: none; border-color: var(--accent); }
+.cfg-add-section-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 12px; }
+.cfg-add-section-row input {
+  flex: 1; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--line);
+  font-size: 13px; font-family: inherit; background: var(--bg-card);
+}
+.cfg-add-section-row input:focus { outline: none; border-color: var(--accent); }
+.cfg-save-bar {
+  position: sticky; bottom: 0; background: var(--bg-page);
+  padding: 10px 0 4px; display: flex; gap: 8px; align-items: center;
+  border-top: 1px solid var(--line); margin-top: 4px;
+}
+.cfg-save-status { font-size: 12px; color: var(--ink-soft); flex: 1; }
+.cfg-empty { text-align: center; padding: 40px 20px; color: var(--ink-soft); font-size: 14px; }
+
+/* ANALYTICS */
+.an-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.an-filters select, .an-filters input {
+  padding:7px 10px; border-radius:7px; border:1.5px solid var(--line);
+  background:var(--bg-card); font-size:13px; color:var(--ink); flex:1; min-width:110px;
+}
+.an-section-title {
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-soft); margin:18px 0 8px;
+}
+.an-card {
+  background:var(--bg-card); border-radius:var(--radius); border:1px solid var(--line);
+  padding:14px; margin-bottom:12px; box-shadow:var(--shadow);
+}
+.an-card-title { font-size:13px; font-weight:800; margin-bottom:12px; color:var(--ink); }
+.an-canvas-wrap { position:relative; width:100%; }
+.an-canvas-wrap canvas { width:100% !important; display:block; }
+.an-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+.an-stat {
+  background:var(--bg-page); border-radius:8px; padding:12px; text-align:center;
+  border:1px solid var(--line);
+}
+.an-stat-val { font-size:22px; font-weight:900; color:var(--accent); }
+.an-stat-lbl { font-size:11px; color:var(--ink-soft); margin-top:2px; font-weight:600; }
+.an-fail-row {
+  display:flex; align-items:center; gap:8px; padding:6px 0;
+  border-bottom:1px solid var(--line);
+}
+.an-fail-row:last-child { border-bottom:none; }
+.an-fail-bar-wrap { flex:1; background:var(--bg-page); border-radius:4px; height:8px; overflow:hidden; }
+.an-fail-bar { height:100%; background:var(--danger); border-radius:4px; transition:width .4s; }
+.an-fail-label { font-size:12px; font-weight:600; flex:0 0 auto; min-width:0;
+  max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.an-fail-count { font-size:12px; font-weight:800; color:var(--danger); flex:0 0 28px; text-align:right; }
+.an-empty { text-align:center; padding:32px; color:var(--ink-soft); font-size:14px; }
+.an-shift-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.an-shift-card {
+  background:var(--bg-page); border-radius:8px; padding:12px; text-align:center;
+  border:1px solid var(--line);
+}
+.an-shift-name { font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; }
+.an-shift-val  { font-size:20px; font-weight:900; }
+.an-shift-sub  { font-size:11px; color:var(--ink-soft); margin-top:2px; }
+
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="appbar-title">GT <span>AUDIT</span></div>
+  <div class="appbar-nav">
+    <button class="nav-btn active" id="nav-audit"   onclick="showScreen('audit',this)">📋 Audit</button>
+    <button class="nav-btn"        id="nav-feed"    onclick="showScreen('feed',this)">🔴 Live</button>
+    <button class="nav-btn"        id="nav-history" onclick="showScreen('history',this)">📁 History</button>
+    <button class="nav-btn"        id="nav-analytics" onclick="showScreen('analytics',this)">📊 Analytics</button>
+    <button class="nav-btn"        id="nav-config"  onclick="requestConfig()">⚙ Config</button>
+  </div>
+</div>
+
+<!-- AUDIT SCREEN -->
+<div class="screen active" id="screen-audit">
+  <div class="card">
+    <div class="card-title">Shift Info</div>
+    <div class="field">
+      <label>Line</label>
+      <select id="f-line" onchange="onLineChange()">
+        <option value="">— select line —</option>
+        <option>ASB-231 - LP S4</option>
+        <option>ASB-170 - QC S4 +Bio</option>
+        <option>ASB-258 - QC S3</option>
+        <option>ASB-073 - LP S3</option>
+        <option>ASB-179 - HDMI Mix</option>
+        <option>ASB-075 - QC Mix</option>
+        <option>ASB-259 - QC Mac S4</option>
+        <option>ASB-260 - QC Mac S3</option>
+        <option>Multivac 1 - MV1</option>
+        <option>Multivac 2 - MV2</option>
+        <option>M42 - Machine 42</option>
+        <option>M43 - Machine 43</option>
+        <option>M30 - Machine 30</option>
+        <option>M39 - Machine 39</option>
+        <option>M49 - Machine 49</option>
+        <option>Camera Print</option>
+        <option>CNC - Camera Reclaim</option>
+        <option>BFLEX/ORION</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Supervisor / Team Leader</label>
+      <input type="text" id="f-supervisor" placeholder="Your name"/>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div class="field" style="flex:1"><label>Date</label><input type="date" id="f-date"/></div>
+      <div class="field" style="flex:1">
+        <label>Shift</label>
+        <select id="f-shift">
+          <option value="Day">Day</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Midnight">Midnight</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="score-wrap">
+    <div><div class="score-label">Score</div><div class="score-pct" id="score-pct">—</div></div>
+    <div style="text-align:right">
+      <span class="score-num" id="score-yes">0</span>
+      <span class="score-denom"> / <span id="score-total">—</span></span>
+    </div>
+  </div>
+  <div id="checklist-wrap"></div>
+  <button class="submit-btn" id="submit-btn" onclick="submitAudit()">✅ Submit Audit</button>
+</div>
+
+<!-- LIVE FEED SCREEN -->
+<div class="screen" id="screen-feed">
+  <div class="feed-header">
+    <h2><span class="live-dot"></span>Live Feed</h2>
+    <div style="font-size:12px;color:var(--ink-soft)" id="feed-updated">Waiting…</div>
+  </div>
+  <div class="feed-filter">
+    <select id="feed-line-filter" onchange="renderFeed()"><option value="">All lines</option></select>
+    <select id="feed-shift-filter" onchange="renderFeed()">
+      <option value="">All shifts</option>
+      <option>Day</option><option>Afternoon</option><option>Midnight</option>
+    </select>
+  </div>
+  <div id="feed-list"></div>
+</div>
+
+<!-- HISTORY SCREEN -->
+<div class="screen" id="screen-history">
+  <div class="hist-controls">
+    <input type="date" id="hist-from" onchange="renderHistory()"/>
+    <input type="date" id="hist-to"   onchange="renderHistory()"/>
+    <select id="hist-line" onchange="renderHistory()"><option value="">All lines</option></select>
+    <select id="hist-shift" onchange="renderHistory()"><option value="">All shifts</option><option>Day</option><option>Afternoon</option><option>Midnight</option></select>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div class="screen" id="screen-config">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <h2 style="font-size:16px;font-weight:800;">⚙ Configure Checklists</h2>
+    <button onclick="lockConfig()" style="font-size:12px;color:var(--danger);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700;">🔒 Lock</button>
+  </div>
+  <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px;">Select a line to edit its checklist. Changes save to Firebase and apply to all users instantly.</p>
+  <div class="cfg-layout">
+    <div class="cfg-line-list" id="cfg-line-list"></div>
+    <div class="cfg-editor" id="cfg-editor"><div class="cfg-empty">← Select a line to edit</div></div>
+  </div>
+</div>
+
+<!-- ANALYTICS SCREEN -->
+<div class="screen" id="screen-analytics">
+  <div class="an-filters">
+    <input type="date" id="an-from"/>
+    <input type="date" id="an-to"/>
+    <select id="an-line"><option value="">All lines</option></select>
+    <select id="an-shift">
+      <option value="">All shifts</option>
+      <option>Day</option><option>Afternoon</option><option>Midnight</option>
+    </select>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="an-card">
+    <div class="an-card-title">Summary</div>
+    <div class="an-stat-grid" id="an-stats"></div>
+  </div>
+
+  <!-- Score trend -->
+  <div class="an-card">
+    <div class="an-card-title">Score Trend (% over time)</div>
+    <div class="an-canvas-wrap"><canvas id="an-trend-canvas" height="180"></canvas></div>
+  </div>
+
+  <!-- Line comparison -->
+  <div class="an-card">
+    <div class="an-card-title">Average Score by Line</div>
+    <div class="an-canvas-wrap"><canvas id="an-line-canvas" height="220"></canvas></div>
+  </div>
+
+  <!-- Shift comparison -->
+  <div class="an-card">
+    <div class="an-card-title">Score by Shift</div>
+    <div class="an-shift-grid" id="an-shift-grid"></div>
+  </div>
+
+  <!-- Top failures -->
+  <div class="an-card">
+    <div class="an-card-title">Most Frequent Failures</div>
+    <div id="an-fails-list"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal" onclick="closeDetail(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="detail-title">Audit Detail</h3>
+      <button class="modal-close" onclick="closeDetailModal()">×</button>
+    </div>
+    <div id="detail-meta" style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;"></div>
+    <div id="detail-score" style="margin-bottom:14px;"></div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="pw-overlay" id="pw-overlay">
+  <div class="pw-box">
+    <h3>🔒 Config Access</h3>
+    <p>Enter the configuration password to continue.</p>
+    <input class="pw-input" type="password" id="pw-input" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')checkPassword()"/>
+    <div class="pw-error" id="pw-error"></div>
+    <div class="pw-actions">
+      <button class="pw-btn secondary" onclick="closePwModal()">Cancel</button>
+      <button class="pw-btn primary"   onclick="checkPassword()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FB_API     = 'AIzaSyAyqrWMVIPY952qlSFQi-d7mDaxy32mwcU';
+const FB_PROJECT = 'gt-shift--tool';
+const ALL_LINES = ['ASB-231 - LP S4','ASB-170 - QC S4 +Bio','ASB-258 - QC S3','ASB-073 - LP S3','ASB-179 - HDMI Mix','ASB-075 - QC Mix','ASB-259 - QC Mac S4','ASB-260 - QC Mac S3','Multivac 1 - MV1','Multivac 2 - MV2','M42 - Machine 42','M43 - Machine 43','M30 - Machine 30','M39 - Machine 39','M49 - Machine 49','Camera Print','CNC - Camera Reclaim','BFLEX/ORION'];
+
+
+let db = null;
+let AUDITS = [];
+let configUnlocked = false;
+let LINE_CHECKLISTS = {};
+let cfgActiveLine = null;
+let cfgDraft = null;
+
+const DEFAULT_CHECKLIST = [
+  { area: 'Required Items', items: [
+    { id: 'ri1', text: 'Wrist strap available',                       std: 'Present and functional' },
+    { id: 'ri2', text: 'Anti-static mat available in good condition',  std: 'Present and functional' },
+    { id: 'ri3', text: 'Program monitor available',                    std: 'Present and functional' },
+    { id: 'ri4', text: 'Check monitor available',                      std: 'Present and functional' },
+    { id: 'ri5', text: 'All required cables available',                std: 'Present and functional' },
+    { id: 'ri6', text: 'Targets available',                            std: 'Present and functional' },
+    { id: 'ri7', text: 'Molding IP bin',                               std: 'Present and functional' },
+  ]},
+  { area: 'Materials Readiness', items: [
+    { id: 'mr1', text: 'Current WO fully issued',  std: '100% issued'      },
+    { id: 'mr2', text: 'Next WO ready',            std: 'Materials staged' },
+    { id: 'mr3', text: 'Labels available',         std: 'At line'          },
+    { id: 'mr4', text: 'Startup sheets available', std: 'At line'          },
+  ]},
+  { area: 'Bin Standard', items: [
+    { id: 'bs1', text: 'Correct bin color used',        std: 'Per standard'  },
+    { id: 'bs2', text: 'Correct number of bins',        std: 'Per standard'  },
+    { id: 'bs3', text: 'WIP shell bins - gray with lids', std: 'Standardized'},
+    { id: 'bs4', text: 'Maximum 8 WIP bins',            std: '8 bins max'    },
+  ]},
+  { area: '5S', items: [
+    { id: '5s1', text: 'Floor clean',                      std: 'No debris'                   },
+    { id: '5s2', text: 'Tables clean',                     std: 'No debris'                   },
+    { id: '5s3', text: 'Garbage removed',                  std: 'No full bins'                },
+    { id: '5s4', text: 'No unnecessary items',             std: 'Only required items present' },
+    { id: '5s5', text: 'Designated locations marked',      std: 'Visual standard exists'      },
+    { id: '5s6', text: 'Items stored in correct location', std: 'Standard followed'           },
+  ]},
+  { area: 'Shift Handoff', items: [
+    { id: 'sh1', text: 'Line ready for next shift',        std: 'Startup ready'    },
+    { id: 'sh2', text: 'Outstanding issues communicated',  std: 'Handoff completed'},
+    { id: 'sh3', text: 'Missing items escalated',          std: 'Action taken'     },
+  ]},
+];
+
+let ACTIVE_CHECKLIST = [];
+let answers  = {};
+let comments = {};
+
+function getChecklistForLine(line) {
+  if (!line) return [];
+  return LINE_CHECKLISTS[line] ? LINE_CHECKLISTS[line] : DEFAULT_CHECKLIST;
+}
+function getAllItems(cl) { return (cl||[]).flatMap(g => g.items); }
+function resetAnswers(cl) {
+  answers = {}; comments = {};
+  getAllItems(cl).forEach(it => { answers[it.id] = null; comments[it.id] = ''; });
+}
+
+// FIREBASE
+function initFirebase() {
+  if (typeof firebase === 'undefined') return;
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: FB_API,
+      authDomain: FB_PROJECT + '.firebaseapp.com',
+      projectId: FB_PROJECT,
+    });
+  }
+  db = firebase.firestore();
+  firebase.auth().signInAnonymously().catch(e => console.warn('auth', e));
+  listenToAudits();
+  loadAllChecklists();
+}
+
+function listenToAudits() {
+  if (!db) return;
+  db.collection('audits').orderBy('submittedAt','desc').limit(200).onSnapshot(snap => {
+    AUDITS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFeed(); renderHistory();
+    document.getElementById('feed-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    populateLineFilters();
+  }, err => console.warn('audits', err));
+}
+
+function loadAllChecklists() {
+  if (!db) return;
+  db.collection('checklists').onSnapshot(snap => {
+    snap.docs.forEach(d => { LINE_CHECKLISTS[d.id] = d.data().sections || []; });
+    const line = document.getElementById('f-line').value;
+    if (line) { ACTIVE_CHECKLIST = getChecklistForLine(line); resetAnswers(ACTIVE_CHECKLIST); renderChecklist(); }
+    renderCfgLineList();
+    if (cfgActiveLine) renderCfgEditor();
+  }, err => console.warn('checklists', err));
+}
+
+// AUDIT
+function onLineChange() {
+  const line = document.getElementById('f-line').value;
+  ACTIVE_CHECKLIST = getChecklistForLine(line);
+  resetAnswers(ACTIVE_CHECKLIST);
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const wrap = document.getElementById('checklist-wrap');
+  wrap.innerHTML = '';
+  const line = document.getElementById('f-line').value;
+  if (!line) {
+    wrap.innerHTML = '<div class="no-checklist-notice">Select a line above to load its checklist.</div>';
+    updateScore(); return;
+  }
+  if (!ACTIVE_CHECKLIST || !ACTIVE_CHECKLIST.length) {
+    wrap.innerHTML = '<div class="no-checklist-notice">No checklist configured for <strong>' + line + '</strong> yet.<br>Use ⚙ Config to build one.</div>';
+    updateScore(); return;
+  }
+  ACTIVE_CHECKLIST.forEach(group => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<div class="area-title">' + group.area + '</div>';
+    group.items.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'check-row';
+      row.innerHTML =
+        '<div class="check-info"><div class="check-item">' + it.text + '</div><div class="check-std">' + it.std + '</div></div>' +
+        '<div class="yn-btns">' +
+          '<button class="yn-btn yes ' + (answers[it.id]==='yes'?'active':'') + '" onclick="setAnswer(\'' + it.id + '\',\'yes\')">YES</button>' +
+          '<button class="yn-btn no '  + (answers[it.id]==='no' ?'active':'') + '" onclick="setAnswer(\'' + it.id + '\',\'no\')">NO</button>' +
+        '</div>';
+      const cw = document.createElement('div');
+      cw.className = 'check-comment-wrap';
+      cw.style.display = (answers[it.id]==='no' || comments[it.id]) ? 'block' : 'none';
+      const ta = document.createElement('textarea');
+      ta.className='check-comment'; ta.placeholder='Comment / action…'; ta.rows=2;
+      ta.value = comments[it.id]||'';
+      ta.oninput = (function(id){ return function(){ comments[id]=this.value; }; })(it.id);
+      cw.appendChild(ta); row.appendChild(cw); card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+  updateScore();
+}
+
+function setAnswer(id, val) {
+  answers[id] = answers[id]===val ? null : val;
+  renderChecklist();
+}
+
+function updateScore() {
+  const total    = getAllItems(ACTIVE_CHECKLIST).length;
+  const yes      = Object.values(answers).filter(v=>v==='yes').length;
+  const answered = Object.values(answers).filter(v=>v!==null).length;
+  document.getElementById('score-yes').textContent   = yes;
+  document.getElementById('score-total').textContent = total || '—';
+  document.getElementById('score-pct').textContent   = (answered>0&&total>0) ? Math.round(yes/total*100)+'%' : '—';
+}
+
+function submitAudit() {
+  const line  = document.getElementById('f-line').value.trim();
+  const sup   = document.getElementById('f-supervisor').value.trim();
+  const date  = document.getElementById('f-date').value;
+  const shift = document.getElementById('f-shift').value;
+  if (!line)  { showToast('Please select a line'); return; }
+  if (!sup)   { showToast('Please enter your name'); return; }
+  if (!date)  { showToast('Please select a date'); return; }
+  const allItems   = getAllItems(ACTIVE_CHECKLIST);
+  const unanswered = allItems.filter(it=>answers[it.id]===null).length;
+  if (unanswered>0 && !confirm(unanswered+' item'+(unanswered>1?'s':'')+' not answered. Submit anyway?')) return;
+  const yes   = Object.values(answers).filter(v=>v==='yes').length;
+  const fails = allItems.filter(it=>answers[it.id]==='no').map(it=>({id:it.id,text:it.text,comment:comments[it.id]||''}));
+  const record = {
+    line, supervisor:sup, date, shift, score:yes, total:allItems.length, fails,
+    answers:{...answers}, comments:{...comments},
+    checklistSnapshot: JSON.parse(JSON.stringify(ACTIVE_CHECKLIST)),
+    submittedAt:Date.now(), submittedAtStr:new Date().toLocaleString(),
+  };
+  if (db) {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled=true; btn.textContent='Saving…';
+    db.collection('audits').add(record)
+      .then(()=>{ showToast('Audit saved!'); ACTIVE_CHECKLIST=getChecklistForLine(line); resetAnswers(ACTIVE_CHECKLIST); renderChecklist(); btn.disabled=false; btn.textContent='Submit Audit'; })
+      .catch(err=>{ showToast('Save failed — '+err.message); btn.disabled=false; btn.textContent='Submit Audit'; });
+  } else {
+    AUDITS.unshift({id:'local_'+Date.now(),...record});
+    showToast('Saved locally (offline)');
+    ACTIVE_CHECKLIST=getChecklistForLine(line); resetAnswers(ACTIVE_CHECKLIST); renderChecklist();
+    renderFeed(); renderHistory();
+  }
+}
+
+// FEED
+function populateLineFilters() {
+  const lines = [...new Set(AUDITS.map(a=>a.line))].sort();
+  ['feed-line-filter','hist-line'].forEach(id=>{
+    const sel=document.getElementById(id), cur=sel.value;
+    sel.innerHTML='<option value="">All lines</option>'+lines.map(l=>'<option'+(l===cur?' selected':'')+'>'+l+'</option>').join('');
+  });
+}
+function scoreBadgeClass(score,total){ const p=score/total; return p>=.9?'good':p>=.7?'warn':'fail'; }
+function renderFeed() {
+  const lineF=document.getElementById('feed-line-filter').value;
+  const shiftF=document.getElementById('feed-shift-filter').value;
+  const list=document.getElementById('feed-list');
+  let data=AUDITS;
+  if(lineF)  data=data.filter(a=>a.line===lineF);
+  if(shiftF) data=data.filter(a=>a.shift===shiftF);
+  if(!data.length){ list.innerHTML='<div class="feed-empty">No audits yet.<br>Complete an audit to see it here.</div>'; return; }
+  list.innerHTML='';
+  data.slice(0,50).forEach(a=>{
+    const cls=scoreBadgeClass(a.score,a.total), pct=Math.round(a.score/a.total*100);
+    const card=document.createElement('div'); card.className='audit-card';
+    const chips=(a.fails||[]).slice(0,4).map(f=>'<span class="fail-chip">x '+f.text+'</span>').join('');
+    const more=(a.fails||[]).length>4?'<span class="fail-chip">+'+(a.fails.length-4)+' more</span>':'';
+    card.innerHTML='<div class="audit-card-header"><div><div class="audit-line">'+a.line+'</div><div class="audit-meta">'+a.supervisor+' &middot; '+a.shift+' &middot; '+a.date+'</div></div><div><div class="audit-score-badge '+cls+'">'+a.score+'/'+a.total+' &middot; '+pct+'%</div></div></div>'+(chips||more?'<div class="audit-fails">'+chips+more+'</div>':'');
+    card.onclick=()=>openDetail(a); list.appendChild(card);
+  });
+}
+
+// HISTORY
+function renderHistory() {
+  const from=document.getElementById('hist-from').value;
+  const to=document.getElementById('hist-to').value;
+  const line=document.getElementById('hist-line').value;
+  const shift=document.getElementById('hist-shift').value;
+  const list=document.getElementById('history-list');
+  let data=[...AUDITS];
+  if(from) data=data.filter(a=>a.date>=from);
+  if(to)   data=data.filter(a=>a.date<=to);
+  if(line)  data=data.filter(a=>a.line===line);
+  if(shift) data=data.filter(a=>a.shift===shift);
+  if(!data.length){ list.innerHTML='<div class="no-records">No audit records match your filters.</div>'; return; }
+  list.innerHTML='';
+  data.forEach(a=>{
+    const cls=scoreBadgeClass(a.score,a.total), pct=Math.round(a.score/a.total*100);
+    const card=document.createElement('div'); card.className='audit-card';
+    card.innerHTML='<div class="audit-card-header"><div><div class="audit-line">'+a.line+'</div><div class="audit-meta">'+a.supervisor+' &middot; '+a.shift+' &middot; '+a.date+' <span style="margin-left:6px;color:var(--ink-soft)">'+( a.submittedAtStr||'')+'</span></div></div><div class="audit-score-badge '+cls+'">'+a.score+'/'+a.total+' &middot; '+pct+'%</div></div>'+((a.fails||[]).length?'<div class="audit-fails">'+(a.fails||[]).map(f=>'<span class="fail-chip">x '+f.text+'</span>').join('')+'</div>':'');
+    card.onclick=()=>openDetail(a); list.appendChild(card);
+  });
+}
+
+// DETAIL MODAL
+function openDetail(audit) {
+  const pct=Math.round(audit.score/audit.total*100), cls=scoreBadgeClass(audit.score,audit.total);
+  document.getElementById('detail-title').textContent=audit.line+' — '+audit.shift+' Shift';
+  document.getElementById('detail-meta').textContent=audit.supervisor+' · '+audit.date+' · Submitted: '+(audit.submittedAtStr||'—');
+  document.getElementById('detail-score').innerHTML='<span class="audit-score-badge '+cls+'" style="font-size:15px;">'+audit.score+' / '+audit.total+' · '+pct+'%</span>';
+  const cl = audit.checklistSnapshot || getChecklistForLine(audit.line);
+  const body=document.getElementById('detail-body'); body.innerHTML='';
+  cl.forEach(group=>{
+    const t=document.createElement('div'); t.className='area-title'; t.textContent=group.area; body.appendChild(t);
+    group.items.forEach(it=>{
+      const ans=(audit.answers||{})[it.id], cmt=(audit.comments||{})[it.id]||'';
+      const row=document.createElement('div'); row.className='detail-row';
+      row.innerHTML='<div><div class="detail-item-text">'+it.text+'</div><div class="detail-std">'+it.std+'</div>'+(cmt?'<div class="detail-comment">'+cmt+'</div>':'')+'</div><div class="detail-yn '+(ans||'na')+'">'+(ans?ans.toUpperCase():'—')+'</div>';
+      body.appendChild(row);
+    });
+  });
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetail(e){ if(e.target===document.getElementById('detail-modal')) closeDetailModal(); }
+function closeDetailModal(){ document.getElementById('detail-modal').classList.remove('open'); }
+
+// NAVIGATION
+function showScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='feed')    renderFeed();
+  if(name==='history') renderHistory();
+  if(name==='config')  { renderCfgLineList(); if(cfgActiveLine) renderCfgEditor(); }
+  if(name==='analytics') { populateAnLineFilter(); renderAnalytics(); }
+}
+
+// PASSWORD
+function requestConfig() {
+  if(configUnlocked){ showScreen('config',document.getElementById('nav-config')); return; }
+  document.getElementById('pw-input').value='';
+  document.getElementById('pw-error').textContent='';
+  document.getElementById('pw-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('pw-input').focus(),100);
+}
+function closePwModal(){ document.getElementById('pw-overlay').classList.remove('open'); }
+function checkPassword() {
+  const entered=document.getElementById('pw-input').value.trim();
+  if(!entered){ document.getElementById('pw-error').textContent='Please enter the password.'; return; }
+  if(!db){ document.getElementById('pw-error').textContent='Not connected to Firebase yet.'; return; }
+  db.collection('config').doc('settings').get().then(snap=>{
+    if(!snap.exists){ document.getElementById('pw-error').textContent='Config not found in Firebase.'; return; }
+    if(entered===snap.data().configPassword){
+      configUnlocked=true; closePwModal();
+      showScreen('config',document.getElementById('nav-config'));
+    } else {
+      document.getElementById('pw-error').textContent='Incorrect password.';
+      document.getElementById('pw-input').value='';
+      document.getElementById('pw-input').focus();
+    }
+  }).catch(err=>{ document.getElementById('pw-error').textContent='Error: '+err.message; });
+}
+function lockConfig(){
+  configUnlocked=false;
+  showScreen('audit',document.getElementById('nav-audit'));
+  showToast('Config locked');
+}
+
+// CONFIG EDITOR
+function renderCfgLineList() {
+  document.getElementById('cfg-line-list').innerHTML = ALL_LINES.map(l=>
+    '<div class="cfg-line-item'+(cfgActiveLine===l?' active':'')+'" onclick="selectCfgLine(\''+l+'\')">'+
+      '<span>'+l+'</span>'+(LINE_CHECKLISTS[l]?'<span class="cfg-has-custom">CUSTOM</span>':'')+
+    '</div>'
+  ).join('');
+}
+
+function selectCfgLine(line) {
+  cfgActiveLine=line;
+  cfgDraft=JSON.parse(JSON.stringify(LINE_CHECKLISTS[line]||DEFAULT_CHECKLIST));
+  renderCfgLineList(); renderCfgEditor();
+}
+
+function uid(){ return '_'+Math.random().toString(36).slice(2,9); }
+
+function escH(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderCfgEditor() {
+  const el=document.getElementById('cfg-editor');
+  if(!cfgActiveLine||!cfgDraft){ el.innerHTML='<div class="cfg-empty">Select a line to edit</div>'; return; }
+  let html='<div class="cfg-editor-header"><h3>'+cfgActiveLine+'</h3>'+
+    '<button class="cfg-btn ghost" onclick="resetToDefault()">Reset to default</button></div>';
+  cfgDraft.forEach((sec,si)=>{
+    html+='<div class="cfg-section" id="csec'+si+'">'+
+      '<div class="cfg-section-header">'+
+        '<input class="cfg-section-name" value="'+escH(sec.area)+'" onchange="cfgDraft['+si+'].area=this.value" placeholder="Section name"/>'+
+        '<button class="cfg-section-del" onclick="delSection('+si+')">×</button>'+
+      '</div>';
+    sec.items.forEach((it,ii)=>{
+      html+='<div class="cfg-item-row">'+
+        '<input class="cfg-item-text" value="'+escH(it.text)+'" onchange="cfgDraft['+si+'].items['+ii+'].text=this.value" placeholder="Item text"/>'+
+        '<input class="cfg-item-std"  value="'+escH(it.std)+'"  onchange="cfgDraft['+si+'].items['+ii+'].std=this.value"  placeholder="Standard"/>'+
+        '<button class="cfg-item-del" onclick="delItem('+si+','+ii+')">×</button>'+
+      '</div>';
+    });
+    html+='<div class="cfg-add-item">'+
+      '<input id="ni-t-'+si+'" placeholder="+ Add item…" onkeydown="if(event.key===\'Enter\')addItem('+si+')"/>'+
+      '<input id="ni-s-'+si+'" placeholder="Standard" style="width:130px;" onkeydown="if(event.key===\'Enter\')addItem('+si+')"/>'+
+      '<button class="cfg-btn primary" onclick="addItem('+si+')">Add</button>'+
+    '</div></div>';
+  });
+  html+='<div class="cfg-add-section-row">'+
+    '<input id="new-sec-name" placeholder="New section name…" onkeydown="if(event.key===\'Enter\')addSection()"/>'+
+    '<button class="cfg-btn primary" onclick="addSection()">+ Section</button>'+
+  '</div>'+
+  '<div class="cfg-save-bar">'+
+    '<span class="cfg-save-status" id="cfg-status"></span>'+
+    '<button class="cfg-btn success" onclick="saveCfg()">Save to Firebase</button>'+
+  '</div>';
+  el.innerHTML=html;
+}
+
+function delSection(si){ if(!confirm('Delete section "'+cfgDraft[si].area+'"?')) return; cfgDraft.splice(si,1); renderCfgEditor(); }
+function delItem(si,ii){ cfgDraft[si].items.splice(ii,1); renderCfgEditor(); }
+
+function addItem(si) {
+  const tEl=document.getElementById('ni-t-'+si), sEl=document.getElementById('ni-s-'+si);
+  const text=(tEl&&tEl.value||'').trim();
+  if(!text){ if(tEl) tEl.focus(); return; }
+  cfgDraft[si].items.push({id:uid(),text,std:(sEl&&sEl.value||'').trim()});
+  renderCfgEditor();
+  setTimeout(()=>{ const e=document.getElementById('ni-t-'+si); if(e) e.focus(); },50);
+}
+
+function addSection() {
+  const el=document.getElementById('new-sec-name'), name=(el&&el.value||'').trim();
+  if(!name){ if(el) el.focus(); return; }
+  cfgDraft.push({area:name,items:[]});
+  renderCfgEditor();
+}
+
+function resetToDefault(){
+  if(!confirm('Reset '+cfgActiveLine+' to the default checklist?')) return;
+  cfgDraft=JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
+  renderCfgEditor(); showToast('Reset to default — click Save to apply');
+}
+
+function saveCfg() {
+  if(!db){ showToast('Not connected to Firebase'); return; }
+  // flush live input values before saving
+  const sections = cfgDraft.map((sec,si)=>{
+    const nameEl=document.querySelector('#csec'+si+' .cfg-section-name');
+    return {
+      area: nameEl?nameEl.value.trim():sec.area,
+      items: sec.items.map((it,ii)=>{
+        const rows=document.querySelectorAll('#csec'+si+' .cfg-item-row');
+        const row=rows[ii];
+        return {
+          id:it.id,
+          text:row?row.querySelector('.cfg-item-text').value.trim():it.text,
+          std: row?row.querySelector('.cfg-item-std').value.trim():it.std,
+        };
+      })
+    };
+  });
+  const st=document.getElementById('cfg-status'); if(st) st.textContent='Saving…';
+  db.collection('checklists').doc(cfgActiveLine).set({sections})
+    .then(()=>{
+      LINE_CHECKLISTS[cfgActiveLine]=sections;
+      showToast(cfgActiveLine+' checklist saved!');
+      if(st) st.textContent='Saved ✓';
+      renderCfgLineList();
+      const al=document.getElementById('f-line').value;
+      if(al===cfgActiveLine){ ACTIVE_CHECKLIST=sections; resetAnswers(ACTIVE_CHECKLIST); renderChecklist(); }
+    })
+    .catch(err=>{ showToast('Save failed — '+err.message); if(st) st.textContent='Save failed'; });
+}
+
+
+// ANALYTICS
+function renderAnalytics() {
+  const from  = document.getElementById('an-from').value;
+  const to    = document.getElementById('an-to').value;
+  const line  = document.getElementById('an-line').value;
+  const shift = document.getElementById('an-shift').value;
+
+  let data = [...AUDITS];
+  if(from)  data = data.filter(a => a.date >= from);
+  if(to)    data = data.filter(a => a.date <= to);
+  if(line)  data = data.filter(a => a.line === line);
+  if(shift) data = data.filter(a => a.shift === shift);
+
+  renderAnStats(data);
+  renderAnTrend(data);
+  renderAnLines(data);
+  renderAnShifts(data);
+  renderAnFails(data);
+}
+
+function anPct(score, total) { return total ? Math.round(score / total * 100) : 0; }
+function anColor(pct) { return pct >= 90 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444'; }
+
+function renderAnStats(data) {
+  const el = document.getElementById('an-stats');
+  if(!data.length) { el.innerHTML = '<div class="an-empty">No data for selected filters.</div>'; return; }
+  const avg  = Math.round(data.reduce((s,a) => s + anPct(a.score,a.total), 0) / data.length);
+  const best = Math.max(...data.map(a => anPct(a.score,a.total)));
+  const worst= Math.min(...data.map(a => anPct(a.score,a.total)));
+  const fails= data.filter(a => anPct(a.score,a.total) < 70).length;
+  el.innerHTML =
+    '<div class="an-stat"><div class="an-stat-val">'+data.length+'</div><div class="an-stat-lbl">Audits</div></div>'+
+    '<div class="an-stat"><div class="an-stat-val" style="color:'+anColor(avg)+'">'+avg+'%</div><div class="an-stat-lbl">Avg Score</div></div>'+
+    '<div class="an-stat"><div class="an-stat-val" style="color:#10b981">'+best+'%</div><div class="an-stat-lbl">Best</div></div>'+
+    '<div class="an-stat"><div class="an-stat-val" style="color:#ef4444">'+worst+'%</div><div class="an-stat-lbl">Worst</div></div>'+
+    '<div class="an-stat"><div class="an-stat-val" style="color:#ef4444">'+fails+'</div><div class="an-stat-lbl">Below 70%</div></div>';
+}
+
+function renderAnTrend(data) {
+  const canvas = document.getElementById('an-trend-canvas');
+  const ctx    = canvas.getContext('2d');
+  // sort by date
+  const sorted = [...data].sort((a,b) => a.date.localeCompare(b.date));
+  // group by date — average per date
+  const byDate = {};
+  sorted.forEach(a => {
+    if(!byDate[a.date]) byDate[a.date] = [];
+    byDate[a.date].push(anPct(a.score,a.total));
+  });
+  const labels = Object.keys(byDate).sort();
+  const values = labels.map(d => Math.round(byDate[d].reduce((s,v)=>s+v,0)/byDate[d].length));
+
+  drawLineChart(ctx, canvas, labels, values, '%');
+}
+
+function renderAnLines(data) {
+  const canvas = document.getElementById('an-line-canvas');
+  const ctx    = canvas.getContext('2d');
+  const byLine = {};
+  data.forEach(a => {
+    if(!byLine[a.line]) byLine[a.line] = [];
+    byLine[a.line].push(anPct(a.score,a.total));
+  });
+  const labels = Object.keys(byLine).sort();
+  const values = labels.map(l => Math.round(byLine[l].reduce((s,v)=>s+v,0)/byLine[l].length));
+  drawBarChart(ctx, canvas, labels, values, '%');
+}
+
+function renderAnShifts(data) {
+  const el = document.getElementById('an-shift-grid');
+  const shifts = ['Day','Afternoon','Midnight'];
+  el.innerHTML = shifts.map(s => {
+    const d = data.filter(a => a.shift === s);
+    const avg = d.length ? Math.round(d.reduce((sum,a)=>sum+anPct(a.score,a.total),0)/d.length) : null;
+    return '<div class="an-shift-card">'+
+      '<div class="an-shift-name">'+s+'</div>'+
+      '<div class="an-shift-val" style="color:'+(avg!==null?anColor(avg):'var(--ink-soft)')+'">'+
+        (avg!==null ? avg+'%' : '—')+'</div>'+
+      '<div class="an-shift-sub">'+(d.length ? d.length+' audit'+(d.length>1?'s':'') : 'No data')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderAnFails(data) {
+  const el = document.getElementById('an-fails-list');
+  if(!data.length) { el.innerHTML = '<div class="an-empty">No data.</div>'; return; }
+  const freq = {};
+  data.forEach(a => (a.fails||[]).forEach(f => { freq[f.text] = (freq[f.text]||0)+1; }));
+  const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  if(!sorted.length) { el.innerHTML = '<div class="an-empty">No failures recorded.</div>'; return; }
+  const max = sorted[0][1];
+  el.innerHTML = sorted.map(([text,count]) =>
+    '<div class="an-fail-row">'+
+      '<div class="an-fail-label" title="'+text+'">'+text+'</div>'+
+      '<div class="an-fail-bar-wrap"><div class="an-fail-bar" style="width:'+Math.round(count/max*100)+'%"></div></div>'+
+      '<div class="an-fail-count">'+count+'</div>'+
+    '</div>'
+  ).join('');
+}
+
+// ── Canvas chart helpers ──────────────────────────────────────────────
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = canvas.height * dpr || 180 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  canvas.style.height = (canvas.height / dpr) + 'px';
+  return { ctx, w: rect.width, h: canvas.height / dpr };
+}
+
+function drawLineChart(ctx, canvas, labels, values, unit) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.getBoundingClientRect().width;
+  const H = 180;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(dpr, dpr);
+
+  const pad = { t:16, r:16, b:36, l:40 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  ctx.clearRect(0,0,W,H);
+  if(!values.length) {
+    ctx.fillStyle='#9ca3af'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No data', W/2, H/2); return;
+  }
+
+  const minV = Math.max(0,  Math.min(...values) - 10);
+  const maxV = Math.min(100, Math.max(...values) + 10);
+  const yScale = v => pad.t + ch - ((v - minV)/(maxV - minV)) * ch;
+  const xScale = i => pad.l + (values.length===1 ? cw/2 : i * cw/(values.length-1));
+
+  // grid lines
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1;
+  [0,25,50,75,100].forEach(v => {
+    if(v < minV || v > maxV) return;
+    const y = yScale(v);
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+    ctx.fillStyle='#9ca3af'; ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(v+'%', pad.l-4, y+3);
+  });
+
+  // fill
+  ctx.beginPath();
+  ctx.moveTo(xScale(0), H - pad.b);
+  values.forEach((v,i) => ctx.lineTo(xScale(i), yScale(v)));
+  ctx.lineTo(xScale(values.length-1), H-pad.b); ctx.closePath();
+  ctx.fillStyle='rgba(245,158,11,.12)'; ctx.fill();
+
+  // line
+  ctx.beginPath(); ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  values.forEach((v,i) => i===0 ? ctx.moveTo(xScale(i),yScale(v)) : ctx.lineTo(xScale(i),yScale(v)));
+  ctx.stroke();
+
+  // dots
+  values.forEach((v,i) => {
+    ctx.beginPath(); ctx.arc(xScale(i),yScale(v),4,0,Math.PI*2);
+    ctx.fillStyle=anColor(v); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+  });
+
+  // x labels
+  ctx.fillStyle='#6b7280'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  const step = Math.max(1, Math.ceil(labels.length/6));
+  labels.forEach((l,i) => {
+    if(i%step!==0 && i!==labels.length-1) return;
+    const short = l.slice(5); // MM-DD
+    ctx.fillText(short, xScale(i), H-pad.b+14);
+  });
+}
+
+function drawBarChart(ctx, canvas, labels, values, unit) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.getBoundingClientRect().width;
+  const H = Math.max(220, labels.length * 28 + 40);
+  canvas.height = H;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(dpr, dpr);
+
+  const pad = { t:12, r:50, b:12, l:160 };
+  const cw = W - pad.l - pad.r;
+  const barH = Math.max(14, Math.floor((H - pad.t - pad.b) / Math.max(labels.length,1)) - 6);
+
+  ctx.clearRect(0,0,W,H);
+  if(!values.length) {
+    ctx.fillStyle='#9ca3af'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('No data', W/2, H/2); return;
+  }
+  const maxV = Math.max(...values, 1);
+
+  labels.forEach((lbl,i) => {
+    const y = pad.t + i * ((H-pad.t-pad.b)/labels.length);
+    const barW = Math.round((values[i]/100) * cw);
+    const pct  = values[i];
+
+    // bar bg
+    ctx.fillStyle='#f3f4f6';
+    ctx.beginPath(); roundRect(ctx, pad.l, y+2, cw, barH, 4); ctx.fill();
+    // bar fill
+    ctx.fillStyle = anColor(pct);
+    if(barW > 0) { ctx.beginPath(); roundRect(ctx, pad.l, y+2, barW, barH, 4); ctx.fill(); }
+    // label
+    ctx.fillStyle='#374151'; ctx.font='11px sans-serif'; ctx.textAlign='right';
+    const shortLbl = lbl.length>22 ? lbl.slice(0,21)+'…' : lbl;
+    ctx.fillText(shortLbl, pad.l-6, y+barH/2+4);
+    // value
+    ctx.fillStyle='#374151'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText(pct+'%', pad.l+barW+5, y+barH/2+4);
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);   ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);     ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function populateAnLineFilter() {
+  const sel = document.getElementById('an-line');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All lines</option>' +
+    ALL_LINES.map(l=>'<option'+(l===cur?' selected':'')+'>'+l+'</option>').join('');
+}
+
+
+// TOAST
+function showToast(msg,dur=2500){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// INIT
+function init() {
+  const now=new Date();
+  document.getElementById('f-date').value=now.toISOString().slice(0,10);
+  const h=now.getHours();
+  document.getElementById('f-shift').value=h>=6&&h<14?'Day':h>=14&&h<22?'Afternoon':'Midnight';
+  const from=new Date(); from.setDate(from.getDate()-7);
+  document.getElementById('hist-from').value=from.toISOString().slice(0,10);
+  document.getElementById('hist-to').value=now.toISOString().slice(0,10);
+  renderChecklist(); renderCfgLineList();
+  // analytics date defaults
+  const anFrom=new Date(); anFrom.setDate(anFrom.getDate()-30);
+  document.getElementById('an-from').value=anFrom.toISOString().slice(0,10);
+  document.getElementById('an-to').value=now.toISOString().slice(0,10);
+  ['an-from','an-to','an-line','an-shift'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change',renderAnalytics); });
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script>window.addEventListener('load',()=>{ if(typeof firebase!=='undefined') initFirebase(); });</script>
+</body>
+</html>
