@@ -42,7 +42,7 @@
   /* Top app bar */
   .appbar {
     position: sticky; top: 0; z-index: 50;
-    background: #1d4ed8; color: #ffffff;
+    background: #1e3a5f; color: #ffffff;
     padding: 10px 14px;
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -748,9 +748,9 @@
     <button class="reset-btn" onclick="openRosterScreen()">👥 Roster</button>
     <button class="reset-btn" onclick="resetAll()">Reset</button>
     <div style="display:flex;gap:4px;margin-left:8px;padding-left:8px;border-left:1px solid rgba(255,255,255,0.2)">
-      <a href="index.html" title="Production Report" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">📊</a>
-      <a href="BuildTracker.html" title="Build Tracker" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">📋</a>
-      <a href="ShiftReadiness.html" title="Shift Readiness" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✅</a>
+      <a href="index.html" title="Production Report" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">📊</a>
+      <a href="BuildTracker.html" title="Build Tracker" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">📋</a>
+      <a href="ShiftReadiness.html" title="Shift Readiness" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">✅</a>
     </div>
   </div>
 </div>
@@ -780,8 +780,8 @@
     <div class="quick-actions">
       <button onclick="markAllPresent()">All present</button>
       <span id="op-counter" class="counter" style="margin: 0; padding: 6px 10px;">
-        <span class="big" id="present-num">49</span>
-        <span class="label">of 49 available</span>
+        <span class="big" id="present-num">–</span>
+        <span class="label">of <span id="total-num">–</span> available</span>
       </span>
     </div>
     <div class="op-grid" id="op-list"></div>
@@ -1379,8 +1379,11 @@ document.getElementById('op-search').addEventListener('input', renderStep1);
 function markAllPresent() { state.absent.clear(); renderStep1(); updateCounters(); }
 
 function updateCounters() {
-  const present = OPERATORS.length - state.absent.size;
+  const total = OPERATORS.length;
+  const present = total - state.absent.size;
   document.getElementById('present-num').textContent = present;
+  const totalEl = document.getElementById('total-num');
+  if (totalEl) totalEl.textContent = total;
   if (state.currentBU === 'Molding') {
     document.getElementById('running-num').textContent = moldingZones.length;
   } else {
