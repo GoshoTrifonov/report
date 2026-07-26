@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1387,7 +1386,7 @@ function updateCounters() {
   const totalEl = document.getElementById('total-num');
   if (totalEl) totalEl.textContent = total;
   if (state.currentBU === 'Molding') {
-    document.getElementById('running-num').textContent = moldingZones.length;
+    document.getElementById('running-num').textContent = state.running.size;
   } else {
     document.getElementById('running-num').textContent = state.running.size;
   }
@@ -1395,7 +1394,7 @@ function updateCounters() {
 
 /* ===================== STEP 2 — LINES RUNNING ===================== */
 function renderStep2() {
-  if (state.currentBU === 'Molding' && visibleLines().some(l => l.planOptions)) {
+  if (false && state.currentBU === 'Molding' && visibleLines().some(l => l.planOptions)) {
     renderMoldingCoverage();
     return;
   }
