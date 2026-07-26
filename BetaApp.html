@@ -3392,8 +3392,84 @@ if ('serviceWorker' in navigator) {
 <script>
 /* ── Rotation print ─────────────────────────────────────────── */
 function printAll() {
-  // Fill name cells from state.assignments
-  // Each data-line / data-slot cell → assignments[lineId][slotIdx]
+  if (state.currentBU === 'Molding') {
+    // Build operator-centric layout for Molding
+    const printEl = document.getElementById('rotation-print');
+    const now = new Date();
+    const shiftLabel = ALL_SHIFTS.find(s => s.id === state.currentShift)?.label || state.currentShift;
+    const dateStr = now.toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+    // Group machines by assigned operator
+    const opMap = new Map(); // operatorName → [machineName, ...]
+    const unassigned = [];
+    visibleLines().filter(l => state.running.has(l.id)).forEach(line => {
+      const slots = state.assignments[line.id] || [];
+      const opName = slots[0]?.name || null;
+      const hc = state.headcount[line.id] || 0;
+      const hcLabel = line.fracOptions
+        ? (hc === 0.33 ? '1/3' : hc === 0.5 ? '1/2' : String(hc))
+        : String(hc);
+      const entry = { machine: line.name, id: line.id, hcLabel };
+      if (opName) {
+        if (!opMap.has(opName)) opMap.set(opName, []);
+        opMap.get(opName).push(entry);
+      } else {
+        unassigned.push(entry);
+      }
+    });
+
+    // Sort operators alphabetically
+    const ops = [...opMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+    const rows = ops.map(([op, machines]) => `
+      <tr style="border-bottom:1px solid #e2e8f0">
+        <td style="padding:6px 10px;font-weight:700;font-size:10pt;white-space:nowrap">${op}</td>
+        <td style="padding:6px 10px">
+          ${machines.map(m => `<span style="display:inline-block;background:#1e3a5f;color:white;border-radius:4px;padding:2px 8px;margin:2px;font-size:9pt;font-weight:600">${m.machine} <span style="opacity:0.7;font-size:8pt">(${m.hcLabel})</span></span>`).join('')}
+        </td>
+        <td style="padding:6px 10px;font-size:8pt;color:#666">${machines.length} machine${machines.length!==1?'s':''}</td>
+      </tr>`).join('');
+
+    const unassignedRows = unassigned.length ? `
+      <tr style="background:#fff1f2">
+        <td style="padding:6px 10px;font-weight:700;color:#dc2626;font-size:10pt">UNASSIGNED</td>
+        <td style="padding:6px 10px">${unassigned.map(m => `<span style="display:inline-block;border:1px solid #dc2626;color:#dc2626;border-radius:4px;padding:2px 8px;margin:2px;font-size:9pt">${m.machine}</span>`).join('')}</td>
+        <td></td>
+      </tr>` : '';
+
+    const bench = OPERATORS.filter(o => !state.absent.has(o.name) && ![...opMap.keys()].includes(o.name));
+
+    printEl.innerHTML = `
+      <div style="padding:10mm;font-family:ui-sans-serif,system-ui,sans-serif">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8mm;border-bottom:3px solid #1e3a5f;padding-bottom:4mm">
+          <div>
+            <div style="font-size:16pt;font-weight:900;color:#1e3a5f">MOLDING — ${shiftLabel.toUpperCase()} SHIFT</div>
+            <div style="font-size:9pt;color:#666;margin-top:2mm">${dateStr}</div>
+          </div>
+          <div style="text-align:right;font-size:9pt;color:#666">
+            <div>Generated ${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+            <div>${ops.length} operators assigned · ${opMap.size > 0 ? [...opMap.values()].flat().length : 0} machines running</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:8mm">
+          <thead>
+            <tr style="background:#1e3a5f;color:white">
+              <th style="padding:6px 10px;text-align:left;font-size:9pt">Operator</th>
+              <th style="padding:6px 10px;text-align:left;font-size:9pt">Machines Assigned</th>
+              <th style="padding:6px 10px;text-align:left;font-size:9pt">Count</th>
+            </tr>
+          </thead>
+          <tbody>${rows}${unassignedRows}</tbody>
+        </table>
+        ${bench.length ? `<div style="margin-top:4mm;font-size:9pt;color:#666"><strong>Bench (available):</strong> ${bench.map(o=>o.name).join(', ')}</div>` : ''}
+        ${state.absent.size ? `<div style="margin-top:2mm;font-size:9pt;color:#666"><strong>Absent:</strong> ${[...state.absent].join(', ')}</div>` : ''}
+        <div style="margin-top:4mm;font-size:8pt;color:#999">Date: _______________ &nbsp; Supervisor: _______________</div>
+      </div>`;
+    window.print();
+    return;
+  }
+
+  // Original Verathon print logic
   document.querySelectorAll('#rotation-print [data-line]').forEach(td => {
     const lineId = td.dataset.line;
     const slot   = parseInt(td.dataset.slot, 10);
