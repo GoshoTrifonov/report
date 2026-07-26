@@ -347,6 +347,13 @@ function ProductionReportTool() {
   const [selectedShifts, setSelectedShifts] = React.useState([]);
   const [selectedResources, setSelectedResources] = React.useState([]);
   const [sortCol, setSortCol] = React.useState("qty"); // "resource"|"qty"|"hours"|"lost"|"eff"
+  const appsDropdownRef = React.useRef(null);
+  const [showAppsDropdown, setShowAppsDropdown] = React.useState(false);
+  React.useEffect(() => {
+    const handler = (e) => { if (appsDropdownRef.current && !appsDropdownRef.current.contains(e.target)) setShowAppsDropdown(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const [sortDir, setSortDir] = React.useState("desc"); // "asc"|"desc"
   const [activeView, setActiveView] = React.useState("table"); // "table" | "charts"
   const [savedFilters, setSavedFilters] = React.useState([]);
@@ -702,15 +709,29 @@ function ProductionReportTool() {
               <button onClick={() => setActiveView("table")} className={`px-3 py-2 text-xs font-semibold ${activeView==="table" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-stone-50"}`}>📋 Table</button>
               <button onClick={() => setActiveView("charts")} className={`px-3 py-2 text-xs font-semibold border-l border-stone-300 ${activeView==="charts" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-stone-50"}`}>📊 Charts</button>
             </div>
-            <a href="https://goshotrifonov.github.io/report/BuildTracker.html" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-xs font-semibold">
-              📋 Build Tracker
-            </a>
-            <div className="flex items-center gap-1 border-l border-stone-200 pl-2 ml-1">
-              <a href="BetaApp.html" target="_blank" rel="noopener noreferrer" title="Shift Assignment"
-                className="flex items-center justify-center w-8 h-8 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-base">👥</a>
-              <a href="ShiftReadiness.html" target="_blank" rel="noopener noreferrer" title="Shift Readiness"
-                className="flex items-center justify-center w-8 h-8 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-base">✅</a>
+            <div className="relative no-print" ref={appsDropdownRef}>
+              <button
+                onClick={() => setShowAppsDropdown(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-xs font-semibold"
+              >
+                🏭 Apps ▾
+              </button>
+              {showAppsDropdown && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]">
+                  <a href="BuildTracker.html" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-white text-xs font-semibold hover:bg-slate-700 border-b border-slate-700">
+                    📋 Build Tracker
+                  </a>
+                  <a href="BetaApp.html" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-white text-xs font-semibold hover:bg-slate-700 border-b border-slate-700">
+                    👥 Shift Assignment
+                  </a>
+                  <a href="ShiftReadiness.html" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-white text-xs font-semibold hover:bg-slate-700">
+                    ✅ Shift Readiness
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
