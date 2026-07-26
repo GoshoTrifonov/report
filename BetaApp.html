@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1394,7 +1395,7 @@ function updateCounters() {
 
 /* ===================== STEP 2 — LINES RUNNING ===================== */
 function renderStep2() {
-  if (state.currentBU === 'Molding') {
+  if (state.currentBU === 'Molding' && visibleLines().some(l => l.planOptions)) {
     renderMoldingCoverage();
     return;
   }
@@ -3254,6 +3255,18 @@ function subscribeCloud() {
         const data = snap.data();
         if (Array.isArray(data.operators) && data.operators.length) {
           ROSTER = data.operators.map(migrateOperator);
+          // If no Molding operators exist in Firebase, merge the seed ones in
+          const hasMolding = ROSTER.some(o => (o.bus || []).includes('Molding'));
+          if (!hasMolding) {
+            const moldingSeed = ROSTER_SEED
+              .filter(o => (o.bus || []).includes('Molding'))
+              .map(o => ({ name: o.name, training: { ...o.training }, shifts: o.shifts, bus: o.bus }));
+            ROSTER = [...ROSTER, ...moldingSeed];
+            // Push merged roster back to Firebase
+            db.collection('roster').doc('current')
+              .set({ operators: ROSTER, updatedAt: Date.now() })
+              .catch(e => console.warn('Molding seed merge failed:', e.message));
+          }
           // Cloud may still hold pre-BU data — migrate and push back if so
           if (migrateRosterToBU()) {
             db.collection('roster').doc('current')
