@@ -362,6 +362,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     <button class="nav-btn"        id="nav-history" onclick="showScreen('history',this)">📁 History</button>
     <button class="nav-btn"        id="nav-analytics" onclick="showScreen('analytics',this)">📊 Analytics</button>
     <button class="nav-btn"        id="nav-config"  onclick="requestConfig()">⚙ Config</button>
+    <div style="position:relative;display:inline-block;margin-left:8px">
+      <button class="nav-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="background:rgba(255,255,255,0.2)">🏭 Apps ▾</button>
+      <div style="display:none;position:absolute;right:0;top:110%;background:#1e293b;border:1px solid rgba(255,255,255,0.15);border-radius:8px;min-width:180px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.3);overflow:hidden">
+        <a href="index.html"          style="display:block;padding:10px 14px;color:white;text-decoration:none;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08)" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📊 Production Report</a>
+        <a href="BuildTracker.html"   style="display:block;padding:10px 14px;color:white;text-decoration:none;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08)" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">📋 Build Tracker</a>
+        <a href="BetaApp.html"        style="display:block;padding:10px 14px;color:white;text-decoration:none;font-size:13px;font-weight:600" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">👥 Shift Assignment</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1216,5 +1224,12 @@ document.addEventListener('DOMContentLoaded',init);
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script>window.addEventListener('load',()=>{ if(typeof firebase!=='undefined') initFirebase(); });</script>
+<script>
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('[onclick*="nextElementSibling"]')) {
+    document.querySelectorAll('.appbar div[style*="block"]').forEach(el => el.style.display = 'none');
+  }
+});
+</script>
 </body>
 </html>
