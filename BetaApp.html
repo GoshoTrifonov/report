@@ -994,12 +994,12 @@ const BUS = [
 /* All known training categories, grouped for the roster editor.
    Add new skill names here if you ever need a new category. */
 const SKILL_GROUPS = [
-  { name: 'Pack certifications', keys: ['Lopro Pack', 'MV2 Pack'] },
-  { name: 'Lines — LoPro / QC',  keys: ['ASB-231 - LP S4','ASB-170 - QC s4 +Bio','ASB-258 - QC S3','ASB-073 - LP S3','ASB-179 - HDMI Mix','ASB-075 - QC Mix','ASB-259 - QC Mac s4','ASB-260 - QC Mac S3'] },
-  { name: 'Lines — Other',       keys: ['MV1','MV2','PRINT','BFLEX/ORION','CNC','CRH','M42','M43','Flex 3','Verathon 2','Verathon 2A'] },
-  { name: 'Roles',               keys: ['Floaters','Rework','other - m39/Eng.'] },
-  { name: 'Molding — Machines',  keys: ['4A','9','14','18','22','28','33','34','40','17','46','48','47','41'] },
-  { name: 'Molding — Other',     keys: ['Bottle Assembly','Off Line Cuttin','Smith Housings','GRP085','GRP075','Pad Printer','Mold Man','Mold Man 2','OP1 Mold Tier 1'] },
+  { name: 'Pack certifications', keys: ['Lopro Pack', 'MV2 Pack'], bus: ['Verathon'] },
+  { name: 'Lines — LoPro / QC',  keys: ['ASB-231 - LP S4','ASB-170 - QC s4 +Bio','ASB-258 - QC S3','ASB-073 - LP S3','ASB-179 - HDMI Mix','ASB-075 - QC Mix','ASB-259 - QC Mac s4','ASB-260 - QC Mac S3'], bus: ['Verathon'] },
+  { name: 'Lines — Other',       keys: ['MV1','MV2','PRINT','BFLEX/ORION','CNC','CRH','M42','M43','Flex 3','Verathon 2','Verathon 2A'], bus: ['Verathon'] },
+  { name: 'Roles',               keys: ['Floaters','Rework','other - m39/Eng.'], bus: ['Verathon','Molding','Tier 1','Tier 2','Bell Farm'] },
+  { name: 'Molding — Machines',  keys: ['4A','9','14','18','22','28','33','34','40','17','46','48','47','41'], bus: ['Molding'] },
+  { name: 'Molding — Other',     keys: ['Bottle Assembly','Off Line Cuttin','Smith Housings','GRP085','GRP075','Pad Printer','Mold Man','Mold Man 2','OP1 Mold Tier 1'], bus: ['Molding'] },
 ];
 const ALL_SHIFTS = [
   { id: 'day',       label: 'Day',       short: 'D' },
@@ -2660,8 +2660,9 @@ function openOperatorEdit(name) {
     </div>
     <div class="op-edit-field">
       <label>Trained skills</label>
+      <div id="skill-groups-wrap">
       ${SKILL_GROUPS.map(g => `
-        <div class="skill-group">
+        <div class="skill-group" data-bus="${(g.bus||[]).join(',')}">
           <div class="skill-group-title">${g.name}</div>
           <div class="skill-grid">
             ${g.keys.map(k => `
@@ -2671,6 +2672,7 @@ function openOperatorEdit(name) {
               </label>`).join('')}
           </div>
         </div>`).join('')}
+      </div>
     </div>
   `;
   // Wire up toggle clicks (works for both shift and BU toggles since both use .shift-toggles class)
@@ -2680,8 +2682,22 @@ function openOperatorEdit(name) {
       lbl.classList.toggle('checked');
       const cb = lbl.querySelector('input');
       cb.checked = !cb.checked;
+      // If this is a BU toggle, update visible skill groups
+      if (lbl.closest('#op-bu-toggles')) updateSkillGroupVisibility();
     };
   });
+
+  function updateSkillGroupVisibility() {
+    const selectedBUs = Array.from(document.querySelectorAll('#op-bu-toggles label.checked')).map(l => l.dataset.bu);
+    document.querySelectorAll('#skill-groups-wrap .skill-group').forEach(grp => {
+      const grpBus = (grp.dataset.bus || '').split(',').filter(Boolean);
+      // Show if no bus restriction, or if any selected BU matches
+      const show = grpBus.length === 0 || grpBus.some(b => selectedBUs.includes(b));
+      grp.style.display = show ? '' : 'none';
+    });
+  }
+  // Run on open
+  updateSkillGroupVisibility();
   body.querySelectorAll('.skill-chk').forEach(lbl => {
     lbl.onclick = (e) => {
       e.preventDefault();
