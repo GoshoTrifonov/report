@@ -1780,6 +1780,7 @@ function runAssignment() {
 
   // Step A: Fill pack-required slots first
   lineWithPool.forEach(({ line }) => {
+    if (line.fracOptions) return; // handled by fracGroups
     const hc = state.headcount[line.id];
     if (!line.packReq || hc < 4) return;
     // Pack training stands alone — no line training required to occupy the pack slot
@@ -1803,8 +1804,10 @@ function runAssignment() {
 
   // Step B: Fill remaining slots — process lines in tight-pool order
   lineWithPool.forEach(({ line }) => {
+    if (line.fracOptions) return; // handled by fracGroups
     const hc = state.headcount[line.id];
     for (let i = 0; i < hc; i++) {
+      if (!state.assignments[line.id] || state.assignments[line.id][i] === undefined) continue;
       if (state.assignments[line.id][i].name) continue; // already filled (pack slot)
       const candidates = pool.filter(o =>
         !used.has(o.name) &&
@@ -1972,7 +1975,7 @@ function renderAssignments() {
           <div class="nm">${line.name.replace(/^[^–]+– /, '')}</div>
           <div class="id">${line.id}</div>
         </div>
-        <div class="hc">${hc} ops</div>
+        <div class="hc">${line.fracOptions ? (hc === 0.33 ? "1/3" : hc === 0.5 ? "1/2" : hc) : hc} ops</div>
       </div>
       <div class="slots"></div>`;
     const slotsEl = card.querySelector('.slots');
