@@ -921,7 +921,6 @@ function BuildTracker() {
         const nowToolId = nowRow ? (WO_TOOL_MAP[nowRow.wo] || nowRow.tool_id || null) : null;
         return { ...nextRow, _nowRunHrs: nowRemainHrs, _nowToolId: nowToolId };
       }).filter(Boolean),
-      }).filter(Boolean),
     };
   }, [lines, abrList, brsList]);
 
@@ -2099,7 +2098,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
             const isUrgent = nowHrs > 0 && nowHrs < 4;
             const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
             const checks = [
-              { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId, by: ready.tool?.by, isChangeover: toolId && liveRow._nowToolId !== undefined && toolId !== liveRow._nowToolId },
+              { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId, by: ready.tool?.by, isChangeover: toolId && r._nowToolId !== undefined && toolId !== r._nowToolId },
               { key: "labels", label: "Labels", ok: ready.labels?.ok, by: ready.labels?.by },
               { key: "kit",    label: "Kit",    ok: ready.kit?.ok,    by: ready.kit?.by },
             ];
