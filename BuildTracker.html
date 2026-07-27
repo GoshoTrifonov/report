@@ -2130,7 +2130,11 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                           style={{ background: bg, border, borderRadius: 4, padding: "3px 7px", fontSize: 10, fontWeight: 700, color, cursor: "pointer", userSelect: "none", transition: "all 0.15s" }}
                           className="hover:opacity-80"
                         >
-                          {c.label}{badge}{c.extra && !c.ok ? ` · ${c.extra}` : ""}
+                          {c.label}{badge}
+                          {/* Not ready: show tool number */}
+                          {!c.ok && c.extra ? ` · ${c.extra}` : ""}
+                          {/* Manually checked (real changeover): show tool number + C/O */}
+                          {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra} C/O` : ""}
                           {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
                       );
@@ -3019,6 +3023,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                       {k === "tool" && (
                         <span className={`text-[10px] font-mono leading-tight ${ok ? (isNA ? "text-slate-100" : isAuto ? "text-sky-50" : "text-emerald-50") : "text-rose-600"}`}>
                           {toolId || (isNA ? "none" : "—")}
+                          {ok && !isAuto && !isNA && toolId ? " C/O" : ""}
                         </span>
                       )}
                     </button>
