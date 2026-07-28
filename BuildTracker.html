@@ -2091,11 +2091,13 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               )}
                               <span className="text-stone-400">·</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
-                              {isSetupsKind && (
-                                <span style={{ background: toolReadyBg, border: toolReadyBorder, color: toolReadyColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
-                                  {toolReadyLabel}
-                                </span>
-                              )}
+                              {kind === "setups" && (() => {
+                                const rBg = e.toolAuto ? "#0ea5e9" : e.toolNA ? "#64748b" : e.toolReady ? "#16a34a" : "transparent";
+                                const rBorder = (e.toolReady || e.toolAuto || e.toolNA) ? "none" : "1px solid #ef4444";
+                                const rColor = (e.toolReady || e.toolAuto || e.toolNA) ? "white" : "#f87171";
+                                const rLabel = e.toolAuto ? "AUTO" : e.toolNA ? "N/A" : e.toolReady ? `✓${e.toolBy ? " · " + e.toolBy : ""}` : "Needed";
+                                return <span style={{ background: rBg, border: rBorder, color: rColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, marginLeft: 4 }}>{rLabel}</span>;
+                              })()}
                             </div>
                           </button>
                         );
