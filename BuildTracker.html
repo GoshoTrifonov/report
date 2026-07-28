@@ -1557,7 +1557,7 @@ function BuildTracker() {
       {materialsModal && (
         <MaterialsNeededModal
           kind={materialsModal}
-          entries={upcomingNotReady[materialsModal]}
+          entries={materialsModal === "setups" ? (upcomingNotReady.setups || []) : (upcomingNotReady[materialsModal] || [])}
           selectedLeader={selectedLeader}
           onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }}
           onClose={() => setMaterialsModal(null)}
