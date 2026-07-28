@@ -2209,11 +2209,12 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                 const ready = liveRow.readiness || {};
                 const nowHrs = r._nowRunHrs || 0;
                 const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
+                const isChangeover = toolId && r._nowToolId !== undefined && toolId !== r._nowToolId;
                 const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now();
                 const wallClock = nowHrs > 0 ? new Date(base + nowHrs * 3600000).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) : "";
                 const timeStr = nowHrs > 0 ? `~${nowHrs.toFixed(0)}h left${wallClock ? " (" + wallClock + ")" : ""}` : "";
                 const checks = [
-                  { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
+                  { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId, isChangeover },
                   { label: "Labels", ok: ready.labels?.ok },
                   { label: "Kit",    ok: ready.kit?.ok },
                 ];
@@ -2224,7 +2225,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                   const border = c.ok ? "none" : "2px solid #ef4444";
                   const color = c.ok ? "#fff" : "#f87171";
                   const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
-                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}</span>`;
+                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " · " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
                 }).join("");
                 const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">URGENT</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
