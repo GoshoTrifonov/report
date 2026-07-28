@@ -986,6 +986,7 @@ function BuildTracker() {
     const now = new Date();
     const cutoff = projectDate(WINDOW_HOURS, now, DEFAULT_COVERAGE);
     const lists = { tool: [], labels: [], kit: [] };
+    const setupsList = []; // ALL tool changeovers regardless of readiness
     const byResource = new Map();
     for (const r of allRows) {
       if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
@@ -1006,6 +1007,9 @@ function BuildTracker() {
           // Tool: only flag if not already OK AND it's a real changeover
           // (tool_id differs from the previous WO's tool, or no tool on previous WO)
           const isChangeover = r.tool_id && r.tool_id !== prevToolId;
+          if (isChangeover) {
+            setupsList.push({ ...entry, toolReady: readiness.tool?.ok ?? false, toolAuto: readiness.tool?.auto ?? false, toolNA: readiness.tool?.na ?? false, toolBy: readiness.tool?.by || "" });
+          }
           if (!readiness.tool?.ok && isChangeover) lists.tool.push(entry);
           if (!readiness.labels?.ok) lists.labels.push(entry);
           if (!readiness.kit?.ok) lists.kit.push(entry);
@@ -1016,7 +1020,7 @@ function BuildTracker() {
         if (cursor > WINDOW_HOURS) break;
       }
     }
-    return lists;
+    return { ...lists, setups: setupsList };
   }, [allRows, selectedLeader]);
 
   const [materialsModal, setMaterialsModal] = useState(null); // "tool" | "labels" | "kit" | null
@@ -1519,10 +1523,10 @@ function BuildTracker() {
         )}
         <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-400 font-semibold mr-1">Needed in 36h:</span>
         <button
-          onClick={() => setMaterialsModal("tool")}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold ${upcomingNotReady.tool.length > 0 ? "bg-amber-500 hover:bg-amber-600 text-slate-900" : "bg-slate-700 text-slate-400"}`}
+          onClick={() => setMaterialsModal("setups")}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold ${upcomingNotReady.setups?.length > 0 ? "bg-amber-500 hover:bg-amber-600 text-slate-900" : "bg-slate-700 text-slate-400"}`}
         >
-          <Wrench className="w-3 h-3" /> Tools <span className="tabular-nums">{upcomingNotReady.tool.length}</span>
+          <Wrench className="w-3 h-3" /> SetUps <span className="tabular-nums">{upcomingNotReady.setups?.length || 0}</span>
         </button>
         <button
           onClick={() => setMaterialsModal("labels")}
@@ -1965,6 +1969,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
 function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose }) {
   const KIND_META = {
+    setups: { label: "SetUps", icon: Wrench,  description: "All tool changeovers in next 36h — including already staged" },
     tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed — physical staging required" },
     labels: { label: "Labels", icon: Tag,     description: "WOs needing Label verification" },
     kit:    { label: "Kits",   icon: Package, description: "WOs needing Kit verification" },
@@ -2086,6 +2091,11 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               )}
                               <span className="text-stone-400">·</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
+                              {isSetupsKind && (
+                                <span style={{ background: toolReadyBg, border: toolReadyBorder, color: toolReadyColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                                  {toolReadyLabel}
+                                </span>
+                              )}
                             </div>
                           </button>
                         );
