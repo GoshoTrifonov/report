@@ -2166,6 +2166,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
                       {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
+                      {checks.find(c => c.key === "tool")?.isChangeover && checks.find(c => c.key === "tool")?.ok && !checks.find(c => c.key === "tool")?.auto && !checks.find(c => c.key === "tool")?.na && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-white">C/O</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{liveRow.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{liveRow.descr || liveRow.part}</div>
@@ -2191,9 +2192,6 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                           {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}` : ""}
                           {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
-                        {c.key === "tool" && c.isChangeover && c.ok && !c.auto && !c.na && (
-                          <div style={{ background: "#f59e0b", color: "white", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 800, marginLeft: 2 }}>C/O</div>
-                        )}
                         </div>
                       );
                     })}
