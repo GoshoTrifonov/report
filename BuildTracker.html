@@ -2191,7 +2191,6 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                           {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}` : ""}
                           {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
-                        {/* Standalone C/O badge - amber, shown separately */}
                         {c.key === "tool" && c.isChangeover && c.ok && !c.auto && !c.na && (
                           <div style={{ background: "#f59e0b", color: "white", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 800, marginLeft: 2 }}>C/O</div>
                         )}
