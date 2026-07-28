@@ -103,6 +103,8 @@ function parseExcelToRows(workbook) {
 
 // ── Firebase helpers ─────────────────────────────────────────────────────
 const DOC_REF = db.collection("production_data").doc("latest");
+const BT_OVERRIDES_REF = db.collection("buildtracker").doc("overrides");
+const BT_META_REF = db.collection("buildtracker").doc("meta");
 
 async function saveToFirebase(rows, fileName) {
   // Firestore docs max ~1MB. Split rows into chunks of 500 and store as array.
@@ -309,6 +311,48 @@ function ProductionReportTool() {
         setLastUpdated(new Date());
         setLastFileName(file.name);
         setFbStatus("ready");
+
+        // Also sync comp_qty to BuildTracker overrides
+        try {
+          // Sum GOOD_QTY by WORKORDER_ID (column K, index 10)
+          const wb2 = XLSX.read(evt.target.result, { type: "array" });
+          const sheet2 = wb2.Sheets[wb2.SheetNames[0]];
+          const raw2 = XLSX.utils.sheet_to_json(sheet2, { header: 1, defval: "" });
+          if (raw2.length > 1) {
+            const h2 = raw2[0].map(h => String(h||"").trim().toUpperCase());
+            const colWO = h2.indexOf("WORKORDER_ID") >= 0 ? h2.indexOf("WORKORDER_ID") : 10;
+            const colQty = h2.indexOf("GOOD_QTY") >= 0 ? h2.indexOf("GOOD_QTY") : 7;
+            const woTotals = {};
+            for (let i = 1; i < raw2.length; i++) {
+              const wo = String(raw2[i][colWO]||"").trim();
+              const qty = parseFloat(raw2[i][colQty]) || 0;
+              if (wo && qty > 0) woTotals[wo] = (woTotals[wo]||0) + qty;
+            }
+            // Read current overrides, merge comp_qty
+            const snap = await BT_OVERRIDES_REF.get();
+            const currentOverrides = snap.exists ? JSON.parse(snap.data().data || "{}") : {};
+            const nextOverrides = { ...currentOverrides };
+            let matchCount = 0;
+            Object.entries(woTotals).forEach(([wo, qty]) => {
+              // Find matching key in overrides (resource__wo format)
+              const matchingKeys = Object.keys(nextOverrides).filter(k => k.endsWith(`__${wo}`));
+              matchingKeys.forEach(key => {
+                const existing = nextOverrides[key] || {};
+                nextOverrides[key] = { ...existing, comp_qty: qty, _updatedAt: new Date().toISOString() };
+                matchCount++;
+              });
+              // Also check if key doesn't exist yet - store by wo for new WOs
+              if (matchingKeys.length === 0) {
+                // Store tentatively - will match when build plan loads
+                nextOverrides[`__pending__${wo}`] = { comp_qty: qty, _updatedAt: new Date().toISOString() };
+              }
+            });
+            await BT_OVERRIDES_REF.set({ data: JSON.stringify(nextOverrides), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            console.log(`BuildTracker sync: ${matchCount} WOs updated`);
+          }
+        } catch(e) { console.warn("BuildTracker sync failed:", e); }
+
         setUploadStatus({ ok: true, msg: `Saved ${rows.length.toLocaleString()} rows · everyone can now see the update` });
       } catch (err) {
         console.error("Upload error:", err);
