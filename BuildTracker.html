@@ -2166,12 +2166,11 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
                       {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
-                      {checks.find(c => c.key === "tool")?.isChangeover && checks.find(c => c.key === "tool")?.ok && !checks.find(c => c.key === "tool")?.auto && !checks.find(c => c.key === "tool")?.na && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-white">C/O</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{liveRow.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{liveRow.descr || liveRow.part}</div>
                   </div>
-                  <div className="flex gap-1.5 shrink-0 flex-wrap justify-end items-center">
+                  <div className="flex gap-1.5 shrink-0">
                     {checks.map(c => {
                       const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "transparent";
                       const border = c.ok ? "2px solid transparent" : "2px solid #ef4444";
@@ -2188,8 +2187,8 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                           {c.label}{badge}
                           {/* Not ready: show tool number */}
                           {!c.ok && c.extra ? ` · ${c.extra}` : ""}
-                          {/* Manually checked: show tool number */}
-                          {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}` : ""}
+                          {/* Manually checked real changeover: show tool number + C/O only if tool changed */}
+                          {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}${c.isChangeover ? " C/O" : ""}` : ""}
                           {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
                       );
@@ -2228,13 +2227,12 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                   const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
                   return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " · " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
                 }).join("");
-                const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">URGENT</span>' : '';
-                const coBadge = (ready.tool?.ok && !ready.tool?.auto && !ready.tool?.na && isChangeover) ? '<span style="background:#f59e0b;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">C/O</span>' : '';
+                const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">URGENT</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
                 const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
                 const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">⏱ ~${nowHrs.toFixed(0)}h left</span>` : '';
                 return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
-                  <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${coBadge}${readyBadge}${timeHtml}</td>
+                  <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${readyBadge}${timeHtml}</td>
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
                   <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
                   <td style="padding:6px 8px;white-space:nowrap">${pillsHtml}</td>
@@ -2242,7 +2240,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
               }).join("");
               const win = window.open("", "_blank");
               win.document.write(`<!DOCTYPE html><html><head><title>Next WOs Summary</title>
-                <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} span{-webkit-print-color-adjust:exact;print-color-adjust:exact;} @media print{button{display:none}}</style>
+                <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} @media print{button{display:none}}</style>
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
                   <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}${lastLabourUpdate ? ' · Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
