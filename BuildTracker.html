@@ -974,6 +974,37 @@ function BuildTracker() {
         const nowToolId = nowRow ? (WO_TOOL_MAP[nowRow.wo] || nowRow.tool_id || null) : null;
         return { ...nextRow, _nowRunHrs: nowRemainHrs, _nowToolId: nowToolId };
       }).filter(Boolean),
+      // SetUps = next WOs where tool changes from NOW to NEXT
+      setupsList: lines.map(l => {
+        const nextRow = l.rows[1];
+        if (!nextRow) return null;
+        const nowRow = l.rows[0];
+        const nowToolId = nowRow ? (WO_TOOL_MAP[nowRow.wo] || nowRow.tool_id || null) : null;
+        const nextToolId = WO_TOOL_MAP[nextRow.wo] || nextRow.tool_id || null;
+        // Only include if there's a real tool changeover
+        if (!nextToolId || nextToolId === nowToolId) return null;
+        const nowRemainHrs = nowRow && nowRow.run_hrs > 0
+          ? nowRow.run_hrs * (1 - Math.min(1, (nowRow.comp_qty || 0) / (nowRow.start_qty || 1)))
+          : 0;
+        return { ...nextRow, _nowRunHrs: nowRemainHrs, _nowToolId: nowToolId };
+      }).filter(Boolean),
+      nextSetupsList: lines.map(l => {
+        const nextRow = l.rows[1];
+        if (!nextRow) return null;
+        const nowRow = l.rows[0];
+        const nowRemainHrs = nowRow && nowRow.run_hrs > 0
+          ? nowRow.run_hrs * (1 - Math.min(1, (nowRow.comp_qty || 0) / (nowRow.start_qty || 1)))
+          : 0;
+        const nowToolId = nowRow ? (WO_TOOL_MAP[nowRow.wo] || nowRow.tool_id || null) : null;
+        const nextToolId = WO_TOOL_MAP[nextRow.wo] || nextRow.tool_id || null;
+        if (!nextToolId || nextToolId === nowToolId) return null;
+        return { ...nextRow, _nowRunHrs: nowRemainHrs, _nowToolId: nowToolId,
+          toolReady: nextRow.readiness?.tool?.ok ?? false,
+          toolAuto: nextRow.readiness?.tool?.auto ?? false,
+          toolNA: nextRow.readiness?.tool?.na ?? false,
+          toolBy: nextRow.readiness?.tool?.by || "",
+        };
+      }).filter(Boolean),
     };
   }, [lines, abrList, brsList]);
 
@@ -1524,9 +1555,9 @@ function BuildTracker() {
         <span className="ml-auto text-[10px] uppercase tracking-wider text-slate-400 font-semibold mr-1">Needed in 36h:</span>
         <button
           onClick={() => setMaterialsModal("setups")}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold ${upcomingNotReady.setups?.length > 0 ? "bg-amber-500 hover:bg-amber-600 text-slate-900" : "bg-slate-700 text-slate-400"}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold ${stats.nextSetupsList?.length > 0 ? "bg-amber-500 hover:bg-amber-600 text-slate-900" : "bg-slate-700 text-slate-400"}`}
         >
-          <Wrench className="w-3 h-3" /> SetUps <span className="tabular-nums">{upcomingNotReady.setups?.length || 0}</span>
+          <Wrench className="w-3 h-3" /> SetUps <span className="tabular-nums">{stats.nextSetupsList?.length || 0}</span>
         </button>
         <button
           onClick={() => setMaterialsModal("labels")}
@@ -1557,7 +1588,7 @@ function BuildTracker() {
       {materialsModal && (
         <MaterialsNeededModal
           kind={materialsModal}
-          entries={materialsModal === "setups" ? (upcomingNotReady.setups || []) : (upcomingNotReady[materialsModal] || [])}
+          entries={materialsModal === "setups" ? (stats.nextSetupsList || []) : (upcomingNotReady[materialsModal] || [])}
           selectedLeader={selectedLeader}
           onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }}
           onClose={() => setMaterialsModal(null)}
@@ -1969,7 +2000,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
 function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose }) {
   const KIND_META = {
-    setups: { label: "SetUps", icon: Wrench,  description: "All tool changeovers in next 36h — including already staged" },
+    setups: { label: "SetUps", icon: Wrench,  description: "NEXT WOs with tool changeover — sorted by urgency" },
     tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed — physical staging required" },
     labels: { label: "Labels", icon: Tag,     description: "WOs needing Label verification" },
     kit:    { label: "Kits",   icon: Package, description: "WOs needing Kit verification" },
@@ -2038,7 +2069,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-12 overflow-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col" style={{ maxHeight: "85vh" }}>
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col" style={{ maxHeight: "90vh" }}>
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -2152,7 +2183,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
-        <div style={{ maxHeight: "65vh", overflowY: "auto" }} className="divide-y divide-stone-100">
+        <div style={{ maxHeight: "75vh", overflowY: "auto" }} className="divide-y divide-stone-100">
           {sorted.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-slate-500 italic">No NEXT WOs</div>
           ) : sorted.map((r, i) => {
