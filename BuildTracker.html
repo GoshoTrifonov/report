@@ -2102,6 +2102,11 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               )}
                               <span className="text-stone-400">·</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
+                              {kind === "setups" && e.row.tool_id && (
+                                <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">
+                                  {WO_TOOL_MAP[e.row.wo] || e.row.tool_id}
+                                </span>
+                              )}
                               {kind === "setups" && (() => {
                                 const r = e.row;
                                 const bg = r.toolAuto?"#0ea5e9":r.toolNA?"#64748b":r.toolReady?"#16a34a":"transparent";
