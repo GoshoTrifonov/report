@@ -1588,7 +1588,9 @@ function BuildTracker() {
       {materialsModal && (
         <MaterialsNeededModal
           kind={materialsModal}
-          entries={materialsModal === "setups" ? (stats.nextSetupsList || []) : (upcomingNotReady[materialsModal] || [])}
+          entries={materialsModal === "setups" 
+            ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs || 0) * 3600000) })) 
+            : (upcomingNotReady[materialsModal] || [])}
           selectedLeader={selectedLeader}
           onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }}
           onClose={() => setMaterialsModal(null)}
@@ -2123,10 +2125,11 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               <span className="text-stone-400">·</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
                               {kind === "setups" && (() => {
-                                const rBg = e.toolAuto ? "#0ea5e9" : e.toolNA ? "#64748b" : e.toolReady ? "#16a34a" : "transparent";
-                                const rBorder = (e.toolReady || e.toolAuto || e.toolNA) ? "none" : "1px solid #ef4444";
-                                const rColor = (e.toolReady || e.toolAuto || e.toolNA) ? "white" : "#f87171";
-                                const rLabel = e.toolAuto ? "AUTO" : e.toolNA ? "N/A" : e.toolReady ? `✓${e.toolBy ? " · " + e.toolBy : ""}` : "Needed";
+                                const rBg = e.row.toolAuto ? "#0ea5e9" : e.row.toolNA ? "#64748b" : e.row.toolReady ? "#16a34a" : "transparent";
+                                const rBorder = (e.row.toolReady || e.row.toolAuto || e.row.toolNA) ? "none" : "1px solid #ef4444";
+                                const rColor = (e.row.toolReady || e.row.toolAuto || e.row.toolNA) ? "white" : "#f87171";
+                                const rLabel = e.row.toolAuto ? "AUTO" : e.row.toolNA ? "N/A" : e.row.toolReady ? `✓${e.row.toolBy ? " · " + e.row.toolBy : ""}` : "Needed";
+                                const rLabel = e.row.toolAuto ? "AUTO" : e.row.toolNA ? "N/A" : e.row.toolReady ? `✓${e.row.toolBy ? " · " + e.row.toolBy : ""}` : "Needed";
                                 return <span style={{ background: rBg, border: rBorder, color: rColor, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, marginLeft: 4 }}>{rLabel}</span>;
                               })()}
                             </div>
