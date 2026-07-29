@@ -2368,12 +2368,14 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                   const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
                   return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " · " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
                 }).join("");
-                const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">URGENT</span>' : '';
+                const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">URGENT</span>' : '';
+                const isChangeover = ready.tool?.ok && !ready.tool?.auto && !ready.tool?.na && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) && r._nowToolId !== undefined && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) !== r._nowToolId;
+                const coBadge = isChangeover ? '<span style="background:#f59e0b;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">SetUp</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
                 const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
                 const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">⏱ ~${nowHrs.toFixed(0)}h left</span>` : '';
                 return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
-                  <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${readyBadge}${timeHtml}</td>
+                  <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${coBadge}${readyBadge}${timeHtml}</td>
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
                   <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
                   <td style="padding:6px 8px;white-space:nowrap">${pillsHtml}</td>
@@ -2381,7 +2383,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
               }).join("");
               const win = window.open("", "_blank");
               win.document.write(`<!DOCTYPE html><html><head><title>Next WOs Summary</title>
-                <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} @media print{button{display:none}}</style>
+                <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} *{-webkit-print-color-adjust:exact;print-color-adjust:exact;} @media print{button{display:none}}</style>
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
                   <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}${lastLabourUpdate ? ' · Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
