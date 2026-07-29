@@ -468,6 +468,12 @@ function BuildTracker() {
   const [selectedWo, setSelectedWo] = useState(null);
   const [zoom, setZoom] = useState(14);
   const [fbStatus, setFbStatus] = useState("loading");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   const [lastBuildPlanUpdate, setLastBuildPlanUpdate] = useState(null);
   const [lastLabourUpdate, setLastLabourUpdate] = useState(null);
   const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
@@ -1344,6 +1350,127 @@ function BuildTracker() {
     );
   }
 
+
+  // ── Mobile View ───────────────────────────────────────────────────────────
+  if (isMobile && !presentationMode) {
+    const { shiftId: curShift, shiftDate: curShiftDate } = getCurrentShift(new Date());
+    return (
+      <div style={{ fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif", background: "#f8f7f4", minHeight: "100vh", paddingBottom: 80 }}>
+        {/* Mobile Header */}
+        <div style={{ background: "#1e3a5f", color: "white", padding: "10px 14px", position: "sticky", top: 0, zIndex: 40 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src={document.querySelector('img[alt="Southmedic"]')?.src || ""} alt="SMI" style={{ height: 28, filter: "brightness(0) invert(1)" }} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <select value={selectedLeader} onChange={e => changeLeader(e.target.value)}
+                style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, padding: "4px 8px", fontSize: 13, fontWeight: 600 }}>
+                <option value="__ALL__" style={{ color: "#000" }}>All BUs</option>
+                {leaderList.map(l => <option key={l.name} value={l.name} style={{ color: "#000" }}>{buName(l.name)}</option>)}
+              </select>
+              <button onClick={() => setPresentationMode(true)}
+                style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 6, padding: "5px 10px", fontSize: 12 }}>📺</button>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
+            <span>📋 {lines.length} lines</span>
+            <span>⚡ {stats.wip} WIP</span>
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>⚠ {stats.nextNotReady} not ready</span>}
+          </div>
+        </div>
+
+        {/* Mobile Line Cards */}
+        <div style={{ padding: "10px 12px" }}>
+          {lines.map(line => {
+            const isDown = ((lineDown[line.resource] || []).find(e =>
+              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
+            )) ? true : false;
+            const nowRow = line.rows[0];
+            const nextRow = line.rows[1];
+            const thenRow = line.rows[2];
+            const hasWip = line.rows.some(r => r.status === "wip");
+            const nextReady = nextRow && isReady(nextRow);
+            const borderColor = isDown ? "#ef4444" : nextReady ? "#22c55e" : !isReady(nextRow || {}) && nextRow ? "#f87171" : hasWip ? "#f59e0b" : "#e2e8f0";
+            const bgColor = isDown ? "#fff1f2" : hasWip ? "#fffbeb" : "white";
+
+            const WORow = ({ row, label, color }) => {
+              if (!row) return null;
+              const ready = row.readiness || {};
+              const toolId = WO_TOOL_MAP[row.wo] || row.tool_id || null;
+              return (
+                <button onClick={() => setSelectedWo(row)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: "5px 0", cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color, minWidth: 32, paddingTop: 2 }}>{label}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.wo}</div>
+                      <div style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.descr || row.part}</div>
+                    </div>
+                    {label === "NEXT" && (
+                      <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                        {[
+                          { k: "tool", ok: ready.tool?.ok, auto: ready.tool?.auto, na: ready.tool?.na, label: toolId ? `T·${toolId}` : "Tool" },
+                          { k: "labels", ok: ready.labels?.ok, label: "Lbl" },
+                          { k: "kit", ok: ready.kit?.ok, label: "Kit" },
+                        ].map(c => {
+                          const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "transparent";
+                          const bd = c.ok ? "none" : "1px solid #ef4444";
+                          const cl = c.ok ? "white" : "#ef4444";
+                          return <span key={c.k} onClick={ev => { ev.stopPropagation(); setReadinessCheck(row, c.k, !c.ok); }}
+                            style={{ background: bg, border: bd, color: cl, borderRadius: 4, padding: "2px 5px", fontSize: 9, fontWeight: 700, cursor: "pointer" }}>{c.label}</span>;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            };
+
+            return (
+              <div key={line.resource} style={{ background: bgColor, border: `2px solid ${borderColor}`, borderRadius: 10, marginBottom: 8, padding: "10px 12px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>{line.resource}</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {isDown && <span style={{ background: "#dc2626", color: "white", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 700 }}>DOWN</span>}
+                    {hasWip && !isDown && <span style={{ background: "#d97706", color: "white", borderRadius: 4, padding: "2px 6px", fontSize: 10, fontWeight: 700 }}>RUN</span>}
+                  </div>
+                </div>
+                <WORow row={nowRow} label="NOW" color="#d97706" />
+                <WORow row={nextRow} label="NEXT" color="#64748b" />
+                <WORow row={thenRow} label="THEN" color="#94a3b8" />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Mobile Footer */}
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0f172a", padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6, zIndex: 40 }}>
+          <button onClick={() => fileInputRef.current?.click()}
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600 }}>
+            📂 Labour
+          </button>
+          <button onClick={() => setMaterialsModal("setups")}
+            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600 }}>
+            🔧 SetUps {stats.nextSetupsList?.length || 0}
+          </button>
+          <button onClick={() => setShowNextSummary(v => !v)}
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600 }}>
+            📋 Next {stats.nextAllList?.length || 0}
+          </button>
+          <button onClick={() => setShowNextNotReady(v => !v)}
+            style={{ background: stats.nextNotReady > 0 ? "#dc2626" : "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600 }}>
+            ⚠ {stats.nextNotReady}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
+        </div>
+
+        {/* Modals still work on mobile */}
+        {selectedWo && <DetailPanel row={selectedWo} overrides={overrides} onClose={() => setSelectedWo(null)} updateRow={updateRow} setReadinessCheck={setReadinessCheck} logShiftEntry={logShiftEntry} userInitials={userInitials} lineDown={lineDown} saveLineDown={saveLineDown} />}
+        {showNextSummary && <NextSummaryModal rows={stats.nextAllList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
+        {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
+        {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
