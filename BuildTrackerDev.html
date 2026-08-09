@@ -222,24 +222,65 @@ function parseBuildPlan(workbook) {
 // ── Labour tickets parser → WO comp_qty map ──────────────────────────────────
 // Sums GOOD_QTY per WO (stripping /1 suffix to match BuildTracker WO keys).
 // Returns { "W1027135": 1500, ... }
+// Returns { totals: { "W123": 500 }, shiftDetail: { "W123": [ {shiftId, shiftDateISO, qty, date} ] } }
 function parseLabourTicketsForWOs(workbook) {
+  const SHIFT_CODE_MAP = {
+    "ASSEMBLY 1":"1","ASSEMBLY 2":"2","ASSEMBLY 3":"3",
+    "EXTRUDER 1":"1","EXTRUDER 2":"2","EXTRUDER 3":"3",
+    "GRINDER 1":"1","GRINDER 2":"2","GRINDER 3":"3",
+    "MOLDING 1":"1","MOLDING 2":"2","MOLDING 3":"3",
+    "CONT A":"2","CONT B":"2","CONT C":"1","CONT D":"1",
+    "CONT A- MOLD":"2","CONT B - MOLD":"2","CONT C - MOLD":"1","CONT D - MOLD":"1",
+  };
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-  if (raw.length < 2) return {};
+  if (raw.length < 2) return { totals: {}, shiftDetail: {} };
   const header = raw[0].map(h => String(h || "").trim().toUpperCase());
   const col = (names, fallback) => { for (const n of names) { const i = header.indexOf(n); if (i >= 0) return i; } return fallback; };
-  const COL_WO  = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
-  const COL_QTY = col(["GOOD_QTY", "QTY", "UNITS"], 7);
+  const COL_WO    = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
+  const COL_QTY   = col(["GOOD_QTY", "QTY", "UNITS"], 7);
+  const COL_DATE  = col(["TRANSACTION_DATE", "DATE"], 2);
+  const COL_SHIFT = col(["ID", "SHIFT", "SHIFT_CODE"], 11);
   const totals = {};
+  // Group by WO + date + shiftId
+  const byWoShift = {}; // key: "WO||date||shiftId" -> { wo, dateISO, shiftId, qty }
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
     const rawWo = String(r[COL_WO] || "").trim();
     if (!rawWo) continue;
     const qty = parseFloat(r[COL_QTY]) || 0;
-    if (qty > 0) totals[rawWo] = (totals[rawWo] || 0) + qty;
+    if (qty <= 0) continue;
+    totals[rawWo] = (totals[rawWo] || 0) + qty;
+    // Parse date
+    let dateISO = "";
+    const dateVal = r[COL_DATE];
+    if (typeof dateVal === "number") {
+      const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+      dateISO = d.toISOString().slice(0, 10);
+    } else if (dateVal) {
+      const d = new Date(dateVal);
+      dateISO = isNaN(d) ? "" : d.toISOString().slice(0, 10);
+    }
+    if (!dateISO) continue;
+    // Map shift code to shiftId (1/2/3)
+    const shiftCode = String(r[COL_SHIFT] || "").trim().toUpperCase();
+    const shiftIdStr = SHIFT_CODE_MAP[shiftCode] || "";
+    const shiftId = parseInt(shiftIdStr) || 2; // default to shift 2 if unknown
+    const groupKey = `${rawWo}||${dateISO}||${shiftId}`;
+    if (!byWoShift[groupKey]) byWoShift[groupKey] = { wo: rawWo, dateISO, shiftId, qty: 0 };
+    byWoShift[groupKey].qty += qty;
   }
-  return totals;
+  // Build shiftDetail: WO -> array of shift entries sorted newest first
+  const shiftDetail = {};
+  for (const entry of Object.values(byWoShift)) {
+    if (!shiftDetail[entry.wo]) shiftDetail[entry.wo] = [];
+    shiftDetail[entry.wo].push(entry);
+  }
+  for (const wo of Object.keys(shiftDetail)) {
+    shiftDetail[wo].sort((a, b) => (b.dateISO + b.shiftId).localeCompare(a.dateISO + a.shiftId));
+  }
+  return { totals, shiftDetail };
 }
 const SHIFT_HOURS = 8;
 // Business Unit display names — maps internal leader keys to BU labels shown in the UI.
@@ -580,15 +621,14 @@ function BuildTracker() {
     reader.onload = async (evt) => {
       try {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
-        // Get WO totals for BuildTracker comp_qty matching
-        const woTotals = parseLabourTicketsForWOs(wb);
+        // Get WO totals + per-shift detail for BuildTracker matching
+        const { totals: woTotals, shiftDetail } = parseLabourTicketsForWOs(wb);
         const matchedWOs = Object.keys(woTotals);
-        // Match against current BUILD_DATA rows
-        // BuildTracker WO keys: "W1027135/1" → base: "W1027135"
+        // Match against current build plan rows
         let matchCount = 0;
         const currentOverrides = overrides;
         const nextOverrides = { ...currentOverrides };
-
+        const uploadedAt = new Date().toISOString();
 
         const sourceRows = buildPlanRows || BUILD_DATA.rows;
         sourceRows.forEach((row, idx) => {
@@ -603,7 +643,25 @@ function BuildTracker() {
               if (startQty > 0 && newQty >= startQty) newStatus = "done";
               else if (newQty > 0) newStatus = "wip";
             }
-            nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, _updatedAt: new Date().toISOString() };
+            // Build shift history entries from labour ticket data.
+            // We replace any previously auto-imported entries (flagged by source:"labour")
+            // but preserve any manually-logged entries.
+            const existingShifts = existing.shifts || [];
+            const manualShifts = existingShifts.filter(s => s.source !== "labour");
+            const labourShifts = (shiftDetail[row.wo] || []).map(s => ({
+              shiftId: s.shiftId,
+              shiftDateISO: new Date(s.dateISO + "T12:00:00").toISOString(),
+              qty: Math.round(s.qty),
+              notes: "",
+              reason: "",
+              by: "Labour Import",
+              source: "labour",
+              loggedAt: uploadedAt,
+            }));
+            const mergedShifts = [...manualShifts, ...labourShifts].sort((a, b) =>
+              (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId)
+            );
+            nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, shifts: mergedShifts, _updatedAt: uploadedAt };
             matchCount++;
           }
         });
@@ -2890,7 +2948,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
   const [qty, setQty] = useState("");
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   const remaining = Math.max(0, (row.start_qty || 0) - (row.comp_qty || 0));
   const history = (row.shifts || []).slice().sort((a, b) =>
@@ -2937,14 +2995,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
           <FileCheck2 className="w-4 h-4 text-sky-700" />
           <span className="text-xs font-bold uppercase tracking-wider text-sky-700">Log Shift Production</span>
         </div>
-        {history.length > 0 && (
-          <button
-            onClick={() => setShowHistory(v => !v)}
-            className="text-[10px] font-semibold text-sky-700 hover:text-sky-900 underline"
-          >
-            {showHistory ? "Hide" : "Show"} history ({history.length})
-          </button>
-        )}
+
       </div>
 
       {/* Shift selector */}
@@ -3040,28 +3091,57 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
       </button>
 
-      {/* History */}
-      {showHistory && history.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-sky-200 space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">Shift history</div>
-          {history.map((entry, i) => (
-            <div key={i} className="bg-white border border-stone-200 rounded p-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="text-[11px] font-semibold text-slate-800">{shiftLabel(entry)}</div>
-                <div className="text-xs tabular-nums font-mono font-bold text-sky-700">+{fmtNum(entry.qty)}</div>
-              </div>
-              {entry.reason && (
-                <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {entry.reason}</div>
-              )}
-              {entry.notes && <div className="text-[11px] text-slate-600 mt-1 leading-snug">{entry.notes}</div>}
-              <div className="text-[9px] text-slate-400 mt-1">
-                {entry.by && <span className="font-semibold text-slate-500">by {entry.by} · </span>}
-                Logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-              </div>
-            </div>
-          ))}
+      {/* Shift History — always visible */}
+      <div className="mt-3 pt-3 border-t border-sky-200">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+          <span>Shift History</span>
+          {history.length > 0 && <span className="text-sky-600 normal-case font-medium">{history.length} entr{history.length === 1 ? "y" : "ies"}</span>}
         </div>
-      )}
+        {history.length === 0 && (
+          <div className="text-[11px] text-slate-400 italic text-center py-2">No shift entries yet.</div>
+        )}
+        <div className="space-y-1.5">
+          {history.map((entry, i) => {
+            const shiftMeta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
+            const entryDate = new Date(entry.shiftDateISO);
+            const dateStr = entryDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+            const isLabour = entry.source === "labour";
+            return (
+              <div key={i} className={`rounded-md p-2.5 border ${isLabour ? "bg-slate-50 border-slate-200" : "bg-white border-sky-200"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${isLabour ? "bg-slate-200 text-slate-600" : "bg-sky-100 text-sky-700"}`}>
+                      {shiftMeta.label}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-700">{dateStr}</span>
+                    <span className="text-[10px] text-slate-400">{shiftMeta.time}</span>
+                  </div>
+                  {entry.qty > 0 && (
+                    <span className="text-sm tabular-nums font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                      +{fmtNum(entry.qty)}
+                    </span>
+                  )}
+                </div>
+                {entry.reason && (
+                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">⚠ {entry.reason}</div>
+                )}
+                {entry.notes && (
+                  <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
+                )}
+                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
+                  {isLabour
+                    ? <span className="text-slate-400">📋 From labour tickets</span>
+                    : entry.by
+                      ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
+                      : null
+                  }
+                  {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
