@@ -791,8 +791,10 @@ function BuildTracker() {
             };
             return BT_SHIFT_REPORTS_REF.doc(docId).set(payload, { merge: true });
           });
+          console.log("Auto-save: reportMap keys:", Object.keys(reportMap).length, Object.keys(reportMap));
           await Promise.all(writes);
-        } catch(e) { console.warn("Auto-save shift reports failed:", e); }
+          console.log("Auto-save: wrote", writes.length, "shift report docs");
+        } catch(e) { console.error("Auto-save shift reports failed:", e); }
         // Production Report Tool manages its own data via its own upload button
         setLastLabourUpdate(new Date());
         BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
