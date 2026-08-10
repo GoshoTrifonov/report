@@ -2791,8 +2791,9 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const [saveState, setSaveState] = useState("idle"); // "idle"|"saving"|"saved"|"error"
   const [existingSavedAt, setExistingSavedAt] = useState(null);
   const [activeTab, setActiveTab] = useState("current"); // "current"|"history"
-  const [historyReports, setHistoryReports] = useState(null); // null=loading, []=loaded
+  const [historyReports, setHistoryReports] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedHistoryReport, setSelectedHistoryReport] = useState(null); // null = list view
 
   // Check Firestore if this shift already has a saved report
   const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
@@ -2997,92 +2998,145 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-auto">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden">
+        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden flex-shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Shift Report</h2>
             <p className="text-xs text-slate-500">Roll-up of production for the selected shift</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
-              <button
-                onClick={() => setActiveTab("current")}
-                style={{backgroundColor: activeTab === "current" ? "#1e3a5f" : "white", color: activeTab === "current" ? "white" : "#64748b"}}
-                className="px-3 py-1.5"
-              >Current</button>
-              <button
-                onClick={() => setActiveTab("history")}
-                style={{backgroundColor: activeTab === "history" ? "#1e3a5f" : "white", color: activeTab === "history" ? "white" : "#64748b"}}
-                className="px-3 py-1.5 border-l border-stone-200"
-              >History</button>
+              <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
+              <button onClick={() => setActiveTab("history")} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
             </div>
             <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
-        {/* Shift selector */}
-        <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {SHIFTS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setReportShiftId(s.id)}
-                className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}
-              >
-                <div className="text-[11px] font-bold">{s.label}</div>
-                <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Report content */}
-        <div className="flex-1 overflow-auto print:p-0">
-          {activeTab === "history" ? (
-            <div className="p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
-                Last 90 saved reports — {buName(selectedLeader)}
+        {activeTab === "history" ? (
+          selectedHistoryReport ? (
+            /* ── History detail view ── */
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-4 py-2 border-b border-stone-200 bg-stone-50 flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => setSelectedHistoryReport(null)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">← Back</button>
+                <span className="text-slate-300">|</span>
+                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} · {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+                <span className="text-xs text-slate-400">{selectedHistoryReport.shiftTime}</span>
               </div>
-              {historyLoading && (
-                <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>
-              )}
-              {!historyLoading && historyReports !== null && historyReports.length === 0 && (
-                <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found for this BU.</div>
-              )}
-              {!historyLoading && historyReports && historyReports.length > 0 && (
+              <div className="flex-1 overflow-auto p-4">
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  <ReportStat label="Total units" value={(selectedHistoryReport.totalUnits||0).toLocaleString()} />
+                  <ReportStat label="Entries" value={selectedHistoryReport.entries||0} />
+                  <ReportStat label="Resources" value={selectedHistoryReport.resourceCount||0} />
+                  <ReportStat label="Lines down" value={(selectedHistoryReport.linesDown||[]).length} />
+                </div>
+                {(selectedHistoryReport.totalEff!=null||selectedHistoryReport.totalHrs>0) && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {selectedHistoryReport.totalEff!=null && (
+                      <div className={`rounded-md border px-3 py-2.5 ${selectedHistoryReport.totalEff>=90?"bg-emerald-50 border-emerald-200":selectedHistoryReport.totalEff>=76.5?"bg-amber-50 border-amber-200":"bg-rose-50 border-rose-200"}`}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                        <div className={`text-xl font-bold tabular-nums ${selectedHistoryReport.totalEff>=90?"text-emerald-700":selectedHistoryReport.totalEff>=76.5?"text-amber-700":"text-rose-700"}`}>{selectedHistoryReport.totalEff.toFixed(1)}%</div>
+                      </div>
+                    )}
+                    {selectedHistoryReport.totalHrs>0 && (
+                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                        <div className="text-xl font-bold tabular-nums text-slate-700">{selectedHistoryReport.totalHrs.toFixed(1)}h</div>
+                      </div>
+                    )}
+                    {selectedHistoryReport.totalLost>0 && (
+                      <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lost hours</div>
+                        <div className="text-xl font-bold tabular-nums text-rose-600">{selectedHistoryReport.totalLost.toFixed(1)}h</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {(selectedHistoryReport.linesDown||[]).length>0 && (
+                  <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
+                    <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selectedHistoryReport.linesDown.length})</div>
+                    {selectedHistoryReport.linesDown.map((d,i)=>(
+                      <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
+                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"—"}</span></div>
+                        {d.notes && <div className="text-xs text-slate-600 mt-0.5">{d.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(() => {
+                  const wos = selectedHistoryReport.wos||[];
+                  const byRes = {};
+                  for (const w of wos) { if (!byRes[w.resource]) byRes[w.resource]=[]; byRes[w.resource].push(w); }
+                  return (
+                    <div className="space-y-3">
+                      {Object.entries(byRes).map(([res,items])=>(
+                        <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                          <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                          <div className="divide-y divide-stone-100">
+                            {items.map((w,i)=>(
+                              <div key={i} className={`px-3 py-2.5 text-sm ${w.statusOnly?"bg-stone-50":""}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0"><span className="font-mono font-semibold text-slate-900 text-xs">{w.wo}</span><span className="text-slate-500 ml-2 text-xs">{w.descr}</span></div>
+                                  {w.qty>0 && <div className="text-right shrink-0"><div className="font-bold text-emerald-700 tabular-nums">+{w.qty.toLocaleString()}</div><div className="text-[10px] text-slate-400 tabular-nums">{(w.compQty||0).toLocaleString()} / {(w.startQty||0).toLocaleString()}</div></div>}
+                                  {w.statusOnly && <span className="text-[10px] text-slate-400 uppercase font-bold shrink-0">{w.status} (no entries)</span>}
+                                </div>
+                                {(w.eff!=null||w.hrs>0||w.lost>0) && (
+                                  <div className="flex items-center gap-3 mt-1.5">
+                                    {w.eff!=null && <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${w.eff>=90?"bg-emerald-100 text-emerald-700":w.eff>=76.5?"bg-amber-100 text-amber-700":"bg-rose-100 text-rose-700"}`}>Eff {w.eff.toFixed(1)}%</div>}
+                                    {w.hrs>0 && <span className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{w.hrs.toFixed(1)}h</span> worked</span>}
+                                    {w.lost>0 && <span className="text-[10px] text-rose-600 font-semibold">{w.lost.toFixed(1)}h lost</span>}
+                                  </div>
+                                )}
+                                {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
+                                {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 flex gap-2">
+                <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT — ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} · ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} · ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` · Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` · ${w.hrs.toFixed(1)}h`:""}${w.lost>0?` · ${w.lost.toFixed(1)}h lost`:""}`);if(w.notes)lines.push(`    ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
+                <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 text-slate-800 text-sm font-semibold">Print</button>
+              </div>
+            </div>
+          ) : (
+            /* ── History list ── */
+            <div className="flex-1 overflow-auto p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Last 90 saved reports — {buName(selectedLeader)}</div>
+              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>}
+              {!historyLoading && historyReports!==null && historyReports.length===0 && <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found.</div>}
+              {!historyLoading && historyReports && historyReports.length>0 && (
                 <div className="space-y-2">
-                  {historyReports.map(r => {
-                    const effColor = r.totalEff == null ? "text-slate-400" : r.totalEff >= 90 ? "text-emerald-600" : r.totalEff >= 76.5 ? "text-amber-600" : "text-rose-600";
-                    const effBg = r.totalEff == null ? "bg-slate-50" : r.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : r.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200";
-                    const dateObj = new Date(r.date + "T12:00:00");
-                    const dateStr = dateObj.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-                    const shiftMeta = SHIFTS.find(s => s.id === r.shiftId) || SHIFTS[0];
+                  {historyReports.map(r=>{
+                    const effColor = r.totalEff==null?"text-slate-400":r.totalEff>=90?"text-emerald-600":r.totalEff>=76.5?"text-amber-600":"text-rose-600";
+                    const effBg = r.totalEff==null?"bg-slate-50 border-slate-200":r.totalEff>=90?"bg-emerald-50 border-emerald-200":r.totalEff>=76.5?"bg-amber-50 border-amber-200":"bg-rose-50 border-rose-200";
+                    const dateObj = new Date(r.date+"T12:00:00");
+                    const dateStr = dateObj.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+                    const sMeta = SHIFTS.find(s=>s.id===r.shiftId)||SHIFTS[0];
                     return (
-                      <div key={r.id} className="border border-stone-200 rounded-md p-3 hover:border-stone-300 hover:bg-stone-50 transition-colors">
+                      <div key={r.id} onClick={()=>setSelectedHistoryReport(r)} className="border border-stone-200 rounded-md p-3 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
-                            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{shiftMeta.label}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{sMeta.label}</span>
                             <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
-                            <span className="text-[11px] text-slate-400">{shiftMeta.time}</span>
+                            <span className="text-[11px] text-slate-400">{sMeta.time}</span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {r.totalEff != null && (
-                              <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>
-                                {r.totalEff.toFixed(1)}%
-                              </span>
-                            )}
-                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits || 0).toLocaleString()} u</span>
+                            {r.totalEff!=null && <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>{r.totalEff.toFixed(1)}%</span>}
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()} u</span>
+                            <span className="text-slate-300 text-xs">›</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          {r.entries > 0 && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
-                          {r.resourceCount > 0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
-                          {r.totalHrs > 0 && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
-                          {r.totalLost > 0 && <span className="text-[10px] text-rose-500 font-semibold">{r.totalLost.toFixed(1)}h lost</span>}
-                          <span className="text-[9px] text-slate-300 ml-auto">
-                            saved {new Date(r.autoSavedAt || r.savedAt || r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                          </span>
+                          {r.entries>0 && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
+                          {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
+                          {r.totalHrs>0 && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
+                          {r.totalLost>0 && <span className="text-[10px] text-rose-500 font-semibold">{r.totalLost.toFixed(1)}h lost</span>}
                         </div>
                       </div>
                     );
@@ -3090,175 +3144,171 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 </div>
               )}
             </div>
-          ) : (
-          <div className="p-6 print:p-0">
-          {/* Print-only header */}
-          <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-            <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
-            <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
-          </div>
-
-          {/* Summary */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            <ReportStat label="Total units" value={reportData.totalUnits.toLocaleString()} />
-            <ReportStat label="Entries" value={reportData.totalEntries} />
-            <ReportStat label="Resources active" value={reportData.byResource.size} />
-            <ReportStat label="Lines down" value={reportData.downLines.length} />
-          </div>
-          {(reportData.totalHrs > 0 || reportData.totalEff !== null) && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {reportData.totalEff !== null && (
-                <div className={`rounded-md border px-3 py-2.5 ${reportData.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : reportData.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200"}`}>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
-                  <div className={`text-xl font-bold tabular-nums ${reportData.totalEff >= 90 ? "text-emerald-700" : reportData.totalEff >= 76.5 ? "text-amber-700" : "text-rose-700"}`}>
-                    {reportData.totalEff.toFixed(1)}%
-                  </div>
-                </div>
-              )}
-              {reportData.totalHrs > 0 && (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
-                  <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalHrs.toFixed(1)}h</div>
-                </div>
-              )}
-              {reportData.totalLost > 0 && (
-                <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lost hours</div>
-                  <div className="text-xl font-bold tabular-nums text-rose-600">{reportData.totalLost.toFixed(1)}h</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {reportData.byResource.size === 0 && reportData.downLines.length === 0 ? (
-            <div className="text-center py-8 text-sm text-slate-500 italic">
-              No shift entries or down-line markers logged for {meta.label} on {dateLabel}.
-              <br />
-              <span className="text-xs">Once supervisors log production or mark lines down for this shift, it'll show up here.</span>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {reportData.downLines.length > 0 && (
-                <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
-                  <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
-                  <div className="divide-y divide-rose-200">
-                    {reportData.downLines.map((d, i) => (
-                      <div key={i} className="px-3 py-2 text-sm">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="font-semibold text-slate-900">{d.resource}</span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span>
-                        </div>
-                        {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
-                        <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {[...reportData.byResource.entries()].map(([res, data]) => (
-                <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
-                  <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
-                  <div className="divide-y divide-stone-100">
-                    {data.entries.map((item, i) => (
-                      <div key={i} className="px-3 py-2.5 text-sm">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <span className="font-mono font-semibold text-slate-900">{item.row.wo}</span>
-                            <span className="text-slate-600 ml-2 text-xs">{item.row.descr || item.row.part}</span>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(item.entry.qty)}</div>
-                            <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
-                          </div>
-                        </div>
-                        {/* Eff / Hrs / Lost row */}
-                        {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost > 0) && (
-                          <div className="flex items-center gap-3 mt-1.5">
-                            {item.entry.eff != null && (
-                              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${item.entry.eff >= 90 ? "bg-emerald-100 text-emerald-700" : item.entry.eff >= 76.5 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
-                                Eff {item.entry.eff.toFixed(1)}%
-                              </div>
-                            )}
-                            {item.entry.hrs > 0 && (
-                              <div className="text-[10px] text-slate-500">
-                                <span className="font-semibold text-slate-600">{item.entry.hrs.toFixed(1)}h</span> worked
-                              </div>
-                            )}
-                            {item.entry.lost > 0 && (
-                              <div className="text-[10px] text-rose-600 font-semibold">
-                                {item.entry.lost.toFixed(1)}h lost
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="text-[11px] text-slate-400 mt-1">{item.entry.by || "—"}</div>
-                        {item.entry.reason && (
-                          <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>
-                        )}
-                        {item.entry.notes && (
-                          <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">{item.entry.notes}</div>
-                        )}
-                      </div>
-                    ))}
-                    {data.statusOnly.map((r, i) => (
-                      <div key={`s-${i}`} className="px-3 py-2 text-sm bg-stone-50">
-                        <span className="font-mono text-slate-700">{r.wo}</span>
-                        <span className="text-slate-500 ml-2 text-xs">{r.descr || r.part}</span>
-                        <span className="ml-2 text-[10px] uppercase font-bold text-slate-400">{r.status} (no entries)</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {Object.keys(reportData.reasonsCount).length > 0 && (
-            <div className="mt-5 pt-4 border-t border-stone-200">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Underperformance reasons</div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(reportData.reasonsCount).map(([reason, count]) => (
-                  <div key={reason} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs">
-                    <span className="font-semibold text-amber-900">{reason}</span>
-                    <span className="text-amber-700 ml-1.5">({count})</span>
-                  </div>
+          )
+        ) : (
+          /* ── Current shift tab ── */
+          <React.Fragment>
+            {/* Shift selector */}
+            <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden flex-shrink-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {SHIFTS.map(s => (
+                  <button key={s.id} onClick={() => setReportShiftId(s.id)}
+                    className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}>
+                    <div className="text-[11px] font-bold">{s.label}{s.id === nowShiftId && <span className="ml-1 text-[9px] font-semibold uppercase tracking-wider opacity-80">NOW</span>}</div>
+                    <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
+                  </button>
                 ))}
               </div>
             </div>
-          )}
-        </div>
-          )} {/* end current tab */}
-        </div>
 
-        {/* Actions — only show on current tab */}
-        {activeTab === "current" && (
-        <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
-          {existingSavedAt && (
-            <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
-              ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            {/* Report content */}
+            <div className="flex-1 overflow-auto p-6 print:p-0">
+              {/* Print-only header */}
+              <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
+                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
+                <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
+              </div>
+              {/* Summary */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <ReportStat label="Total units" value={reportData.totalUnits.toLocaleString()} />
+                <ReportStat label="Entries" value={reportData.totalEntries} />
+                <ReportStat label="Resources active" value={reportData.byResource.size} />
+                <ReportStat label="Lines down" value={reportData.downLines.length} />
+              </div>
+              {(reportData.totalHrs > 0 || reportData.totalEff !== null) && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {reportData.totalEff !== null && (
+                    <div className={`rounded-md border px-3 py-2.5 ${reportData.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : reportData.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200"}`}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                      <div className={`text-xl font-bold tabular-nums ${reportData.totalEff >= 90 ? "text-emerald-700" : reportData.totalEff >= 76.5 ? "text-amber-700" : "text-rose-700"}`}>{reportData.totalEff.toFixed(1)}%</div>
+                    </div>
+                  )}
+                  {reportData.totalHrs > 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalHrs.toFixed(1)}h</div>
+                    </div>
+                  )}
+                  {reportData.totalLost > 0 && (
+                    <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lost hours</div>
+                      <div className="text-xl font-bold tabular-nums text-rose-600">{reportData.totalLost.toFixed(1)}h</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {reportData.byResource.size === 0 && reportData.downLines.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500 italic">
+                  No shift entries or down-line markers logged for {meta.label} on {dateLabel}.
+                  <br /><span className="text-xs">Once supervisors log production or mark lines down for this shift, it'll show up here.</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reportData.downLines.length > 0 && (
+                    <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
+                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
+                      <div className="divide-y divide-rose-200">
+                        {reportData.downLines.map((d, i) => (
+                          <div key={i} className="px-3 py-2 text-sm">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="font-semibold text-slate-900">{d.resource}</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span>
+                            </div>
+                            {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {[...reportData.byResource.entries()].map(([res, data]) => (
+                    <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                      <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                      <div className="divide-y divide-stone-100">
+                        {data.entries.map((item, i) => (
+                          <div key={i} className="px-3 py-2.5 text-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-mono font-semibold text-slate-900">{item.row.wo}</span>
+                                <span className="text-slate-600 ml-2 text-xs">{item.row.descr || item.row.part}</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(item.entry.qty)}</div>
+                                <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
+                              </div>
+                            </div>
+                            {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost > 0) && (
+                              <div className="flex items-center gap-3 mt-1.5">
+                                {item.entry.eff != null && (
+                                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${item.entry.eff >= 90 ? "bg-emerald-100 text-emerald-700" : item.entry.eff >= 76.5 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
+                                    Eff {item.entry.eff.toFixed(1)}%
+                                  </div>
+                                )}
+                                {item.entry.hrs > 0 && <div className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{item.entry.hrs.toFixed(1)}h</span> worked</div>}
+                                {item.entry.lost > 0 && <div className="text-[10px] text-rose-600 font-semibold">{item.entry.lost.toFixed(1)}h lost</div>}
+                              </div>
+                            )}
+                            <div className="text-[11px] text-slate-400 mt-1">{item.entry.by || "—"}</div>
+                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
+                            {item.entry.notes && <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">{item.entry.notes}</div>}
+                          </div>
+                        ))}
+                        {data.statusOnly.map((r, i) => (
+                          <div key={`s-${i}`} className="px-3 py-2 text-sm bg-stone-50">
+                            <span className="font-mono text-slate-700">{r.wo}</span>
+                            <span className="text-slate-500 ml-2 text-xs">{r.descr || r.part}</span>
+                            <span className="ml-2 text-[10px] uppercase font-bold text-slate-400">{r.status} (no entries)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {Object.keys(reportData.reasonsCount).length > 0 && (
+                <div className="mt-5 pt-4 border-t border-stone-200">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Underperformance reasons</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(reportData.reasonsCount).map(([reason, count]) => (
+                      <div key={reason} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs">
+                        <span className="font-semibold text-amber-900">{reason}</span>
+                        <span className="text-amber-700 ml-1.5">({count})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-          {!existingSavedAt && (
-            <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
-          )}
-          <div className="flex gap-2">
-            <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
-            <button
-              onClick={saveReport}
-              disabled={saveState === "saving"}
-              style={{backgroundColor: saveState === "saved" ? "#16a34a" : saveState === "error" ? "#dc2626" : saveState === "saving" ? "#60a5fa" : "#2563eb"}}
-              className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold"
-            >
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved!" : saveState === "error" ? "Error — retry" : existingSavedAt ? "Update Report" : "Save Report"}
-            </button>
-            <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
-          </div>
-        </div>
-        )} {/* end current tab actions */}
+
+            {/* Footer actions */}
+            <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
+              {existingSavedAt && (
+                <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
+                  ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </div>
+              )}
+              {!existingSavedAt && (
+                <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
+                <button onClick={saveReport} disabled={saveState === "saving"}
+                  style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
+                  className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
+                  {saveState==="saving"?"Saving…":saveState==="saved"?"✓ Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
+                </button>
+                <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
+              </div>
+            </div>
+          </React.Fragment>
+        )}
+
       </div>
     </div>
   );
 }
+
 
 function ReportStat({ label, value }) {
   return (
