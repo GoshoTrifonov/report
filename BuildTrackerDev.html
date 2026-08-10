@@ -738,6 +738,61 @@ function BuildTracker() {
           }
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
+
+        // ── Auto-save shift reports ────────────────────────────────────────
+        // For every date+shift combo found in the upload, write a shift_report doc.
+        // Groups WOs by BU leader, then by date+shiftId → one doc per BU per shift per date.
+        try {
+          // Build a map: "leader||dateISO||shiftId" → { wos, totals }
+          const reportMap = {};
+          sourceRows.forEach(row => {
+            const key = rowKey(row);
+            const o = nextOverrides[key] || {};
+            const shifts = o.shifts || [];
+            const labourShifts = shifts.filter(s => s.source === "labour");
+            if (labourShifts.length === 0) return;
+            const leader = row.leader || "__ALL__";
+            labourShifts.forEach(s => {
+              const dateISO = s.shiftDateISO ? s.shiftDateISO.slice(0, 10) : uploadedAt.slice(0, 10);
+              const rKey = `${leader}||${dateISO}||${s.shiftId}`;
+              if (!reportMap[rKey]) reportMap[rKey] = { leader, dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
+              const entry = reportMap[rKey];
+              entry.wos.push({
+                resource: row.resource, wo: row.wo,
+                descr: row.descr || row.part || "",
+                qty: s.qty || 0, compQty: o.comp_qty || 0, startQty: row.start_qty || 0,
+                eff: s.eff ?? null, hrs: s.hrs || 0, earned: s.earned || 0, lost: s.lost || 0,
+                notes: s.notes || "", reason: s.reason || "", by: s.by || "", source: s.source || "",
+              });
+              entry.totalUnits  += s.qty    || 0;
+              entry.totalHrs    += s.hrs    || 0;
+              entry.totalEarned += s.earned || 0;
+              entry.totalLost   += s.lost   || 0;
+            });
+          });
+          // Write each report doc — merge:false so it's a clean snapshot of this upload
+          const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
+          const writes = Object.entries(reportMap).map(([, entry]) => {
+            const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
+            const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
+            const docId = `${entry.dateISO}#${entry.shiftId}#${(entry.leader || "ALL").replace(/\s+/g, "_")}`;
+            const payload = {
+              bu: buName(entry.leader), leader: entry.leader,
+              date: entry.dateISO, shiftId: entry.shiftId,
+              shiftLabel: sMeta.label, shiftTime: sMeta.time,
+              totalUnits: Math.round(entry.totalUnits),
+              totalHrs:   Math.round(entry.totalHrs   * 100) / 100,
+              totalEarned:Math.round(entry.totalEarned * 100) / 100,
+              totalLost:  Math.round(entry.totalLost   * 100) / 100,
+              totalEff, entries: entry.wos.filter(w => w.qty > 0).length,
+              resourceCount: new Set(entry.wos.map(w => w.resource)).size,
+              linesDown: [], wos: entry.wos,
+              autoSavedAt: uploadedAt,
+            };
+            return BT_SHIFT_REPORTS_REF.doc(docId).set(payload, { merge: true });
+          });
+          await Promise.all(writes);
+        } catch(e) { console.warn("Auto-save shift reports failed:", e); }
         // Production Report Tool manages its own data via its own upload button
         setLastLabourUpdate(new Date());
         BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
@@ -794,7 +849,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · ${matchedWOs.length} unique WOs in file`, ok: true });
+        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -2741,7 +2796,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     setSaveState("idle");
     setExistingSavedAt(null);
     shiftReportsRef.doc(reportDocId).get().then(snap => {
-      if (snap.exists) setExistingSavedAt(snap.data().savedAt || null);
+      if (snap.exists) setExistingSavedAt(snap.data().autoSavedAt || snap.data().savedAt || null);
     }).catch(() => {});
   }, [reportDocId]);
 
@@ -3070,9 +3125,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         {/* Actions */}
         <div className="px-6 py-3 border-t border-stone-200 bg-stone-50 flex flex-col gap-2 print:hidden">
           {existingSavedAt && (
-            <div className="text-[11px] text-slate-500 text-center">
-              ✓ Previously saved {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} — saving again will overwrite
+            <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+              ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </div>
+          )}
+          {!existingSavedAt && (
+            <div className="text-[11px] text-slate-400 text-center italic">No saved report yet for this shift</div>
           )}
           <div className="flex gap-2">
             <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
@@ -3086,7 +3144,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 "bg-blue-600 hover:bg-blue-700"
               }`}
             >
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved!" : saveState === "error" ? "Error — retry" : existingSavedAt ? "Re-save Report" : "Save Report"}
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved!" : saveState === "error" ? "Error — retry" : existingSavedAt ? "Update Report" : "Save Report"}
             </button>
             <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
           </div>
