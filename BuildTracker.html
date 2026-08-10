@@ -223,23 +223,88 @@ function parseBuildPlan(workbook) {
 // Sums GOOD_QTY per WO (stripping /1 suffix to match BuildTracker WO keys).
 // Returns { "W1027135": 1500, ... }
 function parseLabourTicketsForWOs(workbook) {
+  // Continental shifts group with the regular shift they overlap:
+  //   Continental Days (CONT A/B)   → Afternoons  (shiftId 3)
+  //   Continental Nights (CONT C/D) → Midnights   (shiftId 1)
+  const SHIFT2_MAP = { "MID": 1, "DAY": 2, "AFT": 3 };
+  const ID_SHIFT_MAP = {
+    "ASSEMBLY 1":1, "ASSEMBLY 2":2, "ASSEMBLY 3":3,
+    "EXTRUDER 1":1, "EXTRUDER 2":2, "EXTRUDER 3":3,
+    "GRINDER 1":1,  "GRINDER 2":2,  "GRINDER 3":3,
+    "MOLDING 1":1,  "MOLDING 2":2,  "MOLDING 3":3,
+    "CONT A":3, "CONT B":3, "CONT C":1, "CONT D":1,
+    "CONT A- MOLD":3, "CONT B - MOLD":3, "CONT C - MOLD":1, "CONT D - MOLD":1,
+  };
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-  if (raw.length < 2) return {};
+  if (raw.length < 2) return { totals: {}, shiftDetail: {} };
   const header = raw[0].map(h => String(h || "").trim().toUpperCase());
   const col = (names, fallback) => { for (const n of names) { const i = header.indexOf(n); if (i >= 0) return i; } return fallback; };
-  const COL_WO  = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
-  const COL_QTY = col(["GOOD_QTY", "QTY", "UNITS"], 7);
+  const COL_WO     = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
+  const COL_QTY    = col(["GOOD_QTY", "QTY", "UNITS"], 7);
+  const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
+  const COL_SHIFT2 = col(["SHIFT2"], -1);
+  const COL_ID     = col(["ID"], 11);
+  const COL_HRS    = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
+  const COL_EARNED = col(["EARNED", "EARNED_HRS"], 19);
+  const COL_LOST   = col(["LOST", "LOST_HRS"], 20);
   const totals = {};
+  const byWoShift = {};
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
     const rawWo = String(r[COL_WO] || "").trim();
     if (!rawWo) continue;
     const qty = parseFloat(r[COL_QTY]) || 0;
-    if (qty > 0) totals[rawWo] = (totals[rawWo] || 0) + qty;
+    if (qty <= 0) continue;
+    totals[rawWo] = (totals[rawWo] || 0) + qty;
+    let dateISO = "";
+    const dateVal = r[COL_DATE];
+    if (typeof dateVal === "number") {
+      const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+      dateISO = d.toISOString().slice(0, 10);
+    } else if (dateVal) {
+      const d = new Date(dateVal);
+      dateISO = isNaN(d) ? "" : d.toISOString().slice(0, 10);
+    }
+    if (!dateISO) continue;
+    const idCode = String(r[COL_ID] || "").trim().toUpperCase();
+    let shiftId = 2;
+    if (COL_SHIFT2 >= 0) {
+      const s2 = String(r[COL_SHIFT2] || "").trim().toUpperCase();
+      shiftId = SHIFT2_MAP[s2] || ID_SHIFT_MAP[idCode] || 2;
+    } else {
+      shiftId = ID_SHIFT_MAP[idCode] || 2;
+    }
+    const hrs    = parseFloat(r[COL_HRS])    || 0;
+    const earned = COL_EARNED >= 0 ? (parseFloat(r[COL_EARNED]) || 0) : 0;
+    const lost   = COL_LOST   >= 0 ? (parseFloat(r[COL_LOST])   || 0) : 0;
+    const groupKey = `${rawWo}||${dateISO}||${shiftId}`;
+    if (!byWoShift[groupKey]) {
+      byWoShift[groupKey] = { wo: rawWo, dateISO, shiftId, qty: 0, hrs: 0, earned: 0, lost: 0 };
+    }
+    byWoShift[groupKey].qty    += qty;
+    byWoShift[groupKey].hrs    += hrs;
+    byWoShift[groupKey].earned += earned;
+    byWoShift[groupKey].lost   += lost;
   }
-  return totals;
+  const shiftDetail = {};
+  for (const entry of Object.values(byWoShift)) {
+    if (!shiftDetail[entry.wo]) shiftDetail[entry.wo] = [];
+    const eff = entry.hrs > 0 ? Math.round((entry.earned / entry.hrs * 100) * 10) / 10 : null;
+    shiftDetail[entry.wo].push({
+      wo: entry.wo, dateISO: entry.dateISO, shiftId: entry.shiftId,
+      qty:    Math.round(entry.qty),
+      hrs:    Math.round(entry.hrs    * 100) / 100,
+      earned: Math.round(entry.earned * 100) / 100,
+      lost:   Math.round(entry.lost   * 100) / 100,
+      eff,
+    });
+  }
+  for (const wo of Object.keys(shiftDetail)) {
+    shiftDetail[wo].sort((a, b) => (b.dateISO + b.shiftId).localeCompare(a.dateISO + a.shiftId));
+  }
+  return { totals, shiftDetail };
 }
 const SHIFT_HOURS = 8;
 // Business Unit display names — maps internal leader keys to BU labels shown in the UI.
@@ -581,14 +646,12 @@ function BuildTracker() {
       try {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
         // Get WO totals for BuildTracker comp_qty matching
-        const woTotals = parseLabourTicketsForWOs(wb);
+        const { totals: woTotals, shiftDetail } = parseLabourTicketsForWOs(wb);
         const matchedWOs = Object.keys(woTotals);
-        // Match against current BUILD_DATA rows
-        // BuildTracker WO keys: "W1027135/1" → base: "W1027135"
         let matchCount = 0;
         const currentOverrides = overrides;
         const nextOverrides = { ...currentOverrides };
-
+        const uploadedAt = new Date().toISOString();
 
         const sourceRows = buildPlanRows || BUILD_DATA.rows;
         sourceRows.forEach((row, idx) => {
@@ -603,7 +666,26 @@ function BuildTracker() {
               if (startQty > 0 && newQty >= startQty) newStatus = "done";
               else if (newQty > 0) newStatus = "wip";
             }
-            nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, _updatedAt: new Date().toISOString() };
+            // Merge shift history: preserve manual entries, replace labour-imported ones
+            const existingShifts = existing.shifts || [];
+            const manualShifts = existingShifts.filter(s => s.source !== "labour");
+            const labourShifts = (shiftDetail[row.wo] || []).map(s => ({
+              shiftId: s.shiftId,
+              shiftDateISO: new Date(s.dateISO + "T12:00:00").toISOString(),
+              qty:    Math.round(s.qty),
+              hrs:    s.hrs    || 0,
+              earned: s.earned || 0,
+              lost:   s.lost   || 0,
+              eff:    s.eff    ?? null,
+              notes: "", reason: "",
+              by: "Labour Import",
+              source: "labour",
+              loggedAt: uploadedAt,
+            }));
+            const mergedShifts = [...manualShifts, ...labourShifts].sort((a, b) =>
+              (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId)
+            );
+            nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, shifts: mergedShifts, _updatedAt: uploadedAt };
             matchCount++;
           }
         });
@@ -2890,7 +2972,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
   const [qty, setQty] = useState("");
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   const remaining = Math.max(0, (row.start_qty || 0) - (row.comp_qty || 0));
   const history = (row.shifts || []).slice().sort((a, b) =>
@@ -2938,12 +3020,9 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
           <span className="text-xs font-bold uppercase tracking-wider text-sky-700">Log Shift Production</span>
         </div>
         {history.length > 0 && (
-          <button
-            onClick={() => setShowHistory(v => !v)}
-            className="text-[10px] font-semibold text-sky-700 hover:text-sky-900 underline"
-          >
-            {showHistory ? "Hide" : "Show"} history ({history.length})
-          </button>
+          <span className="text-[10px] font-semibold text-sky-600">
+            {history.length} entr{history.length === 1 ? "y" : "ies"}
+          </span>
         )}
       </div>
 
@@ -3041,25 +3120,75 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
       </button>
 
       {/* History */}
-      {showHistory && history.length > 0 && (
+      {history.length === 0 && (
+        <div className="mt-3 pt-3 border-t border-sky-200 text-[11px] text-slate-400 italic text-center">No shift entries yet.</div>
+      )}
+      {history.length > 0 && (
         <div className="mt-3 pt-3 border-t border-sky-200 space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">Shift history</div>
-          {history.map((entry, i) => (
-            <div key={i} className="bg-white border border-stone-200 rounded p-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="text-[11px] font-semibold text-slate-800">{shiftLabel(entry)}</div>
-                <div className="text-xs tabular-nums font-mono font-bold text-sky-700">+{fmtNum(entry.qty)}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Shift History</div>
+          {history.map((entry, i) => {
+            const shiftMeta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
+            const entryDate = new Date(entry.shiftDateISO);
+            const dateStr = entryDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+            const isLabour = entry.source === "labour";
+            return (
+              <div key={i} className={`rounded-md p-2.5 border ${isLabour ? "bg-slate-50 border-slate-200" : "bg-white border-sky-200"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${isLabour ? "bg-slate-200 text-slate-600" : "bg-sky-100 text-sky-700"}`}>
+                      {shiftMeta.label}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-700">{dateStr}</span>
+                    <span className="text-[10px] text-slate-400">{shiftMeta.time}</span>
+                  </div>
+                  {entry.qty > 0 && (
+                    <span className="text-sm tabular-nums font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                      +{fmtNum(entry.qty)}
+                    </span>
+                  )}
+                </div>
+                {isLabour && (entry.eff != null || entry.hrs > 0 || entry.lost > 0) && (
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {entry.eff != null && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Eff</span>
+                        <span className={`text-[11px] font-bold tabular-nums ${entry.eff >= 90 ? "text-emerald-600" : entry.eff >= 76.5 ? "text-amber-600" : "text-rose-600"}`}>
+                          {entry.eff.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                    {entry.hrs > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Hrs</span>
+                        <span className="text-[11px] font-semibold text-slate-600 tabular-nums">{entry.hrs.toFixed(1)}h</span>
+                      </div>
+                    )}
+                    {entry.lost > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Lost</span>
+                        <span className="text-[11px] font-semibold text-rose-500 tabular-nums">{entry.lost.toFixed(1)}h</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {entry.reason && (
+                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">⚠ {entry.reason}</div>
+                )}
+                {entry.notes && (
+                  <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
+                )}
+                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
+                  {isLabour
+                    ? <span className="text-slate-400">📋 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    : entry.by
+                      ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
+                      : null
+                  }
+                  {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                </div>
               </div>
-              {entry.reason && (
-                <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {entry.reason}</div>
-              )}
-              {entry.notes && <div className="text-[11px] text-slate-600 mt-1 leading-snug">{entry.notes}</div>}
-              <div className="text-[9px] text-slate-400 mt-1">
-                {entry.by && <span className="font-semibold text-slate-500">by {entry.by} · </span>}
-                Logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
