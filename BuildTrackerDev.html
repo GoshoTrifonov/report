@@ -2790,6 +2790,9 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const [reportDate, setReportDate] = useState(nowShiftDate);
   const [saveState, setSaveState] = useState("idle"); // "idle"|"saving"|"saved"|"error"
   const [existingSavedAt, setExistingSavedAt] = useState(null);
+  const [activeTab, setActiveTab] = useState("current"); // "current"|"history"
+  const [historyReports, setHistoryReports] = useState(null); // null=loading, []=loaded
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Check Firestore if this shift already has a saved report
   const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
@@ -2801,6 +2804,40 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       if (snap.exists) setExistingSavedAt(snap.data().autoSavedAt || snap.data().savedAt || null);
     }).catch(() => {});
   }, [reportDocId]);
+
+  // Load history when tab switches to history
+  useEffect(() => {
+    if (activeTab !== "history" || !shiftReportsRef) return;
+    if (historyReports !== null) return; // already loaded
+    setHistoryLoading(true);
+    shiftReportsRef
+      .where("leader", "==", selectedLeader === "__ALL__" ? "__ALL__" : selectedLeader)
+      .orderBy("date", "desc")
+      .orderBy("shiftId", "desc")
+      .limit(90)
+      .get()
+      .then(snap => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setHistoryReports(docs);
+        setHistoryLoading(false);
+      })
+      .catch(() => {
+        // Fallback without orderBy if index not ready
+        shiftReportsRef
+          .limit(200)
+          .get()
+          .then(snap => {
+            const docs = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
+              .filter(d => selectedLeader === "__ALL__" || d.leader === selectedLeader)
+              .sort((a, b) => (b.date + b.shiftId).localeCompare(a.date + a.shiftId))
+              .slice(0, 90);
+            setHistoryReports(docs);
+            setHistoryLoading(false);
+          })
+          .catch(() => { setHistoryReports([]); setHistoryLoading(false); });
+      });
+  }, [activeTab, selectedLeader]);
 
   // Find all WOs for the selected leader that had shift entries OR were active on the report shift.
   const reportData = useMemo(() => {
@@ -2966,7 +3003,21 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <h2 className="text-lg font-bold text-slate-900">Shift Report</h2>
             <p className="text-xs text-slate-500">Roll-up of production for the selected shift</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
+              <button
+                onClick={() => setActiveTab("current")}
+                style={{backgroundColor: activeTab === "current" ? "#1e3a5f" : "white", color: activeTab === "current" ? "white" : "#64748b"}}
+                className="px-3 py-1.5"
+              >Current</button>
+              <button
+                onClick={() => setActiveTab("history")}
+                style={{backgroundColor: activeTab === "history" ? "#1e3a5f" : "white", color: activeTab === "history" ? "white" : "#64748b"}}
+                className="px-3 py-1.5 border-l border-stone-200"
+              >History</button>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
+          </div>
         </div>
 
         {/* Shift selector */}
@@ -2987,7 +3038,60 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         </div>
 
         {/* Report content */}
-        <div className="flex-1 overflow-auto p-6 print:p-0">
+        <div className="flex-1 overflow-auto print:p-0">
+          {activeTab === "history" ? (
+            <div className="p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                Last 90 saved reports — {buName(selectedLeader)}
+              </div>
+              {historyLoading && (
+                <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>
+              )}
+              {!historyLoading && historyReports !== null && historyReports.length === 0 && (
+                <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found for this BU.</div>
+              )}
+              {!historyLoading && historyReports && historyReports.length > 0 && (
+                <div className="space-y-2">
+                  {historyReports.map(r => {
+                    const effColor = r.totalEff == null ? "text-slate-400" : r.totalEff >= 90 ? "text-emerald-600" : r.totalEff >= 76.5 ? "text-amber-600" : "text-rose-600";
+                    const effBg = r.totalEff == null ? "bg-slate-50" : r.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : r.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200";
+                    const dateObj = new Date(r.date + "T12:00:00");
+                    const dateStr = dateObj.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+                    const shiftMeta = SHIFTS.find(s => s.id === r.shiftId) || SHIFTS[0];
+                    return (
+                      <div key={r.id} className="border border-stone-200 rounded-md p-3 hover:border-stone-300 hover:bg-stone-50 transition-colors">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{shiftMeta.label}</span>
+                            <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
+                            <span className="text-[11px] text-slate-400">{shiftMeta.time}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {r.totalEff != null && (
+                              <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>
+                                {r.totalEff.toFixed(1)}%
+                              </span>
+                            )}
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits || 0).toLocaleString()} u</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          {r.entries > 0 && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
+                          {r.resourceCount > 0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
+                          {r.totalHrs > 0 && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
+                          {r.totalLost > 0 && <span className="text-[10px] text-rose-500 font-semibold">{r.totalLost.toFixed(1)}h lost</span>}
+                          <span className="text-[9px] text-slate-300 ml-auto">
+                            saved {new Date(r.autoSavedAt || r.savedAt || r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+          <div className="p-6 print:p-0">
           {/* Print-only header */}
           <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
             <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
@@ -3123,8 +3227,11 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             </div>
           )}
         </div>
+          )} {/* end current tab */}
+        </div>
 
-        {/* Actions */}
+        {/* Actions — only show on current tab */}
+        {activeTab === "current" && (
         <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
           {existingSavedAt && (
             <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
@@ -3147,6 +3254,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
           </div>
         </div>
+        )} {/* end current tab actions */}
       </div>
     </div>
   );
