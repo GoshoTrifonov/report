@@ -39,7 +39,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   // Shared collections
-  const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
+  const BT_SHIFT_REPORTS_REF = db.collection("shift_reports");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
   const BT_META_REF       = db.collection("buildtracker").doc("meta");
@@ -1808,6 +1808,7 @@ function BuildTracker() {
           allRows={allRows}
           selectedLeader={selectedLeader}
           lineDown={lineDown}
+          shiftReportsRef={BT_SHIFT_REPORTS_REF}
           onClose={() => setShowShiftReport(false)}
         />
       )}
@@ -2724,11 +2725,24 @@ function InitialsModal({ current, onSave, onCancel }) {
   );
 }
 
-function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
+function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
   const [reportDate, setReportDate] = useState(nowShiftDate);
+  const [saveState, setSaveState] = useState("idle"); // "idle"|"saving"|"saved"|"error"
+  const [existingSavedAt, setExistingSavedAt] = useState(null);
+
+  // Check Firestore if this shift already has a saved report
+  const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
+  useEffect(() => {
+    if (!shiftReportsRef) return;
+    setSaveState("idle");
+    setExistingSavedAt(null);
+    shiftReportsRef.doc(reportDocId).get().then(snap => {
+      if (snap.exists) setExistingSavedAt(snap.data().savedAt || null);
+    }).catch(() => {});
+  }, [reportDocId]);
 
   // Find all WOs for the selected leader that had shift entries OR were active on the report shift.
   const reportData = useMemo(() => {
@@ -2848,6 +2862,41 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       alert("Report copied to clipboard. Paste into email or document.");
     }).catch(() => alert("Copy failed — try again or print instead."));
+  };
+
+  const saveReport = async () => {
+    if (!shiftReportsRef) return;
+    setSaveState("saving");
+    try {
+      const dateISO = reportDate.toISOString().slice(0, 10);
+      const woList = [];
+      for (const [res, data] of reportData.byResource.entries()) {
+        for (const { row, entry } of data.entries) {
+          woList.push({ resource: res, wo: row.wo, descr: row.descr || row.part || "", qty: entry.qty || 0, compQty: row.comp_qty || 0, startQty: row.start_qty || 0, eff: entry.eff ?? null, hrs: entry.hrs || 0, earned: entry.earned || 0, lost: entry.lost || 0, notes: entry.notes || "", reason: entry.reason || "", by: entry.by || "", source: entry.source || "" });
+        }
+        for (const r of data.statusOnly) {
+          woList.push({ resource: res, wo: r.wo, descr: r.descr || r.part || "", qty: 0, compQty: r.comp_qty || 0, startQty: r.start_qty || 0, eff: null, hrs: 0, earned: 0, lost: 0, notes: "", reason: "", by: "", source: "", statusOnly: true, status: r.status });
+        }
+      }
+      const payload = {
+        bu: buName(selectedLeader), leader: selectedLeader,
+        date: dateISO, shiftId: reportShiftId, shiftLabel: meta.label, shiftTime: meta.time,
+        totalUnits: reportData.totalUnits, totalHrs: reportData.totalHrs,
+        totalEarned: reportData.totalEarned, totalLost: reportData.totalLost, totalEff: reportData.totalEff,
+        entries: reportData.totalEntries, resourceCount: reportData.byResource.size,
+        linesDown: reportData.downLines.map(d => ({ resource: d.resource, reason: d.reason || "", notes: d.notes || "", by: d.by || "" })),
+        wos: woList,
+        savedAt: new Date().toISOString(),
+      };
+      await shiftReportsRef.doc(reportDocId).set(payload);
+      setExistingSavedAt(payload.savedAt);
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 3000);
+    } catch(e) {
+      console.error("Save report:", e);
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
   };
 
   return (
@@ -3018,9 +3067,28 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
         </div>
 
         {/* Actions */}
-        <div className="px-6 py-3 border-t border-stone-200 bg-stone-50 flex gap-2 print:hidden">
-          <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
-          <button onClick={printReport} className="flex-1 px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Print</button>
+        <div className="px-6 py-3 border-t border-stone-200 bg-stone-50 flex flex-col gap-2 print:hidden">
+          {existingSavedAt && (
+            <div className="text-[11px] text-slate-500 text-center">
+              ✓ Previously saved {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} — saving again will overwrite
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
+            <button
+              onClick={saveReport}
+              disabled={saveState === "saving"}
+              className={`flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold transition-colors ${
+                saveState === "saved"  ? "bg-emerald-600" :
+                saveState === "error"  ? "bg-rose-600" :
+                saveState === "saving" ? "bg-blue-400 cursor-wait" :
+                "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved!" : saveState === "error" ? "Error — retry" : existingSavedAt ? "Re-save Report" : "Save Report"}
+            </button>
+            <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
+          </div>
         </div>
       </div>
     </div>
