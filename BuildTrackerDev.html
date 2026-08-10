@@ -40,6 +40,7 @@
   const db = firebase.firestore();
   // Shared collections
   const BT_SHIFT_REPORTS_REF = db.collection("shift_reports");
+  const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
   const BT_META_REF       = db.collection("buildtracker").doc("meta");
