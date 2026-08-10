@@ -2959,7 +2959,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden">
           <div>
@@ -3125,26 +3125,22 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         </div>
 
         {/* Actions */}
-        <div className="px-6 py-3 border-t border-stone-200 bg-stone-50 flex flex-col gap-2 print:hidden">
+        <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
           {existingSavedAt && (
-            <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+            <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
               ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </div>
           )}
           {!existingSavedAt && (
-            <div className="text-[11px] text-slate-400 text-center italic">No saved report yet for this shift</div>
+            <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
           )}
           <div className="flex gap-2">
             <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
             <button
               onClick={saveReport}
               disabled={saveState === "saving"}
-              className={`flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold transition-colors ${
-                saveState === "saved"  ? "bg-emerald-600" :
-                saveState === "error"  ? "bg-rose-600" :
-                saveState === "saving" ? "bg-blue-400 cursor-wait" :
-                "bg-blue-600 hover:bg-blue-700"
-              }`}
+              style={{backgroundColor: saveState === "saved" ? "#16a34a" : saveState === "error" ? "#dc2626" : saveState === "saving" ? "#60a5fa" : "#2563eb"}}
+              className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold"
             >
               {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Saved!" : saveState === "error" ? "Error — retry" : existingSavedAt ? "Update Report" : "Save Report"}
             </button>
