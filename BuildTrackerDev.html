@@ -2933,7 +2933,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     lines.push(`Entries logged: ${reportData.totalEntries}`);
     if (reportData.totalEff !== null) lines.push(`Overall efficiency: ${reportData.totalEff.toFixed(1)}%`);
     if (reportData.totalHrs > 0)  lines.push(`Hours worked: ${reportData.totalHrs.toFixed(1)}h`);
-    if (reportData.totalLost > 0) lines.push(`Lost hours: ${reportData.totalLost.toFixed(1)}h`);
+    if (reportData.totalLost !== 0) lines.push(`Lost hours: ${reportData.totalLost.toFixed(1)}h`);
     lines.push("");
     if (reportData.byResource.size === 0) {
       lines.push("(No shift entries logged for this shift.)");
@@ -2945,7 +2945,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           lines.push(`  ${row.wo} · ${row.descr || row.part || ""}`);
           const effStr  = entry.eff  != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
           const hrsStr  = entry.hrs  > 0 ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
-          const lostStr = entry.lost > 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
+          const lostStr = entry.lost !== 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
           lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty} · ${entry.by || "—"}`);
           if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
           if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
@@ -3011,7 +3011,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden flex-shrink-0">
@@ -3059,10 +3059,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                         <div className="text-xl font-bold tabular-nums text-slate-700">{selectedHistoryReport.totalHrs.toFixed(1)}h</div>
                       </div>
                     )}
-                    {selectedHistoryReport.totalLost>0 && (
-                      <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5">
+                    {selectedHistoryReport.totalLost!==0 && (
+                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lost hours</div>
-                        <div className="text-xl font-bold tabular-nums text-rose-600">{selectedHistoryReport.totalLost.toFixed(1)}h</div>
+                        <div className="text-xl font-bold tabular-nums text-slate-700">{selectedHistoryReport.totalLost.toFixed(1)}h</div>
                       </div>
                     )}
                   </div>
@@ -3099,7 +3099,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                   <div className="flex items-center gap-3 mt-1.5">
                                     {w.eff!=null && <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${w.eff>=90?"bg-emerald-100 text-emerald-700":w.eff>=76.5?"bg-amber-100 text-amber-700":"bg-rose-100 text-rose-700"}`}>Eff {w.eff.toFixed(1)}%</div>}
                                     {w.hrs>0 && <span className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{w.hrs.toFixed(1)}h</span> worked</span>}
-                                    {w.lost>0 && <span className="text-[10px] text-rose-600 font-semibold">{w.lost.toFixed(1)}h lost</span>}
+                                    {w.lost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{w.lost.toFixed(1)}h lost</span>}
                                   </div>
                                 )}
                                 {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
@@ -3196,7 +3196,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           {r.entries>0 && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
                           {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
                           {r.totalHrs>0 && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
-                          {r.totalLost>0 && <span className="text-[10px] text-rose-500 font-semibold">{r.totalLost.toFixed(1)}h lost</span>}
+                          {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h lost</span>}
                         </div>
                       </div>
                     );
@@ -3252,10 +3252,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                       <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalHrs.toFixed(1)}h</div>
                     </div>
                   )}
-                  {reportData.totalLost > 0 && (
-                    <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5">
+                  {reportData.totalLost !== 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lost hours</div>
-                      <div className="text-xl font-bold tabular-nums text-rose-600">{reportData.totalLost.toFixed(1)}h</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalLost.toFixed(1)}h</div>
                     </div>
                   )}
                 </div>
@@ -3300,7 +3300,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
                               </div>
                             </div>
-                            {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost > 0) && (
+                            {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost !== 0) && (
                               <div className="flex items-center gap-3 mt-1.5">
                                 {item.entry.eff != null && (
                                   <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${item.entry.eff >= 90 ? "bg-emerald-100 text-emerald-700" : item.entry.eff >= 76.5 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
@@ -3308,7 +3308,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                   </div>
                                 )}
                                 {item.entry.hrs > 0 && <div className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{item.entry.hrs.toFixed(1)}h</span> worked</div>}
-                                {item.entry.lost > 0 && <div className="text-[10px] text-rose-600 font-semibold">{item.entry.lost.toFixed(1)}h lost</div>}
+                                {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h lost</div>}
                               </div>
                             )}
                             {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
