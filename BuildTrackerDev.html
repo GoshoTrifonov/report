@@ -2813,32 +2813,16 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     if (activeTab !== "history" || !shiftReportsRef) return;
     setHistoryLoading(true);
     shiftReportsRef
-      .where("leader", "==", selectedLeader === "__ALL__" ? "__ALL__" : selectedLeader)
-      .orderBy("date", "desc")
-      .orderBy("shiftId", "desc")
-      .limit(90)
       .get()
       .then(snap => {
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => selectedLeader === "__ALL__" || d.leader === selectedLeader)
+          .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.shiftId - a.shiftId);
         setHistoryReports(docs);
         setHistoryLoading(false);
       })
-      .catch(() => {
-        // Fallback without orderBy if index not ready
-        shiftReportsRef
-          .limit(200)
-          .get()
-          .then(snap => {
-            const docs = snap.docs
-              .map(d => ({ id: d.id, ...d.data() }))
-              .filter(d => selectedLeader === "__ALL__" || d.leader === selectedLeader)
-              .sort((a, b) => (b.date + b.shiftId).localeCompare(a.date + a.shiftId))
-              .slice(0, 90);
-            setHistoryReports(docs);
-            setHistoryLoading(false);
-          })
-          .catch(() => { setHistoryReports([]); setHistoryLoading(false); });
-      });
+      .catch(e => { console.error("History load failed:", e); setHistoryReports([]); setHistoryLoading(false); });
   }, [activeTab, selectedLeader]);
 
   // Find all WOs for the selected leader that had shift entries OR were active on the report shift.
