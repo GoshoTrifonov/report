@@ -2796,6 +2796,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
   const [historyNoteInput, setHistoryNoteInput] = useState("");
   const [historyNoteSaving, setHistoryNoteSaving] = useState(false);
+  const [woNoteTarget, setWoNoteTarget] = useState(null); // wo key being edited
+  const [woNoteInput, setWoNoteInput] = useState("");
   const [historyShiftFilter, setHistoryShiftFilter] = useState(0);    // 0=All, 1/2/3
   const [historyDaysFilter, setHistoryDaysFilter] = useState(62);     // 7/30/62
 
@@ -2994,6 +2996,27 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }
   };
 
+  const saveWoNote = async (woKey) => {
+    if (!woNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
+    const by = localStorage.getItem("build_tracker_initials") || "?";
+    const noteText = woNoteInput.trim();
+    const docId = selectedHistoryReport.id;
+    try {
+      // Update the wos array — find the matching WO and append the note
+      const updatedWos = (selectedHistoryReport.wos || []).map(w => {
+        if (w.wo === woKey) {
+          const existingNotes = w.notes ? w.notes + " | " : "";
+          return { ...w, notes: existingNotes + `[${by}] ${noteText}` };
+        }
+        return w;
+      });
+      await shiftReportsRef.doc(docId).update({ wos: updatedWos });
+      setSelectedHistoryReport(prev => ({ ...prev, wos: updatedWos }));
+      setWoNoteTarget(null);
+      setWoNoteInput("");
+    } catch(e) { console.error("Save WO note failed:", e); }
+  };
+
   const saveHistoryNote = async () => {
     if (!historyNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
     setHistoryNoteSaving(true);
@@ -3108,6 +3131,23 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 )}
                                 {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
                                 {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
+                                {/* WO note input */}
+                                {woNoteTarget === w.wo ? (
+                                  <div className="flex gap-1.5 mt-2">
+                                    <input
+                                      autoFocus
+                                      value={woNoteInput}
+                                      onChange={e => setWoNoteInput(e.target.value)}
+                                      placeholder="Add note…"
+                                      className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:border-blue-500"
+                                      onKeyDown={e => { if (e.key === "Enter" && woNoteInput.trim()) saveWoNote(w.wo); if (e.key === "Escape") { setWoNoteTarget(null); setWoNoteInput(""); } }}
+                                    />
+                                    <button onClick={() => saveWoNote(w.wo)} disabled={!woNoteInput.trim()} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">Save</button>
+                                    <button onClick={() => { setWoNoteTarget(null); setWoNoteInput(""); }} className="px-2 py-1 rounded bg-stone-200 text-slate-600 text-xs">✕</button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => { setWoNoteTarget(w.wo); setWoNoteInput(""); }} className="mt-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-semibold">+ note</button>
+                                )}
                               </div>
                             ))}
                           </div>
