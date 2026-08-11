@@ -2858,9 +2858,21 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         shiftEntryKey(new Date(s.shiftDateISO), s.shiftId) === targetKey
       );
       if (matchingEntries.length > 0) {
-        for (const e of matchingEntries) {
-          woEntries.push({ row: r, entry: e });
-        }
+        // Merge all entries for this WO into one: labour provides qty/eff/hrs, manual provides notes
+        const labourEntry = matchingEntries.find(e => e.source === "labour");
+        const manualEntries = matchingEntries.filter(e => e.source !== "labour");
+        const merged = {
+          qty:    labourEntry ? (labourEntry.qty    || 0) : matchingEntries.reduce((s,e) => s+(e.qty||0), 0),
+          hrs:    labourEntry ? (labourEntry.hrs    || 0) : 0,
+          earned: labourEntry ? (labourEntry.earned || 0) : 0,
+          lost:   labourEntry ? (labourEntry.lost   || 0) : 0,
+          eff:    labourEntry ? (labourEntry.eff    ?? null) : null,
+          source: labourEntry ? "labour" : "manual",
+          by:     manualEntries.length > 0 ? manualEntries.map(e => e.by).filter(Boolean).join(", ") : (labourEntry?.by || ""),
+          notes:  manualEntries.map(e => e.notes).filter(Boolean).join(" | "),
+          reason: manualEntries.map(e => e.reason).filter(Boolean).join(", "),
+        };
+        woEntries.push({ row: r, entry: merged });
       }
       // Capture WOs currently in production state (no entry but status changed)
       if (matchingEntries.length === 0 && (r.status === "wip" || r.status === "abr" || r.status === "brs")) {
@@ -2999,7 +3011,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden flex-shrink-0">
@@ -3299,9 +3311,13 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 {item.entry.lost > 0 && <div className="text-[10px] text-rose-600 font-semibold">{item.entry.lost.toFixed(1)}h lost</div>}
                               </div>
                             )}
-                            <div className="text-[11px] text-slate-400 mt-1">{item.entry.by || "—"}</div>
                             {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
-                            {item.entry.notes && <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">{item.entry.notes}</div>}
+                            {item.entry.notes && (
+                              <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
+                                {item.entry.by && <span className="font-semibold text-slate-500 text-[10px] mr-1">{item.entry.by}:</span>}
+                                {item.entry.notes}
+                              </div>
+                            )}
                           </div>
                         ))}
                         {data.statusOnly.map((r, i) => (
