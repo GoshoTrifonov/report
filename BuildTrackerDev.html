@@ -1621,6 +1621,8 @@ function BuildTracker() {
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠ {stats.nextNotReady}</button>}
+          <button onClick={() => setShowShiftReport(true)}
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -1628,6 +1630,7 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} onClose={() => setShowShiftReport(false)} />}
       </div>
     );
   }
