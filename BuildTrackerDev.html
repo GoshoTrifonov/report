@@ -770,12 +770,32 @@ function BuildTracker() {
               entry.totalLost   += s.lost   || 0;
             });
           });
-          // Write each report doc — merge:false so it's a clean snapshot of this upload
+          // Write each report doc — fetch existing first to preserve manually-added WO notes
           const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
-          const writes = Object.entries(reportMap).map(([, entry]) => {
+          const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
             const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
             const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
             const docId = `${entry.dateISO}#${entry.shiftId}#${(entry.leader || "ALL").replace(/\s+/g, "_")}`;
+            // Fetch existing doc to preserve manually-added notes on WOs and reportNotes
+            let existingWoNotes = {}; // wo -> notes string
+            let existingReportNotes = [];
+            try {
+              const existing = await BT_SHIFT_REPORTS_REF.doc(docId).get();
+              if (existing.exists) {
+                const d = existing.data();
+                existingReportNotes = d.reportNotes || [];
+                for (const w of (d.wos || [])) {
+                  if (w.notes) existingWoNotes[w.wo] = w.notes;
+                }
+              }
+            } catch(e) {}
+            // Merge existing notes into new WOs
+            const mergedWos = entry.wos.map(w => ({
+              ...w,
+              notes: existingWoNotes[w.wo]
+                ? (w.notes ? w.notes + " | " + existingWoNotes[w.wo] : existingWoNotes[w.wo])
+                : (w.notes || ""),
+            }));
             const payload = {
               bu: buName(entry.leader), leader: entry.leader,
               date: entry.dateISO, shiftId: entry.shiftId,
@@ -784,15 +804,14 @@ function BuildTracker() {
               totalHrs:   Math.round(entry.totalHrs   * 100) / 100,
               totalEarned:Math.round(entry.totalEarned * 100) / 100,
               totalLost:  Math.round(entry.totalLost   * 100) / 100,
-              totalEff, entries: entry.wos.filter(w => w.qty > 0).length,
-              resourceCount: new Set(entry.wos.map(w => w.resource)).size,
-              linesDown: [], wos: entry.wos,
+              totalEff, entries: mergedWos.filter(w => w.qty > 0).length,
+              resourceCount: new Set(mergedWos.map(w => w.resource)).size,
+              linesDown: [], wos: mergedWos,
+              reportNotes: existingReportNotes,
               autoSavedAt: uploadedAt,
             };
-            return BT_SHIFT_REPORTS_REF.doc(docId).set(payload, { merge: true });
-          });
-          console.log("Auto-save: reportMap keys:", Object.keys(reportMap).length, Object.keys(reportMap));
-          await Promise.all(writes);
+            return BT_SHIFT_REPORTS_REF.doc(docId).set(payload);
+          }));
           console.log("Auto-save: wrote", writes.length, "shift report docs");
         } catch(e) { console.error("Auto-save shift reports failed:", e); }
         // Production Report Tool manages its own data via its own upload button
