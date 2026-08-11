@@ -2811,7 +2811,6 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   // Load history when tab switches to history
   useEffect(() => {
     if (activeTab !== "history" || !shiftReportsRef) return;
-    if (historyReports !== null) return; // already loaded
     setHistoryLoading(true);
     shiftReportsRef
       .where("leader", "==", selectedLeader === "__ALL__" ? "__ALL__" : selectedLeader)
@@ -3022,7 +3021,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
               <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
-              <button onClick={() => setActiveTab("history")} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
+              <button onClick={() => { setActiveTab("history"); setHistoryReports(null); setSelectedHistoryReport(null); }} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
             </div>
             <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
