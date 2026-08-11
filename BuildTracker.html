@@ -39,6 +39,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   // Shared collections
+  const BT_SHIFT_REPORTS_REF = db.collection("shift_reports");
   const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
@@ -222,10 +223,14 @@ function parseBuildPlan(workbook) {
 // ── Labour tickets parser → WO comp_qty map ──────────────────────────────────
 // Sums GOOD_QTY per WO (stripping /1 suffix to match BuildTracker WO keys).
 // Returns { "W1027135": 1500, ... }
+// Returns { totals: { "W123": 500 }, shiftDetail: { "W123": [ {shiftId, shiftDateISO, qty, date} ] } }
 function parseLabourTicketsForWOs(workbook) {
+  // SHIFT2 column (MID/DAY/AFT/0) is the cleanest shift identifier.
+  // Falls back to ID column (ASSEMBLY 1/2/3, MOLDING 1/2/3, etc.) if SHIFT2 unavailable.
   // Continental shifts group with the regular shift they overlap:
   //   Continental Days (CONT A/B)   → Afternoons  (shiftId 3)
   //   Continental Nights (CONT C/D) → Midnights   (shiftId 1)
+  // Matches Report app's SHIFT_ORDER grouping exactly.
   const SHIFT2_MAP = { "MID": 1, "DAY": 2, "AFT": 3 };
   const ID_SHIFT_MAP = {
     "ASSEMBLY 1":1, "ASSEMBLY 2":2, "ASSEMBLY 3":3,
@@ -244,12 +249,13 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_WO     = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
   const COL_QTY    = col(["GOOD_QTY", "QTY", "UNITS"], 7);
   const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
-  const COL_SHIFT2 = col(["SHIFT2"], -1);
-  const COL_ID     = col(["ID"], 11);
+  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT — preferred
+  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc — fallback
   const COL_HRS    = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
-  const COL_EARNED = col(["EARNED", "EARNED_HRS"], 19);
+  const COL_EARNED = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
   const COL_LOST   = col(["LOST", "LOST_HRS"], 20);
   const totals = {};
+  // Group by WO + date + shiftId → accumulate qty, hrs, earned, lost
   const byWoShift = {};
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
@@ -258,6 +264,7 @@ function parseLabourTicketsForWOs(workbook) {
     const qty = parseFloat(r[COL_QTY]) || 0;
     if (qty <= 0) continue;
     totals[rawWo] = (totals[rawWo] || 0) + qty;
+    // Parse date
     let dateISO = "";
     const dateVal = r[COL_DATE];
     if (typeof dateVal === "number") {
@@ -268,6 +275,8 @@ function parseLabourTicketsForWOs(workbook) {
       dateISO = isNaN(d) ? "" : d.toISOString().slice(0, 10);
     }
     if (!dateISO) continue;
+    // Resolve shiftId: prefer SHIFT2 (MID/DAY/AFT), fall back to ID column.
+    // SHIFT2 is "0" or blank for continental rows → use ID column for those.
     const idCode = String(r[COL_ID] || "").trim().toUpperCase();
     let shiftId = 2;
     if (COL_SHIFT2 >= 0) {
@@ -288,17 +297,21 @@ function parseLabourTicketsForWOs(workbook) {
     byWoShift[groupKey].earned += earned;
     byWoShift[groupKey].lost   += lost;
   }
+  // Build shiftDetail: WO → array sorted newest first.
+  // Efficiency = earned / hrs_worked * 100  (same formula as Report app)
   const shiftDetail = {};
   for (const entry of Object.values(byWoShift)) {
     if (!shiftDetail[entry.wo]) shiftDetail[entry.wo] = [];
     const eff = entry.hrs > 0 ? Math.round((entry.earned / entry.hrs * 100) * 10) / 10 : null;
     shiftDetail[entry.wo].push({
-      wo: entry.wo, dateISO: entry.dateISO, shiftId: entry.shiftId,
-      qty:    Math.round(entry.qty),
-      hrs:    Math.round(entry.hrs    * 100) / 100,
-      earned: Math.round(entry.earned * 100) / 100,
-      lost:   Math.round(entry.lost   * 100) / 100,
-      eff,
+      wo:      entry.wo,
+      dateISO: entry.dateISO,
+      shiftId: entry.shiftId,
+      qty:     Math.round(entry.qty),
+      hrs:     Math.round(entry.hrs    * 100) / 100,
+      earned:  Math.round(entry.earned * 100) / 100,
+      lost:    Math.round(entry.lost   * 100) / 100,
+      eff,   // percentage e.g. 84.7, or null if no hours
     });
   }
   for (const wo of Object.keys(shiftDetail)) {
@@ -645,9 +658,10 @@ function BuildTracker() {
     reader.onload = async (evt) => {
       try {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
-        // Get WO totals for BuildTracker comp_qty matching
+        // Get WO totals + per-shift detail for BuildTracker matching
         const { totals: woTotals, shiftDetail } = parseLabourTicketsForWOs(wb);
         const matchedWOs = Object.keys(woTotals);
+        // Match against current build plan rows
         let matchCount = 0;
         const currentOverrides = overrides;
         const nextOverrides = { ...currentOverrides };
@@ -666,7 +680,9 @@ function BuildTracker() {
               if (startQty > 0 && newQty >= startQty) newStatus = "done";
               else if (newQty > 0) newStatus = "wip";
             }
-            // Merge shift history: preserve manual entries, replace labour-imported ones
+            // Build shift history entries from labour ticket data.
+            // We replace any previously auto-imported entries (flagged by source:"labour")
+            // but preserve any manually-logged entries.
             const existingShifts = existing.shifts || [];
             const manualShifts = existingShifts.filter(s => s.source !== "labour");
             const labourShifts = (shiftDetail[row.wo] || []).map(s => ({
@@ -676,8 +692,9 @@ function BuildTracker() {
               hrs:    s.hrs    || 0,
               earned: s.earned || 0,
               lost:   s.lost   || 0,
-              eff:    s.eff    ?? null,
-              notes: "", reason: "",
+              eff:    s.eff    ?? null,  // % e.g. 84.7, null if no hours
+              notes: "",
+              reason: "",
               by: "Labour Import",
               source: "labour",
               loggedAt: uploadedAt,
@@ -721,6 +738,82 @@ function BuildTracker() {
           }
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
+
+        // ── Auto-save shift reports ────────────────────────────────────────
+        // For every date+shift combo found in the upload, write a shift_report doc.
+        // Groups WOs by BU leader, then by date+shiftId → one doc per BU per shift per date.
+        try {
+          // Build a map: "leader||dateISO||shiftId" → { wos, totals }
+          const reportMap = {};
+          sourceRows.forEach(row => {
+            const key = rowKey(row);
+            const o = nextOverrides[key] || {};
+            const shifts = o.shifts || [];
+            const labourShifts = shifts.filter(s => s.source === "labour");
+            if (labourShifts.length === 0) return;
+            const leader = row.leader || "__ALL__";
+            labourShifts.forEach(s => {
+              const dateISO = s.shiftDateISO ? s.shiftDateISO.slice(0, 10) : uploadedAt.slice(0, 10);
+              const rKey = `${leader}||${dateISO}||${s.shiftId}`;
+              if (!reportMap[rKey]) reportMap[rKey] = { leader, dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
+              const entry = reportMap[rKey];
+              entry.wos.push({
+                resource: row.resource, wo: row.wo,
+                descr: row.descr || row.part || "",
+                qty: s.qty || 0, compQty: o.comp_qty || 0, startQty: row.start_qty || 0,
+                eff: s.eff ?? null, hrs: s.hrs || 0, earned: s.earned || 0, lost: s.lost || 0,
+                notes: s.notes || "", reason: s.reason || "", by: s.by || "", source: s.source || "",
+              });
+              entry.totalUnits  += s.qty    || 0;
+              entry.totalHrs    += s.hrs    || 0;
+              entry.totalEarned += s.earned || 0;
+              entry.totalLost   += s.lost   || 0;
+            });
+          });
+          // Write each report doc — fetch existing first to preserve manually-added WO notes
+          const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
+          const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
+            const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
+            const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
+            const docId = `${entry.dateISO}#${entry.shiftId}#${(entry.leader || "ALL").replace(/\s+/g, "_")}`;
+            // Fetch existing doc to preserve manually-added notes on WOs and reportNotes
+            let existingWoNotes = {}; // wo -> notes string
+            let existingReportNotes = [];
+            try {
+              const existing = await BT_SHIFT_REPORTS_REF.doc(docId).get();
+              if (existing.exists) {
+                const d = existing.data();
+                existingReportNotes = d.reportNotes || [];
+                for (const w of (d.wos || [])) {
+                  if (w.notes) existingWoNotes[w.wo] = w.notes;
+                }
+              }
+            } catch(e) {}
+            // Merge existing notes into new WOs
+            const mergedWos = entry.wos.map(w => ({
+              ...w,
+              notes: existingWoNotes[w.wo]
+                ? (w.notes ? w.notes + " | " + existingWoNotes[w.wo] : existingWoNotes[w.wo])
+                : (w.notes || ""),
+            }));
+            const payload = {
+              bu: buName(entry.leader), leader: entry.leader,
+              date: entry.dateISO, shiftId: entry.shiftId,
+              shiftLabel: sMeta.label, shiftTime: sMeta.time,
+              totalUnits: Math.round(entry.totalUnits),
+              totalHrs:   Math.round(entry.totalHrs   * 100) / 100,
+              totalEarned:Math.round(entry.totalEarned * 100) / 100,
+              totalLost:  Math.round(entry.totalLost   * 100) / 100,
+              totalEff, entries: mergedWos.filter(w => w.qty > 0).length,
+              resourceCount: new Set(mergedWos.map(w => w.resource)).size,
+              linesDown: [], wos: mergedWos,
+              reportNotes: existingReportNotes,
+              autoSavedAt: uploadedAt,
+            };
+            return BT_SHIFT_REPORTS_REF.doc(docId).set(payload);
+          }));
+          console.log("Auto-save: wrote", writes.length, "shift report docs");
+        } catch(e) { console.error("Auto-save shift reports failed:", e); }
         // Production Report Tool manages its own data via its own upload button
         setLastLabourUpdate(new Date());
         BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
@@ -777,7 +870,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · ${matchedWOs.length} unique WOs in file`, ok: true });
+        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -1528,6 +1621,8 @@ function BuildTracker() {
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠ {stats.nextNotReady}</button>}
+          <button onClick={() => setShowShiftReport(true)}
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -1535,6 +1630,7 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} onClose={() => setShowShiftReport(false)} />}
       </div>
     );
   }
@@ -1792,6 +1888,7 @@ function BuildTracker() {
           allRows={allRows}
           selectedLeader={selectedLeader}
           lineDown={lineDown}
+          shiftReportsRef={BT_SHIFT_REPORTS_REF}
           onClose={() => setShowShiftReport(false)}
         />
       )}
@@ -2708,11 +2805,51 @@ function InitialsModal({ current, onSave, onCancel }) {
   );
 }
 
-function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
+function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
   const [reportDate, setReportDate] = useState(nowShiftDate);
+  const [saveState, setSaveState] = useState("idle"); // "idle"|"saving"|"saved"|"error"
+  const [existingSavedAt, setExistingSavedAt] = useState(null);
+  const [activeTab, setActiveTab] = useState("current"); // "current"|"history"
+  const [historyReports, setHistoryReports] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
+  const [historyNoteInput, setHistoryNoteInput] = useState("");
+  const [historyNoteSaving, setHistoryNoteSaving] = useState(false);
+  const [woNoteTarget, setWoNoteTarget] = useState(null); // wo key being edited
+  const [woNoteInput, setWoNoteInput] = useState("");
+  const [historyShiftFilter, setHistoryShiftFilter] = useState(0);    // 0=All, 1/2/3
+  const [historyDaysFilter, setHistoryDaysFilter] = useState(62);     // 7/30/62
+
+  // Check Firestore if this shift already has a saved report
+  const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
+  useEffect(() => {
+    if (!shiftReportsRef) return;
+    setSaveState("idle");
+    setExistingSavedAt(null);
+    shiftReportsRef.doc(reportDocId).get().then(snap => {
+      if (snap.exists) setExistingSavedAt(snap.data().autoSavedAt || snap.data().savedAt || null);
+    }).catch(() => {});
+  }, [reportDocId]);
+
+  // Load history when tab switches to history
+  useEffect(() => {
+    if (activeTab !== "history" || !shiftReportsRef) return;
+    setHistoryLoading(true);
+    shiftReportsRef
+      .get()
+      .then(snap => {
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => selectedLeader === "__ALL__" || d.leader === selectedLeader)
+          .sort((a, b) => b.date !== a.date ? b.date.localeCompare(a.date) : b.shiftId - a.shiftId);
+        setHistoryReports(docs);
+        setHistoryLoading(false);
+      })
+      .catch(e => { console.error("History load failed:", e); setHistoryReports([]); setHistoryLoading(false); });
+  }, [activeTab, selectedLeader]);
 
   // Find all WOs for the selected leader that had shift entries OR were active on the report shift.
   const reportData = useMemo(() => {
@@ -2730,9 +2867,21 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
         shiftEntryKey(new Date(s.shiftDateISO), s.shiftId) === targetKey
       );
       if (matchingEntries.length > 0) {
-        for (const e of matchingEntries) {
-          woEntries.push({ row: r, entry: e });
-        }
+        // Merge all entries for this WO into one: labour provides qty/eff/hrs, manual provides notes
+        const labourEntry = matchingEntries.find(e => e.source === "labour");
+        const manualEntries = matchingEntries.filter(e => e.source !== "labour");
+        const merged = {
+          qty:    labourEntry ? (labourEntry.qty    || 0) : matchingEntries.reduce((s,e) => s+(e.qty||0), 0),
+          hrs:    labourEntry ? (labourEntry.hrs    || 0) : 0,
+          earned: labourEntry ? (labourEntry.earned || 0) : 0,
+          lost:   labourEntry ? (labourEntry.lost   || 0) : 0,
+          eff:    labourEntry ? (labourEntry.eff    ?? null) : null,
+          source: labourEntry ? "labour" : "manual",
+          by:     manualEntries.length > 0 ? manualEntries.map(e => e.by).filter(Boolean).join(", ") : (labourEntry?.by || ""),
+          notes:  manualEntries.map(e => e.notes).filter(Boolean).join(" | "),
+          reason: manualEntries.map(e => e.reason).filter(Boolean).join(", "),
+        };
+        woEntries.push({ row: r, entry: merged });
       }
       // Capture WOs currently in production state (no entry but status changed)
       if (matchingEntries.length === 0 && (r.status === "wip" || r.status === "abr" || r.status === "brs")) {
@@ -2761,6 +2910,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
     // Aggregate stats
     const totalUnits = woEntries.reduce((s, x) => s + (x.entry.qty || 0), 0);
     const totalEntries = woEntries.length;
+    const totalHrs    = woEntries.reduce((s, x) => s + (x.entry.hrs    || 0), 0);
+    const totalEarned = woEntries.reduce((s, x) => s + (x.entry.earned || 0), 0);
+    const totalLost   = woEntries.reduce((s, x) => s + (x.entry.lost   || 0), 0);
+    const totalEff    = totalHrs > 0 ? Math.round((totalEarned / totalHrs * 100) * 10) / 10 : null;
     const reasonsCount = {};
     for (const x of woEntries) {
       if (x.entry.reason) {
@@ -2770,7 +2923,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
     for (const d of downLines) {
       if (d.reason) reasonsCount[d.reason] = (reasonsCount[d.reason] || 0) + 1;
     }
-    return { byResource, totalUnits, totalEntries, reasonsCount, downLines };
+    return { byResource, totalUnits, totalEntries, totalHrs, totalEarned, totalLost, totalEff, reasonsCount, downLines };
   }, [allRows, selectedLeader, reportShiftId, reportDate, lineDown]);
 
   const meta = SHIFTS.find(s => s.id === reportShiftId);
@@ -2785,8 +2938,11 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
     lines.push(`${dateLabel} · ${meta.label} (${meta.time})`);
     lines.push("=".repeat(60));
     lines.push("");
-    lines.push(`Total units this shift: ${reportData.totalUnits}`);
+    lines.push(`Total units this shift: ${reportData.totalUnits.toLocaleString()}`);
     lines.push(`Entries logged: ${reportData.totalEntries}`);
+    if (reportData.totalEff !== null) lines.push(`Overall efficiency: ${reportData.totalEff.toFixed(1)}%`);
+    if (reportData.totalHrs > 0)  lines.push(`Hours worked: ${reportData.totalHrs.toFixed(1)}h`);
+    if (reportData.totalLost !== 0) lines.push(`Lost hours: ${reportData.totalLost.toFixed(1)}h`);
     lines.push("");
     if (reportData.byResource.size === 0) {
       lines.push("(No shift entries logged for this shift.)");
@@ -2796,7 +2952,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
         for (const { row, entry } of data.entries) {
           const ratio = row.start_qty > 0 ? `${row.comp_qty}/${row.start_qty}` : "";
           lines.push(`  ${row.wo} · ${row.descr || row.part || ""}`);
-          lines.push(`    +${entry.qty} units this shift · total ${ratio} · by ${entry.by || "—"}`);
+          const effStr  = entry.eff  != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
+          const hrsStr  = entry.hrs  > 0 ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
+          const lostStr = entry.lost !== 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
+          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty} · ${entry.by || "—"}`);
           if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
           if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
         }
@@ -2824,138 +2983,496 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, onClose }) {
     }).catch(() => alert("Copy failed — try again or print instead."));
   };
 
+  const saveReport = async () => {
+    if (!shiftReportsRef) return;
+    setSaveState("saving");
+    try {
+      const dateISO = reportDate.toISOString().slice(0, 10);
+      const woList = [];
+      for (const [res, data] of reportData.byResource.entries()) {
+        for (const { row, entry } of data.entries) {
+          woList.push({ resource: res, wo: row.wo, descr: row.descr || row.part || "", qty: entry.qty || 0, compQty: row.comp_qty || 0, startQty: row.start_qty || 0, eff: entry.eff ?? null, hrs: entry.hrs || 0, earned: entry.earned || 0, lost: entry.lost || 0, notes: entry.notes || "", reason: entry.reason || "", by: entry.by || "", source: entry.source || "" });
+        }
+        for (const r of data.statusOnly) {
+          woList.push({ resource: res, wo: r.wo, descr: r.descr || r.part || "", qty: 0, compQty: r.comp_qty || 0, startQty: r.start_qty || 0, eff: null, hrs: 0, earned: 0, lost: 0, notes: "", reason: "", by: "", source: "", statusOnly: true, status: r.status });
+        }
+      }
+      const payload = {
+        bu: buName(selectedLeader), leader: selectedLeader,
+        date: dateISO, shiftId: reportShiftId, shiftLabel: meta.label, shiftTime: meta.time,
+        totalUnits: reportData.totalUnits, totalHrs: reportData.totalHrs,
+        totalEarned: reportData.totalEarned, totalLost: reportData.totalLost, totalEff: reportData.totalEff,
+        entries: reportData.totalEntries, resourceCount: reportData.byResource.size,
+        linesDown: reportData.downLines.map(d => ({ resource: d.resource, reason: d.reason || "", notes: d.notes || "", by: d.by || "" })),
+        wos: woList,
+        savedAt: new Date().toISOString(),
+      };
+      await shiftReportsRef.doc(reportDocId).set(payload);
+      setExistingSavedAt(payload.savedAt);
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 3000);
+    } catch(e) {
+      console.error("Save report:", e);
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  };
+
+  const saveWoNote = async (woKey) => {
+    if (!woNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
+    const by = localStorage.getItem("build_tracker_initials") || "?";
+    const noteText = woNoteInput.trim();
+    const docId = selectedHistoryReport.id;
+    try {
+      // Update the wos array — find the matching WO and append the note
+      const updatedWos = (selectedHistoryReport.wos || []).map(w => {
+        if (w.wo === woKey) {
+          const existingNotes = w.notes ? w.notes + " | " : "";
+          return { ...w, notes: existingNotes + `[${by}] ${noteText}` };
+        }
+        return w;
+      });
+      await shiftReportsRef.doc(docId).update({ wos: updatedWos });
+      setSelectedHistoryReport(prev => ({ ...prev, wos: updatedWos }));
+      setWoNoteTarget(null);
+      setWoNoteInput("");
+    } catch(e) { console.error("Save WO note failed:", e); }
+  };
+
+  const saveHistoryNote = async () => {
+    if (!historyNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
+    setHistoryNoteSaving(true);
+    const newNote = { text: historyNoteInput.trim(), by: localStorage.getItem("build_tracker_initials") || "?", at: new Date().toISOString() };
+    try {
+      const docId = selectedHistoryReport.id;
+      await shiftReportsRef.doc(docId).update({
+        reportNotes: firebase.firestore.FieldValue.arrayUnion(newNote)
+      });
+      // Update local state so it shows immediately
+      setSelectedHistoryReport(prev => ({
+        ...prev,
+        reportNotes: [...(prev.reportNotes || []), newNote]
+      }));
+      setHistoryNoteInput("");
+    } catch(e) { console.error("Save note failed:", e); }
+    setHistoryNoteSaving(false);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 overflow-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-16 overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden">
+        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden flex-shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Shift Report</h2>
             <p className="text-xs text-slate-500">Roll-up of production for the selected shift</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
-        </div>
-
-        {/* Shift selector */}
-        <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {SHIFTS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setReportShiftId(s.id)}
-                className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}
-              >
-                <div className="text-[11px] font-bold">{s.label}</div>
-                <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
+              <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
+              <button onClick={() => { setActiveTab("history"); setHistoryReports(null); setSelectedHistoryReport(null); }} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
-        {/* Report content */}
-        <div className="flex-1 overflow-auto p-6 print:p-0">
-          {/* Print-only header */}
-          <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-            <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
-            <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
-          </div>
-
-          {/* Summary */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            <ReportStat label="Total units" value={reportData.totalUnits.toLocaleString()} />
-            <ReportStat label="Entries" value={reportData.totalEntries} />
-            <ReportStat label="Resources active" value={reportData.byResource.size} />
-            <ReportStat label="Lines down" value={reportData.downLines.length} />
-          </div>
-
-          {reportData.byResource.size === 0 && reportData.downLines.length === 0 ? (
-            <div className="text-center py-8 text-sm text-slate-500 italic">
-              No shift entries or down-line markers logged for {meta.label} on {dateLabel}.
-              <br />
-              <span className="text-xs">Once supervisors log production or mark lines down for this shift, it'll show up here.</span>
+        {activeTab === "history" ? (
+          selectedHistoryReport ? (
+            /* ── History detail view ── */
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-4 py-2 border-b border-stone-200 bg-stone-50 flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => setSelectedHistoryReport(null)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">← Back</button>
+                <span className="text-slate-300">|</span>
+                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} · {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+                <span className="text-xs text-slate-400">{selectedHistoryReport.shiftTime}</span>
+              </div>
+              <div className="flex-1 overflow-auto p-4">
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  <ReportStat label="Total units" value={(selectedHistoryReport.totalUnits||0).toLocaleString()} />
+                  <ReportStat label="Entries" value={selectedHistoryReport.entries||0} />
+                  <ReportStat label="Resources" value={selectedHistoryReport.resourceCount||0} />
+                  <ReportStat label="Lines down" value={(selectedHistoryReport.linesDown||[]).length} />
+                </div>
+                {(selectedHistoryReport.totalEff!=null||selectedHistoryReport.totalHrs>0) && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {selectedHistoryReport.totalEff!=null && (
+                      <div className={`rounded-md border px-3 py-2.5 ${selectedHistoryReport.totalEff>=90?"bg-emerald-50 border-emerald-200":selectedHistoryReport.totalEff>=76.5?"bg-amber-50 border-amber-200":"bg-rose-50 border-rose-200"}`}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                        <div className={`text-xl font-bold tabular-nums ${selectedHistoryReport.totalEff>=90?"text-emerald-700":selectedHistoryReport.totalEff>=76.5?"text-amber-700":"text-rose-700"}`}>{selectedHistoryReport.totalEff.toFixed(1)}%</div>
+                      </div>
+                    )}
+                    {selectedHistoryReport.totalHrs>0 && (
+                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                        <div className="text-xl font-bold tabular-nums text-slate-700">{selectedHistoryReport.totalHrs.toFixed(1)}h</div>
+                      </div>
+                    )}
+                    {selectedHistoryReport.totalLost!==0 && (
+                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{selectedHistoryReport.totalLost > 0 ? "Earned hours" : "Lost hours"}</div>
+                        <div className="text-xl font-bold tabular-nums text-slate-700">{selectedHistoryReport.totalLost.toFixed(1)}h</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {(selectedHistoryReport.linesDown||[]).length>0 && (
+                  <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
+                    <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selectedHistoryReport.linesDown.length})</div>
+                    {selectedHistoryReport.linesDown.map((d,i)=>(
+                      <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
+                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"—"}</span></div>
+                        {d.notes && <div className="text-xs text-slate-600 mt-0.5">{d.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(() => {
+                  const wos = selectedHistoryReport.wos||[];
+                  const byRes = {};
+                  for (const w of wos) { if (!byRes[w.resource]) byRes[w.resource]=[]; byRes[w.resource].push(w); }
+                  return (
+                    <div className="space-y-3">
+                      {Object.entries(byRes).map(([res,items])=>(
+                        <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                          <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                          <div className="divide-y divide-stone-100">
+                            {items.map((w,i)=>(
+                              <div key={i} className={`px-3 py-2.5 text-sm ${w.statusOnly?"bg-stone-50":""}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0"><span className="font-mono font-semibold text-slate-900 text-xs">{w.wo}</span><span className="text-slate-500 ml-2 text-xs">{w.descr}</span></div>
+                                  {w.qty>0 && <div className="text-right shrink-0"><div className="font-bold text-emerald-700 tabular-nums">+{w.qty.toLocaleString()}</div><div className="text-[10px] text-slate-400 tabular-nums">{(w.compQty||0).toLocaleString()} / {(w.startQty||0).toLocaleString()}</div></div>}
+                                  {w.statusOnly && <span className="text-[10px] text-slate-400 uppercase font-bold shrink-0">{w.status} (no entries)</span>}
+                                </div>
+                                {(w.eff!=null||w.hrs>0||w.lost>0) && (
+                                  <div className="flex items-center gap-3 mt-1.5">
+                                    {w.eff!=null && <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${w.eff>=90?"bg-emerald-100 text-emerald-700":w.eff>=76.5?"bg-amber-100 text-amber-700":"bg-rose-100 text-rose-700"}`}>Eff {w.eff.toFixed(1)}%</div>}
+                                    {w.hrs>0 && <span className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{w.hrs.toFixed(1)}h</span> worked</span>}
+                                    {w.lost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{w.lost.toFixed(1)}h {w.lost > 0 ? "earned" : "lost"}</span>}
+                                  </div>
+                                )}
+                                {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
+                                {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
+                                {/* WO note input */}
+                                {woNoteTarget === w.wo ? (
+                                  <div className="flex gap-1.5 mt-2">
+                                    <input
+                                      autoFocus
+                                      value={woNoteInput}
+                                      onChange={e => setWoNoteInput(e.target.value)}
+                                      placeholder="Add note…"
+                                      className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:border-blue-500"
+                                      onKeyDown={e => { if (e.key === "Enter" && woNoteInput.trim()) saveWoNote(w.wo); if (e.key === "Escape") { setWoNoteTarget(null); setWoNoteInput(""); } }}
+                                    />
+                                    <button onClick={() => saveWoNote(w.wo)} disabled={!woNoteInput.trim()} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">Save</button>
+                                    <button onClick={() => { setWoNoteTarget(null); setWoNoteInput(""); }} className="px-2 py-1 rounded bg-stone-200 text-slate-600 text-xs">✕</button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => { setWoNoteTarget(w.wo); setWoNoteInput(""); }} className="mt-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-semibold">+ note</button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0">
+                {/* Existing report-level notes */}
+                {(selectedHistoryReport.reportNotes || []).length > 0 && (
+                  <div className="mb-3 space-y-1.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Report notes</div>
+                    {selectedHistoryReport.reportNotes.map((n, i) => (
+                      <div key={i} className="bg-white border border-stone-200 rounded p-2">
+                        <div className="text-[12px] text-slate-700 leading-snug">{n.text}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">
+                          {n.by && <span className="font-semibold text-slate-500 mr-1">{n.by}</span>}
+                          {new Date(n.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Add note */}
+                <div className="flex gap-2 mb-2">
+                  <input
+                    value={historyNoteInput}
+                    onChange={e => setHistoryNoteInput(e.target.value)}
+                    placeholder="Add a note to this report…"
+                    className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400"
+                    onKeyDown={e => { if (e.key === "Enter" && historyNoteInput.trim()) saveHistoryNote(); }}
+                  />
+                  <button onClick={saveHistoryNote} disabled={!historyNoteInput.trim() || historyNoteSaving}
+                    style={{backgroundColor: historyNoteSaving ? "#60a5fa" : "#2563eb"}}
+                    className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
+                    {historyNoteSaving ? "…" : "Add"}
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT — ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} · ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; if((r.reportNotes||[]).length>0){lines.push("REPORT NOTES:");for(const n of r.reportNotes)lines.push(`  ${n.by||""}: ${n.text}`);lines.push("");} for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} · ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` · Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` · ${w.hrs.toFixed(1)}h`:""}${w.lost!==0?` · ${w.lost.toFixed(1)}h ${w.lost>0?"earned":"lost"}`:""}`);if(w.notes)lines.push(`    Notes: ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
+                  <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 text-slate-800 text-sm font-semibold">Print</button>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {reportData.downLines.length > 0 && (
-                <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
-                  <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
-                  <div className="divide-y divide-rose-200">
-                    {reportData.downLines.map((d, i) => (
-                      <div key={i} className="px-3 py-2 text-sm">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="font-semibold text-slate-900">{d.resource}</span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span>
+            /* ── History list ── */
+            <div className="flex-1 overflow-auto">
+              {/* Filters */}
+              <div className="px-4 pt-3 pb-2 border-b border-stone-100 bg-stone-50 flex items-center gap-3 flex-wrap">
+                {/* Shift filter */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-1">Shift</span>
+                  {[{id:0,label:"All"},{id:1,label:"S1"},{id:2,label:"S2"},{id:3,label:"S3"}].map(opt => (
+                    <button key={opt.id} onClick={() => setHistoryShiftFilter(opt.id)}
+                      style={{backgroundColor: historyShiftFilter===opt.id?"#1e3a5f":"white", color: historyShiftFilter===opt.id?"white":"#64748b", border: "1px solid #e2e8f0"}}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold">
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="w-px h-4 bg-stone-200" />
+                {/* Date range filter */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-1">Range</span>
+                  {[{d:7,label:"7d"},{d:30,label:"30d"},{d:62,label:"62d"}].map(opt => (
+                    <button key={opt.d} onClick={() => setHistoryDaysFilter(opt.d)}
+                      style={{backgroundColor: historyDaysFilter===opt.d?"#1e3a5f":"white", color: historyDaysFilter===opt.d?"white":"#64748b", border: "1px solid #e2e8f0"}}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold">
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Result count */}
+                {historyReports && (() => {
+                  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - historyDaysFilter);
+                  const cutoffISO = cutoff.toISOString().slice(0,10);
+                  const count = historyReports.filter(r =>
+                    r.date >= cutoffISO &&
+                    (historyShiftFilter === 0 || r.shiftId === historyShiftFilter)
+                  ).length;
+                  return <span className="text-[10px] text-slate-400 ml-auto">{count} report{count !== 1 ? "s" : ""}</span>;
+                })()}
+              </div>
+              {/* List */}
+              <div className="p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Saved reports — {buName(selectedLeader)}</div>
+              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>}
+              {!historyLoading && historyReports!==null && historyReports.length===0 && <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found.</div>}
+              {!historyLoading && historyReports && historyReports.length>0 && (() => {
+                const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - historyDaysFilter);
+                const cutoffISO = cutoff.toISOString().slice(0,10);
+                const filtered = historyReports.filter(r =>
+                  r.date >= cutoffISO &&
+                  (historyShiftFilter === 0 || r.shiftId === historyShiftFilter)
+                );
+                if (filtered.length === 0) return <div className="text-center py-10 text-sm text-slate-400 italic">No reports match the current filters.</div>;
+                return (
+                <div className="space-y-2">
+                  {filtered.map(r=>{
+                    const effColor = r.totalEff==null?"text-slate-400":r.totalEff>=90?"text-emerald-600":r.totalEff>=76.5?"text-amber-600":"text-rose-600";
+                    const effBg = r.totalEff==null?"bg-slate-50 border-slate-200":r.totalEff>=90?"bg-emerald-50 border-emerald-200":r.totalEff>=76.5?"bg-amber-50 border-amber-200":"bg-rose-50 border-rose-200";
+                    const dateObj = new Date(r.date+"T12:00:00");
+                    const dateStr = dateObj.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+                    const sMeta = SHIFTS.find(s=>s.id===r.shiftId)||SHIFTS[0];
+                    return (
+                      <div key={r.id} onClick={()=>setSelectedHistoryReport(r)} className="border border-stone-200 rounded-md p-3 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{sMeta.label}</span>
+                            <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
+                            <span className="text-[11px] text-slate-400">{sMeta.time}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {r.totalEff!=null && <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>{r.totalEff.toFixed(1)}%</span>}
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()} u</span>
+                            <span className="text-slate-300 text-xs">›</span>
+                          </div>
                         </div>
-                        {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
-                        <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          {r.entries>0 && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
+                          {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
+                          {r.totalHrs>0 && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
+                          {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost > 0 ? "earned" : "lost"}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                );
+              })()}
+              </div>
+            </div>
+          )
+        ) : (
+          /* ── Current shift tab ── */
+          <React.Fragment>
+            {/* Shift selector */}
+            <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden flex-shrink-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {SHIFTS.map(s => (
+                  <button key={s.id} onClick={() => setReportShiftId(s.id)}
+                    className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}>
+                    <div className="text-[11px] font-bold">{s.label}{s.id === nowShiftId && <span className="ml-1 text-[9px] font-semibold uppercase tracking-wider opacity-80">NOW</span>}</div>
+                    <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Report content */}
+            <div className="flex-1 overflow-auto p-6 print:p-0">
+              {/* Print-only header */}
+              <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
+                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
+                <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
+              </div>
+              {/* Summary */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <ReportStat label="Total units" value={reportData.totalUnits.toLocaleString()} />
+                <ReportStat label="Entries" value={reportData.totalEntries} />
+                <ReportStat label="Resources active" value={reportData.byResource.size} />
+                <ReportStat label="Lines down" value={reportData.downLines.length} />
+              </div>
+              {(reportData.totalHrs > 0 || reportData.totalEff !== null) && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {reportData.totalEff !== null && (
+                    <div className={`rounded-md border px-3 py-2.5 ${reportData.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : reportData.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200"}`}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                      <div className={`text-xl font-bold tabular-nums ${reportData.totalEff >= 90 ? "text-emerald-700" : reportData.totalEff >= 76.5 ? "text-amber-700" : "text-rose-700"}`}>{reportData.totalEff.toFixed(1)}%</div>
+                    </div>
+                  )}
+                  {reportData.totalHrs > 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalHrs.toFixed(1)}h</div>
+                    </div>
+                  )}
+                  {reportData.totalLost !== 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{reportData.totalLost > 0 ? "Earned hours" : "Lost hours"}</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalLost.toFixed(1)}h</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {reportData.byResource.size === 0 && reportData.downLines.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500 italic">
+                  No shift entries or down-line markers logged for {meta.label} on {dateLabel}.
+                  <br /><span className="text-xs">Once supervisors log production or mark lines down for this shift, it'll show up here.</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reportData.downLines.length > 0 && (
+                    <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
+                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
+                      <div className="divide-y divide-rose-200">
+                        {reportData.downLines.map((d, i) => (
+                          <div key={i} className="px-3 py-2 text-sm">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="font-semibold text-slate-900">{d.resource}</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span>
+                            </div>
+                            {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {[...reportData.byResource.entries()].map(([res, data]) => (
+                    <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                      <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                      <div className="divide-y divide-stone-100">
+                        {data.entries.map((item, i) => (
+                          <div key={i} className="px-3 py-2.5 text-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-mono font-semibold text-slate-900">{item.row.wo}</span>
+                                <span className="text-slate-600 ml-2 text-xs">{item.row.descr || item.row.part}</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(item.entry.qty)}</div>
+                                <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
+                              </div>
+                            </div>
+                            {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost !== 0) && (
+                              <div className="flex items-center gap-3 mt-1.5">
+                                {item.entry.eff != null && (
+                                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${item.entry.eff >= 90 ? "bg-emerald-100 text-emerald-700" : item.entry.eff >= 76.5 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
+                                    Eff {item.entry.eff.toFixed(1)}%
+                                  </div>
+                                )}
+                                {item.entry.hrs > 0 && <div className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{item.entry.hrs.toFixed(1)}h</span> worked</div>}
+                                {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h {item.entry.lost > 0 ? "earned" : "lost"}</div>}
+                              </div>
+                            )}
+                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
+                            {item.entry.notes && (
+                              <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
+                                {item.entry.by && <span className="font-semibold text-slate-500 text-[10px] mr-1">{item.entry.by}:</span>}
+                                {item.entry.notes}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {data.statusOnly.map((r, i) => (
+                          <div key={`s-${i}`} className="px-3 py-2 text-sm bg-stone-50">
+                            <span className="font-mono text-slate-700">{r.wo}</span>
+                            <span className="text-slate-500 ml-2 text-xs">{r.descr || r.part}</span>
+                            <span className="ml-2 text-[10px] uppercase font-bold text-slate-400">{r.status} (no entries)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {Object.keys(reportData.reasonsCount).length > 0 && (
+                <div className="mt-5 pt-4 border-t border-stone-200">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Underperformance reasons</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(reportData.reasonsCount).map(([reason, count]) => (
+                      <div key={reason} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs">
+                        <span className="font-semibold text-amber-900">{reason}</span>
+                        <span className="text-amber-700 ml-1.5">({count})</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              {[...reportData.byResource.entries()].map(([res, data]) => (
-                <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
-                  <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
-                  <div className="divide-y divide-stone-100">
-                    {data.entries.map((item, i) => (
-                      <div key={i} className="px-3 py-2.5 text-sm">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <div>
-                            <span className="font-mono font-semibold text-slate-900">{item.row.wo}</span>
-                            <span className="text-slate-600 ml-2">{item.row.descr || item.row.part}</span>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(item.entry.qty)}</div>
-                            <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
-                          </div>
-                        </div>
-                        <div className="text-[11px] text-slate-500 mt-1">by {item.entry.by || "—"}</div>
-                        {item.entry.reason && (
-                          <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>
-                        )}
-                        {item.entry.notes && (
-                          <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">{item.entry.notes}</div>
-                        )}
-                      </div>
-                    ))}
-                    {data.statusOnly.map((r, i) => (
-                      <div key={`s-${i}`} className="px-3 py-2 text-sm bg-stone-50">
-                        <span className="font-mono text-slate-700">{r.wo}</span>
-                        <span className="text-slate-500 ml-2 text-xs">{r.descr || r.part}</span>
-                        <span className="ml-2 text-[10px] uppercase font-bold text-slate-400">{r.status} (no entries)</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
             </div>
-          )}
 
-          {Object.keys(reportData.reasonsCount).length > 0 && (
-            <div className="mt-5 pt-4 border-t border-stone-200">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Underperformance reasons</div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(reportData.reasonsCount).map(([reason, count]) => (
-                  <div key={reason} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs">
-                    <span className="font-semibold text-amber-900">{reason}</span>
-                    <span className="text-amber-700 ml-1.5">({count})</span>
-                  </div>
-                ))}
+            {/* Footer actions */}
+            <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
+              {existingSavedAt && (
+                <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
+                  ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </div>
+              )}
+              {!existingSavedAt && (
+                <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
+                <button onClick={saveReport} disabled={saveState === "saving"}
+                  style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
+                  className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
+                  {saveState==="saving"?"Saving…":saveState==="saved"?"✓ Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
+                </button>
+                <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
             </div>
-          )}
-        </div>
+          </React.Fragment>
+        )}
 
-        {/* Actions */}
-        <div className="px-6 py-3 border-t border-stone-200 bg-stone-50 flex gap-2 print:hidden">
-          <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
-          <button onClick={printReport} className="flex-1 px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Print</button>
-        </div>
       </div>
     </div>
   );
 }
+
 
 function ReportStat({ label, value }) {
   return (
@@ -3019,11 +3536,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
           <FileCheck2 className="w-4 h-4 text-sky-700" />
           <span className="text-xs font-bold uppercase tracking-wider text-sky-700">Log Shift Production</span>
         </div>
-        {history.length > 0 && (
-          <span className="text-[10px] font-semibold text-sky-600">
-            {history.length} entr{history.length === 1 ? "y" : "ies"}
-          </span>
-        )}
+
       </div>
 
       {/* Shift selector */}
@@ -3119,13 +3632,16 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
       </button>
 
-      {/* History */}
-      {history.length === 0 && (
-        <div className="mt-3 pt-3 border-t border-sky-200 text-[11px] text-slate-400 italic text-center">No shift entries yet.</div>
-      )}
-      {history.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-sky-200 space-y-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Shift History</div>
+      {/* Shift History — always visible */}
+      <div className="mt-3 pt-3 border-t border-sky-200">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+          <span>Shift History</span>
+          {history.length > 0 && <span className="text-sky-600 normal-case font-medium">{history.length} entr{history.length === 1 ? "y" : "ies"}</span>}
+        </div>
+        {history.length === 0 && (
+          <div className="text-[11px] text-slate-400 italic text-center py-2">No shift entries yet.</div>
+        )}
+        <div className="space-y-1.5">
           {history.map((entry, i) => {
             const shiftMeta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
             const entryDate = new Date(entry.shiftDateISO);
@@ -3147,6 +3663,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                     </span>
                   )}
                 </div>
+                {/* Efficiency + Hours — shown for labour imports */}
                 {isLabour && (entry.eff != null || entry.hrs > 0 || entry.lost > 0) && (
                   <div className="flex items-center gap-3 mt-1.5">
                     {entry.eff != null && (
@@ -3190,7 +3707,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
