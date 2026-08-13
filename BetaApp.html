@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="icon" type="image/png" href="icon-192.png" />
-<title>GT Shift Tool � Beta</title>
+<title>GT Shift Tool — Beta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -526,7 +526,7 @@
   /* Print-only date header (hidden on screen) */
   .print-header { display: none; }
 
-  /* ============= PRINT STYLES � single page ============= */
+  /* ============= PRINT STYLES — single page ============= */
   @media print {
     @page { size: A4 portrait; margin: 10mm 10mm 8mm; }
     body { background: white; color: black; padding: 0; font-size: 10pt; }
@@ -606,7 +606,7 @@
     .chip.floater { background: transparent; border: 0; color: black; }
     .chip.floater::before { content: '? '; }
 
-    /* Bench strip � visually lighter than floaters */
+    /* Bench strip — visually lighter than floaters */
     .bench-card {
       grid-column: 1 / -1; border: 1px dashed #555; padding: 2mm 3mm; margin-top: 2mm;
       border-radius: 2px; background: white;
@@ -743,7 +743,7 @@
     <select class="shift-select" id="shift-select" onchange="onShiftChange(this.value)" aria-label="Active shift"></select>
    </div>
   <div class="appbar-right">
-    <span class="cloud-status" id="cloud-status" title="Sync status"><span class="cloud-dot"></span><span id="cloud-label">�</span></span>
+    <span class="cloud-status" id="cloud-status" title="Sync status"><span class="cloud-dot"></span><span id="cloud-label">…</span></span>
     <button class="reset-btn" onclick="openPriorityScreen()">? Priority</button>
     <button class="reset-btn" onclick="openRosterScreen()">?? Roster</button>
     <button class="reset-btn" onclick="resetAll()">Reset</button>
@@ -768,7 +768,7 @@
     <div class="step-head">
       <span class="pill">STEP 01</span>
       <h2>Who's absent today?</h2>
-      <p>Tap anyone who is off, calling in, or otherwise unavailable. Pick a mode below � the rest of the flow adapts to it.</p>
+      <p>Tap anyone who is off, calling in, or otherwise unavailable. Pick a mode below — the rest of the flow adapts to it.</p>
     </div>
     <div class="mode-toggle" id="mode-toggle">
       <button data-mode="auto" onclick="setAssignMode('auto')">Auto<span class="sub">from priority</span></button>
@@ -780,8 +780,8 @@
     <div class="quick-actions">
       <button onclick="markAllPresent()">All present</button>
       <span id="op-counter" class="counter" style="margin: 0; padding: 6px 10px;">
-        <span class="big" id="present-num">�</span>
-        <span class="label">of <span id="total-num">�</span> available</span>
+        <span class="big" id="present-num">–</span>
+        <span class="label">of <span id="total-num">–</span> available</span>
       </span>
     </div>
     <div class="op-grid" id="op-list"></div>
@@ -884,13 +884,13 @@
         <h3 id="modal-title">Swap operator</h3>
         <div class="ctx" id="modal-ctx"></div>
       </div>
-      <button class="modal-close" onclick="closeModal()">�</button>
+      <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
-<!-- Roster screen � full-screen overlay for managing the operator/training matrix -->
+<!-- Roster screen — full-screen overlay for managing the operator/training matrix -->
 <div class="roster-screen" id="roster-screen">
   <header class="roster-head">
     <button class="roster-back" onclick="closeRosterScreen()">? Back</button>
@@ -913,16 +913,16 @@
   </div>
 </div>
 
-<!-- Priority screen � full-screen overlay for ranking lines per shift -->
+<!-- Priority screen — full-screen overlay for ranking lines per shift -->
 <div class="roster-screen" id="priority-screen">
   <header class="roster-head">
     <button class="roster-back" onclick="closePriorityScreen()">? Back</button>
-    <h2>Line Priority � <span id="priority-shift-label">Day</span></h2>
+    <h2>Line Priority — <span id="priority-shift-label">Day</span></h2>
     <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
   </header>
   <div class="roster-toolbar" style="background: var(--bg); border-bottom-color: var(--line);">
     <p style="font-size:12px; color: var(--ink-soft); margin:0; line-height:1.4;">
-      Drag entries up or down. Top = highest priority. The auto-scheduler walks this list and schedules lines until the available pool runs out. Variable-headcount lines (like HDMI Mix) can appear twice with different counts � the bigger version usually higher, smaller as a fallback.
+      Drag entries up or down. Top = highest priority. The auto-scheduler walks this list and schedules lines until the available pool runs out. Variable-headcount lines (like HDMI Mix) can appear twice with different counts — the bigger version usually higher, smaller as a fallback.
     </p>
   </div>
   <div class="roster-body" id="priority-body"></div>
@@ -939,13 +939,13 @@
         <h3>Add line to priority list</h3>
         <div class="ctx">Pick the line + headcount you want to add</div>
       </div>
-      <button class="modal-close" onclick="closeAddPriorityEntry()">�</button>
+      <button class="modal-close" onclick="closeAddPriorityEntry()">×</button>
     </div>
     <div class="modal-body" id="add-priority-body"></div>
   </div>
 </div>
 
-<!-- Operator edit modal � shows when adding new or editing existing -->
+<!-- Operator edit modal — shows when adding new or editing existing -->
 <div class="modal-overlay" id="op-edit-modal" onclick="if(event.target.id==='op-edit-modal')closeOperatorEdit()">
   <div class="modal" style="max-width: 560px;">
     <div class="modal-head">
@@ -953,7 +953,7 @@
         <h3 id="op-edit-title">Edit operator</h3>
         <div class="ctx" id="op-edit-ctx">Set name, shifts, and trained skills</div>
       </div>
-      <button class="modal-close" onclick="closeOperatorEdit()">�</button>
+      <button class="modal-close" onclick="closeOperatorEdit()">×</button>
     </div>
     <div class="modal-body" id="op-edit-body"></div>
     <div class="op-edit-actions">
@@ -978,9 +978,9 @@
    afternoon/midnight or to change skills.
    ============================================================== */
 const ROSTER_SEED = [{"name": "Rodolfo", "training": {"MV2": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Aliza", "training": {"MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Anne", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Prags", "training": {"BFLEX/ORION": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Leilani", "training": {"PRINT": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Jean", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Other": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Rufi", "training": {"PRINT": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Addison", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "CNC": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Abhishek", "training": {"MV1": true, "MV2": true, "MV2 Pack": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Razzel", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Jake", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Karen F.", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Joey", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Evan Harrison", "training": {"Lopro Pack": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Evan Hatfield", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Lovedeep", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Inderjit", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Nithin", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "CNC": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Kapil", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "M42": true, "M43": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Parminder", "training": {"Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Princedeep", "training": {"BFLEX/ORION": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Shubhreet", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Sumandeep", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Manjul", "training": {"MV2": true, "MV2 Pack": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Komal", "training": {"Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Komalpreet", "training": {"BFLEX/ORION": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Denise", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "M42": true, "M43": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "JT", "training": {"BFLEX/ORION": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "M42": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Antu", "training": {"MV1": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Kobe", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Marl", "training": {"MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Rosemary", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Dhruva", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Corina", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Thomas", "training": {"Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Romeo", "training": {"ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Karen R.", "training": {"MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Dawson", "training": {"ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Shaejal", "training": {"Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Lakhvir", "training": {"MV2 Pack": true, "Lopro Pack": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Rahul", "training": {"MV1": true, "MV2": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Darren", "training": {"ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Aravind", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Aincy", "training": {"Lopro Pack": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Rebecca", "training": {"ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Anna", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["afternoon"]}, {"name": "Karthika", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Rezwana", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Kayode", "training": {"MV1": true, "MV2": true, "MV2 Pack": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Anu", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Rose", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Chastity", "training": {"Lopro Pack": true, "BFLEX/ORION": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Banita", "training": {"PRINT": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Parker", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Angelica", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "BFLEX/ORION": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Michelle", "training": {"Lopro Pack": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Kevie", "training": {"Rework": true}, "shifts": ["day"]}, {"name": "Shannon", "training": {"Lopro Pack": true, "Rework": true}, "shifts": ["day"]}, {"name": "Bryann", "training": {"MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Adele", "training": {"MV2 Pack": true, "Rework": true}, "shifts": ["day"]}, {"name": "Brenna", "training": {"MV1": true, "Lopro Pack": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Keith", "training": {"MV1": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Richard", "training": {"MV2 Pack": true, "Lopro Pack": true, "Rework": true}, "shifts": ["day"]}, {"name": "Ishvpreet", "training": {"PRINT": true, "Lopro Pack": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Navneet", "training": {"PRINT": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Kelly", "training": {"ASB-073 - LP S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Steff", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Kunjan", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Zahra", "training": {"ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Mike", "training": {"MV1": true, "Rework": true}, "shifts": ["day"]}, {"name": "Amtul", "training": {"ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Chi", "training": {"MV2": true, "MV2 Pack": true, "PRINT": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Trang", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Rework": true}, "shifts": ["day"]}, {"name": "Ashley", "training": {"MV1": true, "ASB-073 - LP S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Giulia", "training": {"ASB-073 - LP S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Hailey", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Rework": true}, "shifts": ["day"]}, {"name": "Moxa", "training": {"MV2": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Eda", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Bea", "training": {"Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Lina", "training": {"BFLEX/ORION": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Pam", "training": {"ASB-073 - LP S3": true, "Rework": true}, "shifts": ["day"]}, {"name": "Sheetal", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Saksham", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Nevin", "training": {"MV1": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "CNC": true, "Rework": true}, "shifts": ["day"]}, {"name": "Amritpal", "training": {"MV1": true, "MV2": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "CNC": true, "Rework": true}, "shifts": ["day"]}, {"name": "Katrina", "training": {"Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Jobin", "training": {"MV1": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Samrachana", "training": {"MV2": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Anita", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Elsa", "training": {"PRINT": true, "BFLEX/ORION": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Floaters": true, "Rework": true}, "shifts": ["day"]}, {"name": "Sammi", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Rework": true}, "shifts": ["day"]}, {"name": "Lemlem", "training": {"Rework": true}, "shifts": ["day"]}, {"name": "Theresa", "training": {"MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "Rework": true}, "shifts": ["day"]}, {"name": "Maddie", "training": {"M42": true, "M43": true}, "shifts": ["day"]}, {"name": "Naman", "training": {"M42": true, "M43": true}, "shifts": ["day"]}, {"name": "Lolita", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Sandhya", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Aisha", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Levi", "training": {"MV2": true, "MV2 Pack": true}, "shifts": ["midnight"]}, {"name": "Kenneth", "training": {"MV2": true, "MV2 Pack": true}, "shifts": ["midnight"]}, {"name": "Sue", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Michael", "training": {"Flex 3": true}, "shifts": ["midnight"]}, {"name": "Eldie", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "M42": true, "M43": true}, "shifts": ["midnight"]}, {"name": "Scott", "training": {"MV1": true}, "shifts": ["midnight"]}, {"name": "Divina", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Doug", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Lia", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Amandeep", "training": {"MV1": true, "MV2": true, "MV2 Pack": true, "Lopro Pack": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Harkomal", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Rajveer", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Grace", "training": {"Flex 3": true}, "shifts": ["midnight"]}, {"name": "Hiddie", "training": {"MV2 Pack": true, "Lopro Pack": true}, "shifts": ["midnight"]}, {"name": "Shirley", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Eugene", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Basanta", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true, "M42": true, "M43": true}, "shifts": ["midnight"]}, {"name": "Nishma", "training": {"PRINT": true, "ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Emelita", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Pankti", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Sakshi", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Yarshika", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Bev", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "Nilam", "training": {"Flex 3": true}, "shifts": ["midnight"]}, {"name": "Sreejumon", "training": {"ASB-258 - QC S3": true, "ASB-170 - QC s4 +Bio": true, "ASB-073 - LP S3": true, "ASB-231 - LP S4": true, "ASB-179 - HDMI Mix": true, "ASB-075 - QC Mix": true, "ASB-259 - QC Mac s4": true, "ASB-260 - QC Mac S3": true, "Floaters": true}, "shifts": ["midnight"]}, {"name": "James", "training": {"MV1": true}, "shifts": ["midnight"]}, {"name": "Operator 1", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 2", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 3", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 4", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 5", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 6", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 7", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 8", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 9", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 10", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 11", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 12", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 13", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}, {"name": "Operator 14", "training": {"Bottle Assembly": true, "CHS Extruder": true, "Extruder": true, "Off Line Cuttin": true, "16": true, "4A": true, "9": true, "14": true, "18": true, "22": true, "28": true, "33": true, "34": true, "40": true, "17": true, "23": true, "38": true, "Smith Housings": true, "GRP085": true, "46": true, "48": true, "47": true, "41": true, "Pad Printer": true, "GRP075": true, "CRH": true, "Mold Man 2": true, "Mold Man": true, "Elastic Tipper": true, "OP1 Mold Tier 1": true}, "shifts": ["day", "afternoon", "midnight"], "bus": ["Molding"]}];
-const LINES = [{"id": "ASB-231", "name": "ASB-231 � LP S4", "trainingKey": "ASB-231 - LP S4", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-170", "name": "ASB-170 � QC s4 +Bio", "trainingKey": "ASB-170 - QC s4 +Bio", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-258", "name": "ASB-258 � QC S3", "trainingKey": "ASB-258 - QC S3", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-073", "name": "ASB-073 � LP S3", "trainingKey": "ASB-073 - LP S3", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-179", "name": "ASB-179 � HDMI Mix", "trainingKey": "ASB-179 - HDMI Mix", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-075", "name": "ASB-075 � QC Mix", "trainingKey": "ASB-075 - QC Mix", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-259", "name": "ASB-259 � QC Mac s4", "trainingKey": "ASB-259 - QC Mac s4", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-260", "name": "ASB-260 � QC Mac S3", "trainingKey": "ASB-260 - QC Mac S3", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "MV1", "name": "MV1", "trainingKey": "MV1", "group": "other", "headcount": 2, "variable": false, "options": null, "packReq": null, "bu": "Verathon"}, {"id": "Verathon_CRH", "name": "CRH", "trainingKey": "CRH", "group": "other", "headcount": 6, "variable": false, "packReq": null, "bu": "Verathon", "options": null, "planOptions": null, "autoMachine": false, "displayId": "MV1"}, {"id": "MV2", "name": "MV2", "trainingKey": "MV2", "group": "other", "headcount": 4, "variable": false, "packReq": "MV2 Pack", "bu": "Verathon"}, {"id": "PRINT", "name": "PRINT", "trainingKey": "PRINT", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "CNC", "name": "CNC", "trainingKey": "CNC", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "BFLEX", "name": "BFLEX/ORION", "trainingKey": "BFLEX/ORION", "group": "other", "headcount": 3, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "M42", "name": "M42", "trainingKey": "M42", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "M43", "name": "M43", "trainingKey": "M43", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "Flex3", "name": "Flex 3", "trainingKey": "Flex 3", "group": "other", "headcount": 3, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "V_2", "name": "Verathon 2", "trainingKey": "Verathon 2", "group": "other", "headcount": null, "variable": true, "options": [1, 2], "packReq": null, "bu": "Verathon"}, {"id": "V_2A", "name": "Verathon 2A", "trainingKey": "Verathon 2A", "group": "other", "headcount": null, "variable": true, "options": [1, 2], "packReq": null, "bu": "Verathon"}, {"id": "Molding_Bottle_Assembly", "name": "Bottle Assembly", "trainingKey": "Bottle Assembly", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_Off_Line_Cuttin", "name": "Off Line Cuttin", "trainingKey": "Off Line Cuttin", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Molding", "planOptions": [1], "autoMachine": false}, {"id": "Molding_4A", "name": "4A", "trainingKey": "4A", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_9", "name": "9", "trainingKey": "9", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_14", "name": "14", "trainingKey": "14", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_18", "name": "18", "trainingKey": "18", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_22", "name": "22", "trainingKey": "22", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_28", "name": "28", "trainingKey": "28", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_33", "name": "33", "trainingKey": "33", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_34", "name": "34", "trainingKey": "34", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_40", "name": "40", "trainingKey": "40", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_17", "name": "17", "trainingKey": "17", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_Smith_Housings", "name": "Smith Housings", "trainingKey": "Smith Housings", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_GRP085", "name": "GRP085", "trainingKey": "GRP085", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_46", "name": "46", "trainingKey": "46", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_48", "name": "48", "trainingKey": "48", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_47", "name": "47", "trainingKey": "47", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_41", "name": "41", "trainingKey": "41", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_Pad_Printer", "name": "Pad Printer", "trainingKey": "Pad Printer", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_GRP075", "name": "GRP075", "trainingKey": "GRP075", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_Mold_Man_2", "name": "Mold Man 2", "trainingKey": "Mold Man 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [3, 4], "planOptions": [3, 4], "autoMachine": false, "fracOptions": false}, {"id": "Molding_Mold_Man", "name": "Mold Man", "trainingKey": "Mold Man", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [3, 4], "planOptions": [3, 4], "autoMachine": false, "fracOptions": false}, {"id": "Molding_OP1_Mold_Tier_1", "name": "OP1 Mold Tier 1", "trainingKey": "OP1 Mold Tier 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_Floaters", "name": "Floaters", "trainingKey": "Floaters", "group": "other", "headcount": 2, "variable": true, "options": [1, 2, 3], "packReq": null, "bu": "Molding", "fracOptions": false}, {"id": "Tier_1_19", "name": "19", "trainingKey": "19", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_20", "name": "20", "trainingKey": "20", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_29", "name": "29", "trainingKey": "29", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_31", "name": "31", "trainingKey": "31", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_32", "name": "32", "trainingKey": "32", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_35", "name": "35", "trainingKey": "35", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_5", "name": "5", "trainingKey": "5", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_B_F_Polish", "name": "B/F& Polish", "trainingKey": "B/F& Polish", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_BetterShield", "name": "BetterShield", "trainingKey": "BetterShield", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [3, 4]}, {"id": "Tier_1_BL_Scalpel_Pack", "name": "BL/Scalpel Pack", "trainingKey": "BL/Scalpel Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Coat", "name": "Blade Coat", "trainingKey": "Blade Coat", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Blade_Grinder", "name": "Blade Grinder", "trainingKey": "Blade Grinder", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Grinder_2", "name": "Blade Grinder 2", "trainingKey": "Blade Grinder 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Inspect", "name": "Blade Inspect", "trainingKey": "Blade Inspect", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Singulate", "name": "Blade Singulate", "trainingKey": "Blade Singulate", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blue_Scalpel", "name": "Blue Scalpel", "trainingKey": "Blue Scalpel", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA", "name": "CANICA", "trainingKey": "CANICA", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA_GAMMA", "name": "CANICA GAMMA", "trainingKey": "CANICA GAMMA", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA_PACK", "name": "CANICA PACK", "trainingKey": "CANICA PACK", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Capnoxygen_Line", "name": "Capnoxygen Line", "trainingKey": "Capnoxygen Line", "group": "other", "headcount": 5, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Cartridge_Assem", "name": "Cartridge Assem", "trainingKey": "Cartridge Assem", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_CBF", "name": "CBF", "trainingKey": "CBF", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Face_Shield", "name": "Face Shield", "trainingKey": "Face Shield", "group": "other", "headcount": 5, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Ivers_Lee", "name": "Ivers Lee", "trainingKey": "Ivers Lee", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Line_1", "name": "Line 1", "trainingKey": "Line 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 8]}, {"id": "Tier_1_Line_2", "name": "Line 2", "trainingKey": "Line 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [6, 8]}, {"id": "Tier_1_Line_3", "name": "Line 3", "trainingKey": "Line 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 8]}, {"id": "Tier_1_LINE3OP", "name": "LINE3OP", "trainingKey": "LINE3OP", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Mini_Staker", "name": "Mini Staker", "trainingKey": "Mini Staker", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_OP1", "name": "OP1", "trainingKey": "OP1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_OP1_Tier_1", "name": "OP1 Tier 1", "trainingKey": "OP1 Tier 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Orange_Scalpel", "name": "Orange Scalpel", "trainingKey": "Orange Scalpel", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_OxyMask_Cell", "name": "OxyMask Cell", "trainingKey": "OxyMask Cell", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 9]}, {"id": "Tier_1_Paper_Wrap_Pack", "name": "Paper Wrap Pack", "trainingKey": "Paper Wrap Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_PERS_PACK", "name": "PERS PACK", "trainingKey": "PERS PACK", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Scalpel_Packing", "name": "Scalpel Packing", "trainingKey": "Scalpel Packing", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Smiths_Bake", "name": "Smiths Bake", "trainingKey": "Smiths Bake", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_SPSS_3", "name": "SPSS # 3", "trainingKey": "SPSS # 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_SPSS_4", "name": "SPSS # 4", "trainingKey": "SPSS # 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_Sub_Assembly", "name": "Sub Assembly", "trainingKey": "Sub Assembly", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Sub_Assembly_2", "name": "Sub Assembly 2", "trainingKey": "Sub Assembly 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_CBF_2", "name": "CBF 2", "trainingKey": "CBF 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_PPSS", "name": "PPSS", "trainingKey": "PPSS", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_PPSS_Pack", "name": "PPSS Pack", "trainingKey": "PPSS Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Smiths_Purge", "name": "Smiths Purge", "trainingKey": "Smiths Purge", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Cut", "name": "Cut", "trainingKey": "Cut", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Procell_Line", "name": "Procell Line", "trainingKey": "Procell Line", "group": "other", "headcount": 6, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_2_DNA_Bag_Assy", "name": "DNA Bag Assy", "trainingKey": "DNA Bag Assy", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cap_Insert", "name": "DNA Cap Insert", "trainingKey": "DNA Cap Insert", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_4", "name": "DNA Cell 4", "trainingKey": "DNA Cell 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_5", "name": "DNA Cell 5", "trainingKey": "DNA Cell 5", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_8", "name": "DNA Cell 8", "trainingKey": "DNA Cell 8", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_FLEX_Bag_Carton", "name": "FLEX Bag Carton", "trainingKey": "FLEX Bag Carton", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_FLEX_Cup_Line", "name": "FLEX Cup Line", "trainingKey": "FLEX Cup Line", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_Flex_Line_2", "name": "Flex Line 2", "trainingKey": "Flex Line 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_014", "name": "PK Pump 014", "trainingKey": "PK Pump 014", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_033", "name": "PK Pump 033", "trainingKey": "PK Pump 033", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_074", "name": "PK Pump 074", "trainingKey": "PK Pump 074", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Dispense", "name": "PK Dispense", "trainingKey": "PK Dispense", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_OC_Cell_5", "name": "DNA OC Cell # 5", "trainingKey": "DNA OC Cell # 5", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_3", "name": "DNA Cell 3", "trainingKey": "DNA Cell 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_OC_Cell_4", "name": "DNA OC Cell # 4", "trainingKey": "DNA OC Cell # 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Swab_Cell", "name": "DNA Swab Cell", "trainingKey": "DNA Swab Cell", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_Flex_Packaging", "name": "Flex Packaging", "trainingKey": "Flex Packaging", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OK", "name": "Thermoformer-OK", "trainingKey": "Thermoformer-OK", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OM", "name": "Thermoformer-OM", "trainingKey": "Thermoformer-OM", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OP", "name": "Thermoformer-OP", "trainingKey": "Thermoformer-OP", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_ThermoformerDNA", "name": "ThermoformerDNA", "trainingKey": "ThermoformerDNA", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_SMT", "name": "SMT", "trainingKey": "SMT", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_ThermoformerMTM", "name": "ThermoformerMTM", "trainingKey": "ThermoformerMTM", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer", "name": "Thermoformer", "trainingKey": "Thermoformer", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}];
+const LINES = [{"id": "ASB-231", "name": "ASB-231 – LP S4", "trainingKey": "ASB-231 - LP S4", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-170", "name": "ASB-170 – QC s4 +Bio", "trainingKey": "ASB-170 - QC s4 +Bio", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-258", "name": "ASB-258 – QC S3", "trainingKey": "ASB-258 - QC S3", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-073", "name": "ASB-073 – LP S3", "trainingKey": "ASB-073 - LP S3", "group": "lopro", "headcount": 5, "variable": false, "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-179", "name": "ASB-179 – HDMI Mix", "trainingKey": "ASB-179 - HDMI Mix", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-075", "name": "ASB-075 – QC Mix", "trainingKey": "ASB-075 - QC Mix", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-259", "name": "ASB-259 – QC Mac s4", "trainingKey": "ASB-259 - QC Mac s4", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "ASB-260", "name": "ASB-260 – QC Mac S3", "trainingKey": "ASB-260 - QC Mac S3", "group": "lopro", "headcount": null, "variable": true, "options": [1, 4], "packReq": "Lopro Pack", "bu": "Verathon"}, {"id": "MV1", "name": "MV1", "trainingKey": "MV1", "group": "other", "headcount": 2, "variable": false, "options": null, "packReq": null, "bu": "Verathon"}, {"id": "Verathon_CRH", "name": "CRH", "trainingKey": "CRH", "group": "other", "headcount": 6, "variable": false, "packReq": null, "bu": "Verathon", "options": null, "planOptions": null, "autoMachine": false, "displayId": "MV1"}, {"id": "MV2", "name": "MV2", "trainingKey": "MV2", "group": "other", "headcount": 4, "variable": false, "packReq": "MV2 Pack", "bu": "Verathon"}, {"id": "PRINT", "name": "PRINT", "trainingKey": "PRINT", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "CNC", "name": "CNC", "trainingKey": "CNC", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "BFLEX", "name": "BFLEX/ORION", "trainingKey": "BFLEX/ORION", "group": "other", "headcount": 3, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "M42", "name": "M42", "trainingKey": "M42", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "M43", "name": "M43", "trainingKey": "M43", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "Flex3", "name": "Flex 3", "trainingKey": "Flex 3", "group": "other", "headcount": 3, "variable": false, "packReq": null, "bu": "Verathon"}, {"id": "V_2", "name": "Verathon 2", "trainingKey": "Verathon 2", "group": "other", "headcount": null, "variable": true, "options": [1, 2], "packReq": null, "bu": "Verathon"}, {"id": "V_2A", "name": "Verathon 2A", "trainingKey": "Verathon 2A", "group": "other", "headcount": null, "variable": true, "options": [1, 2], "packReq": null, "bu": "Verathon"}, {"id": "Molding_Bottle_Assembly", "name": "Bottle Assembly", "trainingKey": "Bottle Assembly", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_Off_Line_Cuttin", "name": "Off Line Cuttin", "trainingKey": "Off Line Cuttin", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Molding", "planOptions": [1], "autoMachine": false}, {"id": "Molding_4A", "name": "4A", "trainingKey": "4A", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_9", "name": "9", "trainingKey": "9", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_14", "name": "14", "trainingKey": "14", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_18", "name": "18", "trainingKey": "18", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_22", "name": "22", "trainingKey": "22", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_28", "name": "28", "trainingKey": "28", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_33", "name": "33", "trainingKey": "33", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_34", "name": "34", "trainingKey": "34", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_40", "name": "40", "trainingKey": "40", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_17", "name": "17", "trainingKey": "17", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_Smith_Housings", "name": "Smith Housings", "trainingKey": "Smith Housings", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_GRP085", "name": "GRP085", "trainingKey": "GRP085", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_46", "name": "46", "trainingKey": "46", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_48", "name": "48", "trainingKey": "48", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_47", "name": "47", "trainingKey": "47", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_41", "name": "41", "trainingKey": "41", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": [0.33, 0.5, 1, 2], "autoMachine": true, "fracOptions": true}, {"id": "Molding_Pad_Printer", "name": "Pad Printer", "trainingKey": "Pad Printer", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_GRP075", "name": "GRP075", "trainingKey": "GRP075", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Molding_Mold_Man_2", "name": "Mold Man 2", "trainingKey": "Mold Man 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [3, 4], "planOptions": [3, 4], "autoMachine": false, "fracOptions": false}, {"id": "Molding_Mold_Man", "name": "Mold Man", "trainingKey": "Mold Man", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [3, 4], "planOptions": [3, 4], "autoMachine": false, "fracOptions": false}, {"id": "Molding_OP1_Mold_Tier_1", "name": "OP1 Mold Tier 1", "trainingKey": "OP1 Mold Tier 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Molding", "options": [0.33, 0.5, 1, 2], "planOptions": null, "autoMachine": false, "fracOptions": true}, {"id": "Tier_1_19", "name": "19", "trainingKey": "19", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_20", "name": "20", "trainingKey": "20", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_29", "name": "29", "trainingKey": "29", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_31", "name": "31", "trainingKey": "31", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_32", "name": "32", "trainingKey": "32", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_35", "name": "35", "trainingKey": "35", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_5", "name": "5", "trainingKey": "5", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_B_F_Polish", "name": "B/F& Polish", "trainingKey": "B/F& Polish", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_BetterShield", "name": "BetterShield", "trainingKey": "BetterShield", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [3, 4]}, {"id": "Tier_1_BL_Scalpel_Pack", "name": "BL/Scalpel Pack", "trainingKey": "BL/Scalpel Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Coat", "name": "Blade Coat", "trainingKey": "Blade Coat", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Blade_Grinder", "name": "Blade Grinder", "trainingKey": "Blade Grinder", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Grinder_2", "name": "Blade Grinder 2", "trainingKey": "Blade Grinder 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Inspect", "name": "Blade Inspect", "trainingKey": "Blade Inspect", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blade_Singulate", "name": "Blade Singulate", "trainingKey": "Blade Singulate", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Blue_Scalpel", "name": "Blue Scalpel", "trainingKey": "Blue Scalpel", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA", "name": "CANICA", "trainingKey": "CANICA", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA_GAMMA", "name": "CANICA GAMMA", "trainingKey": "CANICA GAMMA", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_CANICA_PACK", "name": "CANICA PACK", "trainingKey": "CANICA PACK", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Capnoxygen_Line", "name": "Capnoxygen Line", "trainingKey": "Capnoxygen Line", "group": "other", "headcount": 5, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Cartridge_Assem", "name": "Cartridge Assem", "trainingKey": "Cartridge Assem", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_CBF", "name": "CBF", "trainingKey": "CBF", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Face_Shield", "name": "Face Shield", "trainingKey": "Face Shield", "group": "other", "headcount": 5, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Ivers_Lee", "name": "Ivers Lee", "trainingKey": "Ivers Lee", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Line_1", "name": "Line 1", "trainingKey": "Line 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 8]}, {"id": "Tier_1_Line_2", "name": "Line 2", "trainingKey": "Line 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [6, 8]}, {"id": "Tier_1_Line_3", "name": "Line 3", "trainingKey": "Line 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 8]}, {"id": "Tier_1_LINE3OP", "name": "LINE3OP", "trainingKey": "LINE3OP", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Mini_Staker", "name": "Mini Staker", "trainingKey": "Mini Staker", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_OP1", "name": "OP1", "trainingKey": "OP1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_OP1_Tier_1", "name": "OP1 Tier 1", "trainingKey": "OP1 Tier 1", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Orange_Scalpel", "name": "Orange Scalpel", "trainingKey": "Orange Scalpel", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_OxyMask_Cell", "name": "OxyMask Cell", "trainingKey": "OxyMask Cell", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [7, 9]}, {"id": "Tier_1_Paper_Wrap_Pack", "name": "Paper Wrap Pack", "trainingKey": "Paper Wrap Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_PERS_PACK", "name": "PERS PACK", "trainingKey": "PERS PACK", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Scalpel_Packing", "name": "Scalpel Packing", "trainingKey": "Scalpel Packing", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Smiths_Bake", "name": "Smiths Bake", "trainingKey": "Smiths Bake", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_SPSS_3", "name": "SPSS # 3", "trainingKey": "SPSS # 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_SPSS_4", "name": "SPSS # 4", "trainingKey": "SPSS # 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [2, 3]}, {"id": "Tier_1_Sub_Assembly", "name": "Sub Assembly", "trainingKey": "Sub Assembly", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Sub_Assembly_2", "name": "Sub Assembly 2", "trainingKey": "Sub Assembly 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_CBF_2", "name": "CBF 2", "trainingKey": "CBF 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_PPSS", "name": "PPSS", "trainingKey": "PPSS", "group": "other", "headcount": 2, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_PPSS_Pack", "name": "PPSS Pack", "trainingKey": "PPSS Pack", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 1", "options": [1, 2]}, {"id": "Tier_1_Smiths_Purge", "name": "Smiths Purge", "trainingKey": "Smiths Purge", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Cut", "name": "Cut", "trainingKey": "Cut", "group": "other", "headcount": 1, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_1_Procell_Line", "name": "Procell Line", "trainingKey": "Procell Line", "group": "other", "headcount": 6, "variable": false, "packReq": null, "bu": "Tier 1"}, {"id": "Tier_2_DNA_Bag_Assy", "name": "DNA Bag Assy", "trainingKey": "DNA Bag Assy", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cap_Insert", "name": "DNA Cap Insert", "trainingKey": "DNA Cap Insert", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_4", "name": "DNA Cell 4", "trainingKey": "DNA Cell 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_5", "name": "DNA Cell 5", "trainingKey": "DNA Cell 5", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_8", "name": "DNA Cell 8", "trainingKey": "DNA Cell 8", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_FLEX_Bag_Carton", "name": "FLEX Bag Carton", "trainingKey": "FLEX Bag Carton", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_FLEX_Cup_Line", "name": "FLEX Cup Line", "trainingKey": "FLEX Cup Line", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_Flex_Line_2", "name": "Flex Line 2", "trainingKey": "Flex Line 2", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_014", "name": "PK Pump 014", "trainingKey": "PK Pump 014", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_033", "name": "PK Pump 033", "trainingKey": "PK Pump 033", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Pump_074", "name": "PK Pump 074", "trainingKey": "PK Pump 074", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_PK_Dispense", "name": "PK Dispense", "trainingKey": "PK Dispense", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_OC_Cell_5", "name": "DNA OC Cell # 5", "trainingKey": "DNA OC Cell # 5", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Cell_3", "name": "DNA Cell 3", "trainingKey": "DNA Cell 3", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_OC_Cell_4", "name": "DNA OC Cell # 4", "trainingKey": "DNA OC Cell # 4", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_DNA_Swab_Cell", "name": "DNA Swab Cell", "trainingKey": "DNA Swab Cell", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Tier_2_Flex_Packaging", "name": "Flex Packaging", "trainingKey": "Flex Packaging", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Tier 2", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OK", "name": "Thermoformer-OK", "trainingKey": "Thermoformer-OK", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OM", "name": "Thermoformer-OM", "trainingKey": "Thermoformer-OM", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer_OP", "name": "Thermoformer-OP", "trainingKey": "Thermoformer-OP", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_ThermoformerDNA", "name": "ThermoformerDNA", "trainingKey": "ThermoformerDNA", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_SMT", "name": "SMT", "trainingKey": "SMT", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_ThermoformerMTM", "name": "ThermoformerMTM", "trainingKey": "ThermoformerMTM", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}, {"id": "Bell_Farm_Thermoformer", "name": "Thermoformer", "trainingKey": "Thermoformer", "group": "other", "headcount": null, "variable": true, "packReq": null, "bu": "Bell Farm", "options": [1, 2]}];
 
-/* Business units � drives the BU filter at the top of the screen.
+/* Business units — drives the BU filter at the top of the screen.
    Each LINES entry carries a `bu` field matching one of these IDs.
    Lines for non-Verathon BUs will be added in a later iteration. */
 const BUS = [
@@ -995,11 +995,11 @@ const BUS = [
    Add new skill names here if you ever need a new category. */
 const SKILL_GROUPS = [
   { name: 'Pack certifications', keys: ['Lopro Pack', 'MV2 Pack'], bus: ['Verathon'] },
-  { name: 'Lines � LoPro / QC',  keys: ['ASB-231 - LP S4','ASB-170 - QC s4 +Bio','ASB-258 - QC S3','ASB-073 - LP S3','ASB-179 - HDMI Mix','ASB-075 - QC Mix','ASB-259 - QC Mac s4','ASB-260 - QC Mac S3'], bus: ['Verathon'] },
-  { name: 'Lines � Other',       keys: ['MV1','MV2','PRINT','BFLEX/ORION','CNC','CRH','M42','M43','Flex 3','Verathon 2','Verathon 2A'], bus: ['Verathon'] },
+  { name: 'Lines — LoPro / QC',  keys: ['ASB-231 - LP S4','ASB-170 - QC s4 +Bio','ASB-258 - QC S3','ASB-073 - LP S3','ASB-179 - HDMI Mix','ASB-075 - QC Mix','ASB-259 - QC Mac s4','ASB-260 - QC Mac S3'], bus: ['Verathon'] },
+  { name: 'Lines — Other',       keys: ['MV1','MV2','PRINT','BFLEX/ORION','CNC','CRH','M42','M43','Flex 3','Verathon 2','Verathon 2A'], bus: ['Verathon'] },
   { name: 'Roles',               keys: ['Floaters','Rework','Other'], bus: ['Verathon','Molding','Tier 1','Tier 2','Bell Farm'] },
-  { name: 'Molding � Machines',  keys: ['4A','9','14','18','22','28','33','34','40','17','46','48','47','41'], bus: ['Molding'] },
-  { name: 'Molding � Other',     keys: ['Bottle Assembly','Off Line Cuttin','Smith Housings','GRP085','GRP075','Pad Printer','Mold Man','Mold Man 2','OP1 Mold Tier 1'], bus: ['Molding'] },
+  { name: 'Molding — Machines',  keys: ['4A','9','14','18','22','28','33','34','40','17','46','48','47','41'], bus: ['Molding'] },
+  { name: 'Molding — Other',     keys: ['Bottle Assembly','Off Line Cuttin','Smith Housings','GRP085','GRP075','Pad Printer','Mold Man','Mold Man 2','OP1 Mold Tier 1'], bus: ['Molding'] },
 ];
 const ALL_SHIFTS = [
   { id: 'day',       label: 'Day',       short: 'D' },
@@ -1009,7 +1009,7 @@ const ALL_SHIFTS = [
 
 /* ===================== STATE ===================== */
 
-/* localStorage wrapper � graceful fallback if blocked */
+/* localStorage wrapper — graceful fallback if blocked */
 const Storage = {
   load(key, fallback) {
     try {
@@ -1032,7 +1032,7 @@ const ROTATION_WINDOW = 5;
 
 /* Default priority ordering per shift. Variable-headcount lines appear twice:
    once at their preferred (larger) headcount near the top, and once at the
-   fallback (smaller) headcount near the bottom � so the auto-scheduler tries
+   fallback (smaller) headcount near the bottom — so the auto-scheduler tries
    the bigger version first and falls back if there aren't enough people.
    MV1 stays single-entry at 2 per supervisor preference. */
 const DEFAULT_PRIORITY_ENTRIES = [
@@ -1040,10 +1040,10 @@ const DEFAULT_PRIORITY_ENTRIES = [
   { lineId: 'ASB-170', headcount: 5 },
   { lineId: 'ASB-258', headcount: 5 },
   { lineId: 'ASB-073', headcount: 5 },
-  { lineId: 'ASB-179', headcount: 4 },   // HDMI Mix � prefer 4
-  { lineId: 'ASB-075', headcount: 4 },   // QC Mix � prefer 4
-  { lineId: 'ASB-259', headcount: 4 },   // QC Mac s4 � prefer 4
-  { lineId: 'ASB-260', headcount: 4 },   // QC Mac S3 � prefer 4
+  { lineId: 'ASB-179', headcount: 4 },   // HDMI Mix — prefer 4
+  { lineId: 'ASB-075', headcount: 4 },   // QC Mix — prefer 4
+  { lineId: 'ASB-259', headcount: 4 },   // QC Mac s4 — prefer 4
+  { lineId: 'ASB-260', headcount: 4 },   // QC Mac S3 — prefer 4
   { lineId: 'MV1',     headcount: 2 },
   { lineId: 'MV2',     headcount: 4 },
   { lineId: 'PRINT',   headcount: 1 },
@@ -1086,13 +1086,13 @@ function updateCloudStatus(s) {
   if (!el || !lbl) return;
   el.className = 'cloud-status ' + cloudStatus;
   lbl.textContent = ({
-    connecting: 'Sync�', synced: 'Synced', offline: 'Offline', local: 'Local'
+    connecting: 'Sync…', synced: 'Synced', offline: 'Offline', local: 'Local'
   })[cloudStatus] || '';
   el.title = ({
-    connecting: 'Connecting to shared database�',
-    synced: 'Live � changes shared with your team',
-    offline: 'Offline � changes saved and will sync when reconnected',
-    local: 'Cloud unavailable � working on this device only'
+    connecting: 'Connecting to shared database…',
+    synced: 'Live — changes shared with your team',
+    offline: 'Offline — changes saved and will sync when reconnected',
+    local: 'Cloud unavailable — working on this device only'
   })[cloudStatus] || '';
 }
 
@@ -1114,7 +1114,7 @@ function loadRoster() {
   if (stored && Array.isArray(stored) && stored.length > 0) {
     return stored.map(migrateOperator);
   }
-  // First run � seed from embedded data; use each operator's shifts as defined in the seed
+  // First run — seed from embedded data; use each operator's shifts as defined in the seed
   const seeded = ROSTER_SEED.map(o => ({
     name: o.name,
     training: { ...o.training },
@@ -1140,7 +1140,7 @@ function migrateRosterToBU() {
 }
 if (migrateRosterToBU()) Storage.save(ROSTER_KEY, ROSTER);
 
-// OPERATORS is the filtered slice for the current shift � used everywhere
+// OPERATORS is the filtered slice for the current shift — used everywhere
 // downstream. Recompute via refreshOperators() whenever shift or roster changes.
 let OPERATORS = [];
 
@@ -1158,7 +1158,7 @@ function refreshOperators() {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
-// Lines visible in the current BU � used in place of raw LINES throughout
+// Lines visible in the current BU — used in place of raw LINES throughout
 // the render and scheduling functions.
 function visibleLines() {
   return LINES.filter(l => l.bu === state.currentBU);
@@ -1235,7 +1235,7 @@ function migratePriorities(stored) {
     };
     return fresh;
   }
-  // Already in new format � merge with fresh so every BU exists
+  // Already in new format — merge with fresh so every BU exists
   BUS.forEach(b => {
     if (stored[b.id]) fresh[b.id] = stored[b.id];
   });
@@ -1253,7 +1253,7 @@ const state = {
   floaters: [],
   history: Storage.load(HISTORY_KEY, []),
   priorities: migratePriorities(Storage.load(PRIORITY_KEY, null)),
-  assignMode: Storage.load(MODE_KEY, 'auto'),   // 'auto' | 'manual', remembered per device
+  assignMode: Storage.load(MODE_KEY, 'manual'),   // 'auto' | 'manual', remembered per device
 };
 refreshOperators();
 
@@ -1309,8 +1309,6 @@ function shiftLabel(id) { return ALL_SHIFTS.find(s => s.id === id)?.label || id;
 visibleLines().forEach(l => {
   state.headcount[l.id] = l.variable ? l.options[0] : l.headcount;
 });
-// Override Molding Floaters default to 2
-if (!('Molding_Floaters' in state.headcount)) state.headcount['Molding_Floaters'] = 2;
 
 let currentStep = 1;
 
@@ -1353,7 +1351,7 @@ document.querySelectorAll('.stepper button').forEach(b => {
   b.addEventListener('click', () => goStep(+b.dataset.step));
 });
 
-/* ===================== STEP 1 � ABSENT ===================== */
+/* ===================== STEP 1 — ABSENT ===================== */
 function renderStep1() {
   const q = (document.getElementById('op-search').value || '').toLowerCase();
   const list = document.getElementById('op-list');
@@ -1396,7 +1394,7 @@ function updateCounters() {
   }
 }
 
-/* ===================== STEP 2 � LINES RUNNING ===================== */
+/* ===================== STEP 2 — LINES RUNNING ===================== */
 function renderStep2() {
   if (false && state.currentBU === 'Molding' && visibleLines().some(l => l.planOptions)) {
     renderMoldingCoverage();
@@ -1433,7 +1431,7 @@ function renderStep2() {
       card.innerHTML = `
         <div class="info">
           <div class="id">${l.displayId || l.id}</div>
-          <div class="nm">${l.name.replace(/^[^�]+� /, '')}</div>
+          <div class="nm">${l.name.replace(/^[^–]+– /, '')}</div>
         </div>
         <div class="hc-badge">${hcLabel}</div>`;
       card.onclick = () => {
@@ -1472,7 +1470,7 @@ function renderMoldingCoverage() {
     const modeBtns = l.planOptions.map(p => {
       const btn = document.createElement('button');
       btn.className = 'mach-mode-btn' + (ms.planMode === p ? ' active' : '');
-      btn.textContent = p === 0.33 ? '?' : p === 0.5 ? '�' : p;
+      btn.textContent = p === 0.33 ? '?' : p === 0.5 ? '½' : p;
       btn.title = p === 0.33 ? '3 machines / 1 op' : p === 0.5 ? '2 machines / 1 op' : `${p} op${p>1?'s':''}`;
       btn.onclick = (e) => {
         e.stopPropagation();
@@ -1500,7 +1498,7 @@ function renderMoldingCoverage() {
   // Auto machines section
   const autoTitle = document.createElement('div');
   autoTitle.className = 'molding-section-title';
-  autoTitle.textContent = `Auto machines (${autoLines.length}) � tap to toggle, tap mode to change`;
+  autoTitle.textContent = `Auto machines (${autoLines.length}) — tap to toggle, tap mode to change`;
   list.appendChild(autoTitle);
 
   const autoMachList = document.createElement('div');
@@ -1511,7 +1509,7 @@ function renderMoldingCoverage() {
   // Dedicated machines section
   const dedTitle = document.createElement('div');
   dedTitle.className = 'molding-section-title';
-  dedTitle.textContent = `Dedicated machines (${dedicatedLines.length}) � tap to toggle`;
+  dedTitle.textContent = `Dedicated machines (${dedicatedLines.length}) — tap to toggle`;
   list.appendChild(dedTitle);
 
   const dedMachList = document.createElement('div');
@@ -1535,7 +1533,7 @@ function renderMoldingCoverage() {
     zonesTitle.className = 'molding-section-title';
     const totalOps = moldingZones.filter(z => z.opName).length;
     const totalMach = moldingZones.reduce((s, z) => s + z.machines.length, 0);
-    zonesTitle.textContent = `Coverage zones � ${totalOps} operators, ${totalMach} machines`;
+    zonesTitle.textContent = `Coverage zones — ${totalOps} operators, ${totalMach} machines`;
     list.appendChild(zonesTitle);
 
     const zonesWrap = document.createElement('div');
@@ -1546,11 +1544,11 @@ function renderMoldingCoverage() {
       const pct = Math.round(zone.totalLoad * 100);
       card.innerHTML = `
         <div class="zone-header">
-          <div class="zone-op">${zone.opName || '�'}</div>
-          <div class="zone-load">${pct}% load � ${zone.machines.length} machine${zone.machines.length !== 1 ? 's' : ''}</div>
+          <div class="zone-op">${zone.opName || '—'}</div>
+          <div class="zone-load">${pct}% load · ${zone.machines.length} machine${zone.machines.length !== 1 ? 's' : ''}</div>
         </div>
         <div class="zone-machines">
-          ${zone.machines.map(m => `<div class="zone-machine-chip">${m.name} <span style="opacity:.6;font-size:10px;">${m.plan === 0.33 ? '?' : m.plan === 0.5 ? '�' : m.plan}</span></div>`).join('')}
+          ${zone.machines.map(m => `<div class="zone-machine-chip">${m.name} <span style="opacity:.6;font-size:10px;">${m.plan === 0.33 ? '?' : m.plan === 0.5 ? '½' : m.plan}</span></div>`).join('')}
         </div>`;
       zonesWrap.appendChild(card);
     });
@@ -1631,13 +1629,13 @@ function setAllLines(on) {
   renderStep2(); updateCounters();
 }
 
-/* ===================== STEP 3 � HEADCOUNT ===================== */
+/* ===================== STEP 3 — HEADCOUNT ===================== */
 function renderStep3() {
   const list = document.getElementById('variable-list');
   list.innerHTML = '';
   const variableRunning = visibleLines().filter(l => l.variable && state.running.has(l.id));
   if (variableRunning.length === 0) {
-    list.innerHTML = `<div style="background: var(--bg-card); border:1px solid var(--line); border-radius:8px; padding:14px; color: var(--ink-soft); font-size:13px;">No running lines have variable headcount � nothing to set here. Tap <strong>Assign</strong> below.</div>`;
+    list.innerHTML = `<div style="background: var(--bg-card); border:1px solid var(--line); border-radius:8px; padding:14px; color: var(--ink-soft); font-size:13px;">No running lines have variable headcount — nothing to set here. Tap <strong>Assign</strong> below.</div>`;
   }
   variableRunning.forEach(l => {
     const card = document.createElement('div');
@@ -1646,7 +1644,7 @@ function renderStep3() {
       <div class="top">
         <div>
           <div class="id">${l.displayId || l.id}</div>
-          <div class="nm">${l.name.replace(/^[^�]+� /, '')}</div>
+          <div class="nm">${l.name.replace(/^[^–]+– /, '')}</div>
         </div>
         <div class="seg" data-line="${l.id}">
           ${l.options.map(opt => { const lbl = l.fracOptions ? (opt===0.33?'1/3':opt===0.5?'1/2':opt===1?'1':'2') : opt; return `<button data-val="${opt}" class="${state.headcount[l.id]==opt?'selected':''}">` + lbl + `</button>`; }).join('')}
@@ -1684,18 +1682,16 @@ function renderTotals() {
   const moldingOps = Math.ceil(moldingFrac);
   const floaters = computeFloaters(lopro);
   const isMolding = state.currentBU === 'Molding';
-  const moldingFloaters = isMolding ? (state.headcount['Molding_Floaters'] ?? 2) : 0;
+  const moldingFloaters = isMolding ? 2 : 0;
   const moldingFloaterRow = document.getElementById('molding-floater-row');
   if (moldingFloaterRow) moldingFloaterRow.style.display = isMolding ? '' : 'none';
   document.getElementById('lopro-total').textContent = lopro;
   document.getElementById('floater-num').textContent = floaters;
-  const mfnEl = document.getElementById('molding-floater-num');
-  if (mfnEl) mfnEl.textContent = moldingFloaters;
   document.getElementById('other-total').textContent = other + moldingOps;
   document.getElementById('grand-total').textContent = lopro + other + moldingOps + floaters + moldingFloaters;
 }
 
-/* ===================== STEP 4 � ASSIGNMENT ALGORITHM ===================== */
+/* ===================== STEP 4 — ASSIGNMENT ALGORITHM ===================== */
 
 // Number of skills an operator has (lower = more specialized; we save specialists for harder slots)
 function versatility(op) { return Object.keys(op.training).length; }
@@ -1789,7 +1785,7 @@ function runAssignment() {
     if (line.fracOptions) return; // handled by fracGroups
     const hc = state.headcount[line.id];
     if (!line.packReq || hc < 4) return;
-    // Pack training stands alone � no line training required to occupy the pack slot
+    // Pack training stands alone — no line training required to occupy the pack slot
     const candidates = pool.filter(o =>
       !used.has(o.name) &&
       o.training[line.packReq]
@@ -1808,7 +1804,7 @@ function runAssignment() {
     }
   });
 
-  // Step B: Fill remaining slots � process lines in tight-pool order
+  // Step B: Fill remaining slots — process lines in tight-pool order
   lineWithPool.forEach(({ line }) => {
     if (line.fracOptions) return; // handled by fracGroups
     const hc = state.headcount[line.id];
@@ -1834,9 +1830,7 @@ function runAssignment() {
   // Step C: Floaters
   let loproCount = 0;
   visibleLines().forEach(l => { if (state.running.has(l.id) && l.group === 'lopro') loproCount += state.headcount[l.id]; });
-  const floatersNeeded = state.currentBU === 'Molding'
-    ? (state.headcount['Molding_Floaters'] ?? 2)
-    : computeFloaters(loproCount);
+  const floatersNeeded = computeFloaters(loproCount);
   const floaterCandidates = pool.filter(o => !used.has(o.name) && o.training['Floaters']);
   // Rotate floaters: least-recently-floated first; tiebreak by high versatility
   floaterCandidates.sort((a, b) => {
@@ -1849,7 +1843,7 @@ function runAssignment() {
     used.add(floaterCandidates[i].name);
   }
 
-  // Step D: Chain-swap pass � fill any remaining gaps by moving people around
+  // Step D: Chain-swap pass — fill any remaining gaps by moving people around
   // (handles cases where bench has qualified ops but greedy assignment trapped them)
   fillGapsWithChainSwaps(floatersNeeded);
 
@@ -1896,7 +1890,7 @@ function fillGapsWithChainSwaps(floatersNeeded) {
   };
 
   // Recursive augmenting-path search (standard bipartite matching).
-  // visited: slots already tried in THIS search � never un-marked, which keeps
+  // visited: slots already tried in THIS search — never un-marked, which keeps
   // the search polynomial. A slot that can't be filled once in a search can't
   // be filled later in it, so re-exploring is both wrong and exponentially slow.
   // stepBudget is a hard safety cap so the app can never hard-freeze: if a
@@ -1941,7 +1935,7 @@ function fillGapsWithChainSwaps(floatersNeeded) {
       targetSlot.currentName = null;
       cur.currentName = o.name;
     }
-    // NOTE: targetSlot.key stays in `visited` on purpose � do not delete it.
+    // NOTE: targetSlot.key stays in `visited` on purpose — do not delete it.
     return false;
   }
 
@@ -1980,7 +1974,7 @@ function renderAssignments() {
     card.innerHTML = `
       <div class="assign-head">
         <div>
-          <div class="nm">${line.name.replace(/^[^�]+� /, '')}</div>
+          <div class="nm">${line.name.replace(/^[^–]+– /, '')}</div>
           <div class="id">${line.id}</div>
         </div>
         <div class="hc">${line.fracOptions ? (hc === 0.33 ? "1/3" : hc === 0.5 ? "1/2" : hc) : hc} ops</div>
@@ -1993,10 +1987,10 @@ function renderAssignments() {
       const groupBadge = slot.groupLabel ? `<div class="badge" style="background:var(--blue);color:white;font-size:10px">${slot.groupLabel}</div>` : '';
       row.innerHTML = `
         <div class="pos ${slot.isPack ? 'pack' : ''}">P${idx+1}</div>
-        <div class="person">${slot.name || 'Unassigned � tap to fill'}</div>
+        <div class="person">${slot.name || 'Unassigned — tap to fill'}</div>
         ${slot.isPack ? '<div class="badge pack">PACK</div>' : ''}
         ${groupBadge}
-        <div class="chev">�</div>`;
+        <div class="chev">›</div>`;
       row.onclick = () => openSwapModal(line.id, idx);
       slotsEl.appendChild(row);
       if (!slot.name) {
@@ -2009,9 +2003,7 @@ function renderAssignments() {
 
   // Render floaters
   const loproCount = visibleLines().filter(l => state.running.has(l.id) && l.group === 'lopro').reduce((s, l) => s + state.headcount[l.id], 0);
-  const needed = state.currentBU === 'Molding'
-    ? (state.headcount['Molding_Floaters'] ?? 2)
-    : computeFloaters(loproCount);
+  const needed = computeFloaters(loproCount);
   document.getElementById('floater-count').textContent = `${state.floaters.length} / ${needed}`;
   const fc = document.getElementById('floater-chips');
   fc.innerHTML = '';
@@ -2057,7 +2049,7 @@ function renderAssignments() {
   if (warnings.length > 0) {
     const w = document.createElement('div');
     w.className = 'warning';
-    w.innerHTML = `<div><strong>${warnings.length} gap${warnings.length>1?'s':''} to resolve:</strong><br>${warnings.slice(0,5).map(x=>'� '+x).join('<br>')}${warnings.length>5?`<br>+${warnings.length-5} more`:''}</div>`;
+    w.innerHTML = `<div><strong>${warnings.length} gap${warnings.length>1?'s':''} to resolve:</strong><br>${warnings.slice(0,5).map(x=>'• '+x).join('<br>')}${warnings.length>5?`<br>+${warnings.length-5} more`:''}</div>`;
     warnWrap.appendChild(w);
   }
 
@@ -2065,13 +2057,13 @@ function renderAssignments() {
   const now = new Date();
   const dateStr = now.toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
   const timeStr = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  document.getElementById('print-h1').textContent = `Shift Assignment � ${shiftLabel(state.currentShift)} Shift`;
+  document.getElementById('print-h1').textContent = `Shift Assignment — ${shiftLabel(state.currentShift)} Shift`;
   document.getElementById('print-meta').innerHTML =
-    `${dateStr}<br>Generated ${timeStr} &nbsp;�&nbsp; ` +
-    `${state.running.size} lines � ${OPERATORS.length - state.absent.size}/${OPERATORS.length} available`;
+    `${dateStr}<br>Generated ${timeStr} &nbsp;·&nbsp; ` +
+    `${state.running.size} lines · ${OPERATORS.length - state.absent.size}/${OPERATORS.length} available`;
   const absentList = Array.from(state.absent).sort();
   document.getElementById('print-absent').innerHTML = absentList.length
-    ? `<strong>Absent (${absentList.length}):</strong> ${absentList.join(' � ')}`
+    ? `<strong>Absent (${absentList.length}):</strong> ${absentList.join(' · ')}`
     : `<strong>Absent:</strong> none`;
 }
 
@@ -2081,7 +2073,7 @@ function openSwapModal(lineId, slotIdx) {
   const line = LINES.find(l => l.id === lineId);
   const slot = state.assignments[lineId][slotIdx];
   modalCtx = { type: 'slot', lineId, slotIdx };
-  document.getElementById('modal-title').textContent = `${line.id} � P${slotIdx+1}${slot.isPack ? ' (Pack)' : ''}`;
+  document.getElementById('modal-title').textContent = `${line.id} • P${slotIdx+1}${slot.isPack ? ' (Pack)' : ''}`;
   document.getElementById('modal-ctx').textContent = slot.isPack ? `Requires: ${line.packReq}` : `Requires: ${line.trainingKey}`;
   renderModalCandidates();
   document.getElementById('modal').classList.add('open');
@@ -2179,7 +2171,7 @@ function renderModalCandidates() {
     const recency = state.history.length ? recencyText(o.name) : '';
     div.className = 'op-pick' + (isCurrent ? ' current' : '');
     div.innerHTML = `<span>${o.name}${isCurrent ? ' (current)' : ''}</span>
-      <span class="tags">${elsewhere ? '? in use' : 'free'} � ${Object.keys(o.training).length} skills${recency ? ' � ' + recency : ''}</span>`;
+      <span class="tags">${elsewhere ? '? in use' : 'free'} • ${Object.keys(o.training).length} skills${recency ? ' • ' + recency : ''}</span>`;
     div.onclick = () => applySwap(o.name);
     body.appendChild(div);
   });
@@ -2220,18 +2212,18 @@ function applySwap(newName) {
 function exportPlain() {
   const now = new Date();
   const dt = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-  let txt = `SHIFT ASSIGNMENT � ${shiftLabel(state.currentShift)} Shift\n${dt}\n${'-'.repeat(40)}\n\n`;
+  let txt = `SHIFT ASSIGNMENT — ${shiftLabel(state.currentShift)} Shift\n${dt}\n${'-'.repeat(40)}\n\n`;
   visibleLines().filter(l => state.running.has(l.id)).forEach(line => {
-    txt += `${line.id} � ${line.name.replace(/^[^�]+� /, '')} (${state.headcount[line.id]} ops)\n`;
+    txt += `${line.id} — ${line.name.replace(/^[^–]+– /, '')} (${state.headcount[line.id]} ops)\n`;
     state.assignments[line.id].forEach((s, i) => {
-      txt += `  P${i+1}${s.isPack?' [PACK]':''}: ${s.name || '� UNFILLED �'}\n`;
+      txt += `  P${i+1}${s.isPack?' [PACK]':''}: ${s.name || '— UNFILLED —'}\n`;
     });
     txt += '\n';
   });
   txt += `FLOATERS (${state.floaters.length})\n`;
-  state.floaters.forEach(n => txt += `  � ${n}\n`);
+  state.floaters.forEach(n => txt += `  • ${n}\n`);
   txt += `\nABSENT (${state.absent.size})\n`;
-  Array.from(state.absent).forEach(n => txt += `  � ${n}\n`);
+  Array.from(state.absent).forEach(n => txt += `  • ${n}\n`);
 
   // Show in modal-like area
   navigator.clipboard?.writeText(txt).then(() => {
@@ -2243,7 +2235,7 @@ function exportPlain() {
 
 /* ===================== RESET ===================== */
 function resetAll() {
-  if (!confirm(`Reset current shift for ${state.currentBU}?\n\nThis clears absent list, lines, headcounts, and assignments for ${state.currentBU} only � other BUs' state and rotation history are kept.`)) return;
+  if (!confirm(`Reset current shift for ${state.currentBU}?\n\nThis clears absent list, lines, headcounts, and assignments for ${state.currentBU} only — other BUs' state and rotation history are kept.`)) return;
   state.absent.clear();
   state.running.clear();
   state.assignments = {};
@@ -2256,7 +2248,7 @@ function resetAll() {
 
 /* ===================== SHIFT HISTORY ===================== */
 function saveShift() {
-  if (state.running.size === 0) { alert('Nothing to save � no lines are running.'); return; }
+  if (state.running.size === 0) { alert('Nothing to save — no lines are running.'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const existingIdx = state.history.findIndex(h => h.date === today && (h.shift || 'day') === state.currentShift);
   if (existingIdx >= 0) {
@@ -2275,7 +2267,7 @@ function saveShift() {
   };
 
   if (db) {
-    // Cloud mode � write one doc per date+shift; the listener echoes it back to state.history
+    // Cloud mode — write one doc per date+shift; the listener echoes it back to state.history
     const docId = `${today}_${state.currentShift}`;
     db.collection('history').doc(docId).set(snapshot)
       .catch(e => { alert('Could not save to the shared database: ' + e.message); });
@@ -2391,21 +2383,21 @@ function loadSavedShift(idx) {
   state.running = new Set(h.running || []);
   state.floaters = [...(h.floaters || [])];
 
-  // Restore headcounts � fall back to line defaults for anything not saved
+  // Restore headcounts — fall back to line defaults for anything not saved
   const defaults = {};
   visibleLines().forEach(l => {
     defaults[l.id] = l.variable ? l.options[0] : l.headcount;
   });
   state.headcount = { ...defaults, ...(h.headcount || {}) };
 
-  // Restore assignments exactly as saved � no re-run
+  // Restore assignments exactly as saved — no re-run
   state.assignments = JSON.parse(JSON.stringify(h.assignments || {}));
 
   refreshOperators();
   renderStep1();
   renderStep2();
   updateCounters();
-  goStep(4, true);      // skipAssign = true � keeps restored assignments intact
+  goStep(4, true);      // skipAssign = true — keeps restored assignments intact
   renderAssignments();
 
   // Close the history panel if it's open
@@ -2440,9 +2432,9 @@ function renderHistory() {
     row.innerHTML = `
       <span class="when">${fmtShiftDate(h.date)}</span>
       <div class="shift-badge ${sObj.short} active" style="width:18px;height:18px;line-height:18px;font-size:9px;">${sObj.short}</div>
-      <span class="desc"><strong>${(h.running || []).length}</strong> lines � <strong>${totalOps}</strong> ops � <strong>${(h.absent || []).length}</strong> absent</span>
+      <span class="desc"><strong>${(h.running || []).length}</strong> lines · <strong>${totalOps}</strong> ops · <strong>${(h.absent || []).length}</strong> absent</span>
       <button class="load-btn" onclick="loadSavedShift(${realIdx})">Open</button>
-      <button class="del-btn" onclick="deleteHistoryEntry(${realIdx})">�</button>`;
+      <button class="del-btn" onclick="deleteHistoryEntry(${realIdx})">×</button>`;
     list.appendChild(row);
   });
 }
@@ -2467,7 +2459,7 @@ function onShiftChange(newShift) {
   state.currentShift = newShift;
   Storage.save(SHIFT_KEY, newShift);
   refreshOperators();
-  // Different shift = different roster everywhere � clear ALL BUs' state
+  // Different shift = different roster everywhere — clear ALL BUs' state
   state.byBU = {};
   state.absent = new Set();
   state.running = new Set();
@@ -2514,7 +2506,7 @@ function onBUChange(newBU) {
 }
 
 /* ===================== ROSTER SCREEN ===================== */
-// Molding coverage state � persisted per shift in localStorage
+// Molding coverage state — persisted per shift in localStorage
 // moldingMachines: { [lineId]: { active: bool, planMode: number } }
 // moldingZones: [{ opName, machines: [{id, name, plan}], totalLoad }]
 let moldingMachines = {};   // set on BU switch / shift change
@@ -2545,8 +2537,8 @@ function saveMoldingState(shift) {
   const key = `${MOLDING_KEY}_${shift}`;
   Storage.save(key, { machines: moldingMachines, zones: moldingZones });
 }
-let rosterFilter = 'all';     // 'all' | shiftId � shift filter in Roster screen
-let rosterBUFilter = 'all';   // 'all' | buId   � BU filter, set to current BU on open
+let rosterFilter = 'all';     // 'all' | shiftId — shift filter in Roster screen
+let rosterBUFilter = 'all';   // 'all' | buId   — BU filter, set to current BU on open
 let editingOpName = null;     // name of operator being edited, or null for new
 
 function openRosterScreen() {
@@ -2620,7 +2612,7 @@ function renderRoster() {
     row.innerHTML = `
       <div class="nm">
         <div class="name">${op.name}</div>
-        <div class="meta">${skillCount} skill${skillCount===1?'':'s'} � ${buText}</div>
+        <div class="meta">${skillCount} skill${skillCount===1?'':'s'} · ${buText}</div>
       </div>
       <div class="shift-badges">${badges}</div>`;
     row.onclick = () => openOperatorEdit(op.name);
@@ -2729,7 +2721,7 @@ function saveOperatorEdit() {
   if (shifts.length === 0) { alert('Pick at least one shift.'); return; }
   const bus = Array.from(document.querySelectorAll('#op-bu-toggles label.checked'))
     .map(l => l.dataset.bu);
-  // BUs are optional � empty array = legacy "show in every BU"
+  // BUs are optional — empty array = legacy "show in every BU"
   const training = {};
   document.querySelectorAll('#op-edit-body .skill-chk.checked').forEach(l => {
     training[l.dataset.skill] = true;
@@ -2793,7 +2785,7 @@ function clearRoster() {
   );
   if (!first) return;
   const second = confirm(
-    `Final check � DELETE all ${ROSTER.length} operators?`
+    `Final check — DELETE all ${ROSTER.length} operators?`
   );
   if (!second) return;
   ROSTER = [];
@@ -2831,7 +2823,7 @@ function importRoster(evt) {
   evt.target.value = '';
 }
 
-/* Excel import � multi-tab. Each sheet name is treated as a BU id. Reads
+/* Excel import — multi-tab. Each sheet name is treated as a BU id. Reads
    the standard layout (name column + shift column + skill columns) from each
    sheet, extracts first names from "Lastname, Firstname" format, and tags
    each operator with the BU corresponding to the sheet they came from.
@@ -2847,7 +2839,7 @@ function importRosterFromExcel(file) {
         if (sheetNames.length === 0) throw new Error('Workbook has no sheets');
 
         // Match sheet names against known BU ids (case-insensitive).
-        // Unknown sheets are skipped with a note � protects against typos
+        // Unknown sheets are skipped with a note — protects against typos
         // silently dropping dozens of operators.
         const knownLower = BUS.map(b => b.id.toLowerCase());
 
@@ -2927,13 +2919,13 @@ function importRosterFromExcel(file) {
         }
 
         let preview = `Found ${incoming.length} operator entries across ${perSheetCounts.length} tab(s):\n`;
-        perSheetCounts.forEach(s => preview += `  � ${s}\n`);
+        perSheetCounts.forEach(s => preview += `  • ${s}\n`);
         if (skipped.length) {
           preview += `\nSkipped sheets (name doesn't match a BU): ${skipped.join(', ')}\n`;
         }
         preview += `\nNames are extracted as first-name-only from "Lastname, Firstname".\n`;
         preview += `\nCurrent roster has ${ROSTER.length} operators.\n`;
-        preview += `\nOK = REPLACE current roster (delete existing, import these � avoids duplicates)`;
+        preview += `\nOK = REPLACE current roster (delete existing, import these — avoids duplicates)`;
         preview += `\nCancel = then choose Merge or Abort`;
 
         let replaceMode;
@@ -2942,7 +2934,7 @@ function importRosterFromExcel(file) {
         } else {
           const merge = confirm(
             `Merge ${incoming.length} entries with current ${ROSTER.length} roster?\n\n` +
-            `OK = MERGE (add new ops, union BUs/shifts/skills for matching names � may create duplicates if names don't match exactly)\n` +
+            `OK = MERGE (add new ops, union BUs/shifts/skills for matching names — may create duplicates if names don't match exactly)\n` +
             `Cancel = ABORT import`
           );
           if (!merge) return;
@@ -3029,7 +3021,7 @@ function renderPriorityList() {
       <span class="rank">${idx + 1}</span>
       <span class="drag-handle" title="Drag to reorder">??</span>
       <div class="info">
-        <div class="nm">${line.name.replace(/^[^�]+� /, '')}</div>
+        <div class="nm">${line.name.replace(/^[^–]+– /, '')}</div>
         <div class="id">${line.id}</div>
       </div>
       <span class="hc-pill ${isSmall ? 'small' : ''}">${entry.headcount} op${entry.headcount > 1 ? 's' : ''}</span>
@@ -3037,7 +3029,7 @@ function renderPriorityList() {
         <button title="Move up" onclick="movePriorityEntry(${idx}, -1)">?</button>
         <button title="Move down" onclick="movePriorityEntry(${idx}, 1)">?</button>
       </div>
-      <button class="remove" onclick="removePriorityEntry(${idx})" title="Remove">�</button>
+      <button class="remove" onclick="removePriorityEntry(${idx})" title="Remove">×</button>
     `;
     // Wire up drag handle (pointer events work on mouse + touch)
     const handle = row.querySelector('.drag-handle');
@@ -3066,7 +3058,7 @@ function removePriorityEntry(idx) {
 }
 
 function resetPriorityToDefaults() {
-  // Defaults only exist for Verathon � other BUs reset to an empty list.
+  // Defaults only exist for Verathon — other BUs reset to an empty list.
   const isVerathon = state.currentBU === 'Verathon';
   const target = isVerathon ? 'the default Verathon order' : 'an empty list';
   if (!confirm(`Reset ${state.currentBU} / ${shiftLabel(state.currentShift)} priority to ${target}? Any customization is lost.`)) return;
@@ -3135,7 +3127,7 @@ function openAddPriorityEntry() {
     const opts = line.variable ? line.options : [line.headcount];
     row.innerHTML = `
       <div>
-        <div style="font-weight:500;">${line.name.replace(/^[^�]+� /, '')}</div>
+        <div style="font-weight:500;">${line.name.replace(/^[^–]+– /, '')}</div>
         <div style="font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">${line.id}</div>
       </div>
       <div class="opts"></div>
@@ -3239,7 +3231,7 @@ function autoScheduleLines() {
 /* ===================== FIREBASE INIT & LIVE SYNC ===================== */
 function initFirebase() {
   if (typeof firebase === 'undefined' || !firebaseConfig.apiKey) {
-    // SDK didn't load (offline on first run, blocked, etc.) � stay in local mode
+    // SDK didn't load (offline on first run, blocked, etc.) — stay in local mode
     updateCloudStatus('local');
     return;
   }
@@ -3247,7 +3239,7 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     fbAuth = firebase.auth();
-    // Offline persistence � queues writes made offline, flushes on reconnect
+    // Offline persistence — queues writes made offline, flushes on reconnect
     db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
     updateCloudStatus('connecting');
     fbAuth.signInAnonymously().catch(err => {
@@ -3295,7 +3287,7 @@ function subscribeCloud() {
               .set({ operators: ROSTER, updatedAt: Date.now() })
               .catch(e => console.warn('Molding seed merge failed:', e.message));
           }
-          // Cloud may still hold pre-BU data � migrate and push back if so
+          // Cloud may still hold pre-BU data — migrate and push back if so
           if (migrateRosterToBU()) {
             db.collection('roster').doc('current')
               .set({ operators: ROSTER, updatedAt: Date.now() })
@@ -3312,7 +3304,7 @@ function subscribeCloud() {
         }
         cloudReady = true;
       } else if (!cloudReady) {
-        // Database is empty � first ever run. Seed it from this device's roster.
+        // Database is empty — first ever run. Seed it from this device's roster.
         cloudReady = true;
         db.collection('roster').doc('current')
           .set({ operators: ROSTER, seededAt: Date.now() })
@@ -3386,7 +3378,7 @@ if (document.readyState === 'loading') {
 }
 
 // Register the cache-first service worker so the app opens instantly every
-// morning, even on cold/slow networks. Only activates over https � silently
+// morning, even on cold/slow networks. Only activates over https — silently
 // no-ops on file://.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -3451,12 +3443,12 @@ function printAll() {
       <div style="padding:10mm;font-family:ui-sans-serif,system-ui,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8mm;border-bottom:3px solid #1e3a5f;padding-bottom:4mm">
           <div>
-            <div style="font-size:16pt;font-weight:900;color:#1e3a5f">MOLDING � ${shiftLabel.toUpperCase()} SHIFT</div>
+            <div style="font-size:16pt;font-weight:900;color:#1e3a5f">MOLDING — ${shiftLabel.toUpperCase()} SHIFT</div>
             <div style="font-size:9pt;color:#666;margin-top:2mm">${dateStr}</div>
           </div>
           <div style="text-align:right;font-size:9pt;color:#666">
             <div>Generated ${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-            <div>${ops.length} operators assigned � ${opMap.size > 0 ? [...opMap.values()].flat().length : 0} machines running</div>
+            <div>${ops.length} operators assigned · ${opMap.size > 0 ? [...opMap.values()].flat().length : 0} machines running</div>
           </div>
         </div>
         <table style="width:100%;border-collapse:collapse;margin-bottom:8mm">
