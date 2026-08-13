@@ -1337,8 +1337,8 @@ function goStep(n, skipAssign) {
     nxt.style.visibility = 'hidden';
   } else {
     nxt.style.visibility = 'visible';
-    if (state.assignMode === 'auto' && n === 1) nxt.textContent = 'Assign &rarr;';
-    else nxt.textContent = n === 3 ? 'Assign &rarr;' : 'Next &rarr;';
+    if (state.assignMode === 'auto' && n === 1) nxt.innerHTML = 'Assign &rarr;';
+    else nxt.innerHTML = n === 3 ? 'Assign &rarr;' : 'Next &rarr;';
   }
   // When entering step 3, hide if no variable lines running
   if (n === 3) renderStep3();
@@ -3183,7 +3183,7 @@ function updateStepperForMode() {
   });
   // Adjust "Next" button label hint
   const nxt = document.getElementById('next-btn');
-  if (nxt && currentStep === 1) nxt.textContent = state.assignMode === 'auto' ? 'Assign &rarr;' : 'Next &rarr;';
+  if (nxt && currentStep === 1) nxt.innerHTML = state.assignMode === 'auto' ? 'Assign &rarr;' : 'Next &rarr;';
 }
 
 /* ===================== AUTO-SCHEDULER =====================
