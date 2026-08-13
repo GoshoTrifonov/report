@@ -740,10 +740,7 @@ function BuildTracker() {
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
 
         // ── Auto-save shift reports ────────────────────────────────────────
-        // For every date+shift combo found in the upload, write a shift_report doc.
-        // Groups WOs by BU leader, then by date+shiftId → one doc per BU per shift per date.
         try {
-          // Build a map: "leader||dateISO||shiftId" → { wos, totals }
           const reportMap = {};
           sourceRows.forEach(row => {
             const key = rowKey(row);
@@ -751,18 +748,30 @@ function BuildTracker() {
             const shifts = o.shifts || [];
             const labourShifts = shifts.filter(s => s.source === "labour");
             if (labourShifts.length === 0) return;
+            const manualShifts = shifts.filter(s => s.source !== "labour");
             const leader = row.leader || "__ALL__";
             labourShifts.forEach(s => {
               const dateISO = s.shiftDateISO ? s.shiftDateISO.slice(0, 10) : uploadedAt.slice(0, 10);
               const rKey = `${leader}||${dateISO}||${s.shiftId}`;
               if (!reportMap[rKey]) reportMap[rKey] = { leader, dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
               const entry = reportMap[rKey];
+              // Collect manual notes for this WO on the same date+shift
+              const manualForThisShift = manualShifts.filter(m => {
+                const mDate = m.shiftDateISO ? m.shiftDateISO.slice(0, 10) : "";
+                return mDate === dateISO && m.shiftId === s.shiftId;
+              });
+              const manualNotes = manualForThisShift.map(m => m.notes).filter(Boolean).join(" | ");
+              const manualReason = manualForThisShift.map(m => m.reason).filter(Boolean).join(", ");
+              const manualBy = manualForThisShift.map(m => m.by).filter(Boolean).join(", ");
               entry.wos.push({
                 resource: row.resource, wo: row.wo,
                 descr: row.descr || row.part || "",
                 qty: s.qty || 0, compQty: o.comp_qty || 0, startQty: row.start_qty || 0,
                 eff: s.eff ?? null, hrs: s.hrs || 0, earned: s.earned || 0, lost: s.lost || 0,
-                notes: s.notes || "", reason: s.reason || "", by: s.by || "", source: s.source || "",
+                notes: manualNotes || s.notes || "",
+                reason: manualReason || s.reason || "",
+                by: manualBy || s.by || "",
+                source: s.source || "",
               });
               entry.totalUnits  += s.qty    || 0;
               entry.totalHrs    += s.hrs    || 0;
