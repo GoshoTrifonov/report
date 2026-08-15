@@ -44,6 +44,116 @@
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
   const BT_META_REF       = db.collection("buildtracker").doc("meta");
+
+  // ── Google Sheets export config ──────────────────────────────────────────
+  const SHEETS_CONFIG = {
+    spreadsheetId: "1hXam4mC0QhGvQ60UAWjFnPxUNKU5sfyzVx80aOXvtZ8",
+    clientEmail:   "smi-shift-report@smi-shift-report.iam.gserviceaccount.com",
+    privateKey:    "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8+psFrEPLx2m/\n/pnwLz5eqJI2cHknOMwtI7flMxhT9ELJDz7vqraeEe84q/FmacyYKAoG1Evk+si7\n+xZCzyo4KjC/HbApnQADMLKtXb+UySb2gegLGIsomXnI556Ut1rlJLQvWnOJWC87\nG0TK0WsPTSQ25GSaIWODhFkaazrr/1TbeKgF0BE8vQhaElr+NlidHckPxl/QRXIU\ngMQkTHV6m4my7Gf1wEAnT9LNitRG0OQnMKoftwlZY0xueW1yJCUBRGNZInD96etg\nOOb7o0Jost+srKrfOe2z4Yy0RbX/2UuhnQVLIbeqXTYBRlhqbOvK9je7Fuyugpfz\nwjnZOgQhAgMBAAECggEAErQCHrlyC5uErFNQPJ9jCVmequj5HKLNllQYJwTRDhIO\ngA6puGz0CPNBHUyV0NXSFrxeYwGk3JiIwGNfzHnrYEamBMGKm1EQshV3lu/rKO26\n6kpowvG0EsRpyLKfv8aL0OzlMQs/Lw3SvYNRN3oqzIdieP+kCJsbBGZXWTrZSIeU\n6SiXJ90n0vwy/ldqEih/aC44QneI0lU4vsusQzGsY6i4RRjGS6kYb6eD7UdNY2s9\npe0ipMDq/Omsa1QU3cJvigPRbgRxUm4A9Fnn59yvxe/tACBHnuJUrrUU10ITyd+w\nJY5S725/2uQH0JNZudUBYj0Pwl22H11oPQ+8Hc5w7wKBgQDqBzfzKBWTKVrxIFml\nV8P0U7hhBcXHxA0jm7QWQRwzyz24DeKA7CicN1LQkR80pWOoG96ENuDP+wfbbmcm\nb0tPA2tWFHe1+xUc7FaBk3u91WgnTokLJFt//0fdaMqCnga3TEOS3itk6Mn1coBt\n7hhS1gdWY9tzBvvzJ/eoFCpqxwKBgQDOuKT4f1VmPNnA+narO/OEbvVqpKlgbAWP\nWdv/UrJKCgxChN0JmfP+PQUR/fw0IrozyDg6RDyzjpMrz80e5cXmH4Af6RXE5yoB\nB+WszuM0nReLhdOyZGNywzTai64gZKAyalCh9koLa8S0bvEVLUrBNIM8e7PVz4NY\nEgAbr0Px1wKBgQC5Tm/x/JpgxU06QshZEM6bhzMmuABsdoOE34RQXsvrAxJiy7O/\nK7/YOkI73b1c3Vy0vySJgj6u0HHfQWMx3sw9y1JRfbFwilikZ0r0HQjNPs7S2O/Q\nv8An8MZBvfkkRebBewTCpWKs61sHG9wvr2jZJpn2wOkCAtS7K7mBAD65/wKBgEmv\nBx6MRKRsjDF9FU9zzxklc9TPXJBB8LloDkKz91jsu/H56c/CUHYOyf/fyEXNGxHa\nDDC4oepep5a2OycIP8IG+GRncJr+yroTVoqCM/pNBFd3HD46Cjid2/kKUMa7F17h\nBly0rS/k+fhWkxg5TKwRS7YDYdaUYPzDbcZwcoeBAoGAGIB2NW4grANLAc8ypR4N\na7HSHNu6nk0QMhhYh5+gVbpGqhybmX4Gfg+qKbK3MeBRqMQ7RrF34AA3ko7R3RnF\n/NcWKp6U4UuJBAfi1y3JqEF1VB33PHzxJwE3nuMT22O2S6rnOp6ELWLbhMG0u9iU\nd4+9/n97BEVy6zvhJiEmtdE=\n-----END PRIVATE KEY-----\n",
+  };
+
+  // Generate a Google OAuth2 access token from service account credentials (browser-side JWT)
+  async function getGoogleAccessToken() {
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: "RS256", typ: "JWT" };
+    const payload = {
+      iss: SHEETS_CONFIG.clientEmail,
+      scope: "https://www.googleapis.com/auth/spreadsheets",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now,
+    };
+    const b64 = obj => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const sigInput = `${b64(header)}.${b64(payload)}`;
+    // Import private key
+    const pemBody = SHEETS_CONFIG.privateKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, "");
+    const keyData = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey("pkcs8", keyData.buffer, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(sigInput));
+    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const jwt = `${sigInput}.${sigB64}`;
+    const resp = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+    });
+    const data = await resp.json();
+    if (!data.access_token) throw new Error("Token error: " + JSON.stringify(data));
+    return data.access_token;
+  }
+
+  // Export an array of shift_report docs to a Google Sheet tab named by month
+  async function exportReportsToSheet(docs, token) {
+    const SHEET_ID = SHEETS_CONFIG.spreadsheetId;
+    const API = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+    // Group docs by month tab name e.g. "Jul 2026"
+    const byMonth = {};
+    for (const doc of docs) {
+      if (!doc.date) continue;
+      const d = new Date(doc.date + "T12:00:00");
+      const tab = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      if (!byMonth[tab]) byMonth[tab] = [];
+      byMonth[tab].push(doc);
+    }
+
+    // Get existing sheet tabs
+    const metaResp = await fetch(`${API}?fields=sheets.properties`, { headers });
+    const meta = await metaResp.json();
+    const existingTabs = (meta.sheets || []).map(s => s.properties.title);
+
+    for (const [tabName, tabDocs] of Object.entries(byMonth)) {
+      // Create tab if it doesn't exist
+      if (!existingTabs.includes(tabName)) {
+        await fetch(`${API}:batchUpdate`, {
+          method: "POST", headers,
+          body: JSON.stringify({ requests: [{ addSheet: { properties: { title: tabName } } }] }),
+        });
+      }
+
+      // Build rows: one row per WO entry
+      const rows = [["Date", "Day", "Shift", "BU", "Resource", "WO", "Description", "Qty", "Eff%", "Hrs Worked", "Lost/Earned Hrs", "Notes", "Reason", "By"]];
+      for (const doc of tabDocs.sort((a,b) => a.date.localeCompare(b.date) || a.shiftId - b.shiftId)) {
+        const d = new Date(doc.date + "T12:00:00");
+        const dateStr = d.toLocaleDateString("en-CA"); // YYYY-MM-DD
+        const dayStr = d.toLocaleDateString("en-US", { weekday: "short" });
+        const shiftLabel = doc.shiftLabel || `Shift ${doc.shiftId}`;
+        const bu = doc.bu || "";
+        for (const w of (doc.wos || [])) {
+          if (!w.qty && !w.notes) continue; // skip empty rows
+          rows.push([
+            dateStr, dayStr, shiftLabel, bu,
+            w.resource || "", w.wo || "", w.descr || "",
+            w.qty || 0,
+            w.eff != null ? parseFloat(w.eff.toFixed(1)) : "",
+            w.hrs > 0 ? parseFloat(w.hrs.toFixed(1)) : "",
+            w.lost !== 0 ? parseFloat(w.lost.toFixed(1)) : "",
+            w.notes || "", w.reason || "", w.by || "",
+          ]);
+        }
+      }
+
+      // Write rows to tab (clear first then write)
+      await fetch(`${API}/values/${encodeURIComponent(tabName)}:clear`, { method: "POST", headers });
+      await fetch(`${API}/values/${encodeURIComponent(tabName)}!A1?valueInputOption=RAW`, {
+        method: "PUT", headers,
+        body: JSON.stringify({ values: rows }),
+      });
+
+      // Auto-resize columns
+      const sheetMeta = await fetch(`${API}?fields=sheets.properties`, { headers });
+      const sheetData = await sheetMeta.json();
+      const sheetObj = (sheetData.sheets || []).find(s => s.properties.title === tabName);
+      if (sheetObj) {
+        await fetch(`${API}:batchUpdate`, {
+          method: "POST", headers,
+          body: JSON.stringify({ requests: [{ autoResizeDimensions: { dimensions: { sheetId: sheetObj.properties.sheetId, dimension: "COLUMNS", startIndex: 0, endIndex: 14 } } }] }),
+        });
+      }
+    }
+    return Object.keys(byMonth).length;
+  }
 </script>
 </head>
 <body class="bg-stone-50">
@@ -552,6 +662,56 @@ function BuildTracker() {
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
+
+  // ── Monthly auto-export to Google Sheets (runs on 2nd of each month) ──────
+  useEffect(() => {
+    const checkMonthlyExport = async () => {
+      try {
+        const now = new Date();
+        if (now.getDate() !== 2) return; // only on the 2nd
+        const lastExportKey = "bt_sheets_last_export";
+        const lastExport = localStorage.getItem(lastExportKey);
+        const thisMonth = now.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        if (lastExport === thisMonth) return; // already exported this month
+        // Get previous month's name
+        const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+          .toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        console.log(`[Auto-export] Exporting ${prevMonth} shift reports to Google Sheets…`);
+        const token = await getGoogleAccessToken();
+        const snap = await BT_SHIFT_REPORTS_REF.get();
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(d => {
+            if (!d.date) return false;
+            const dt = new Date(d.date + "T12:00:00");
+            return dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) === prevMonth;
+          });
+        if (docs.length > 0) {
+          await exportReportsToSheet(docs, token);
+          localStorage.setItem(lastExportKey, thisMonth);
+          console.log(`[Auto-export] ✓ Exported ${docs.length} reports for ${prevMonth}`);
+        }
+      } catch(e) { console.warn("[Auto-export] Failed:", e.message); }
+    };
+    checkMonthlyExport();
+  }, []);
+  const [lastBuildPlanUpdate, setLastBuildPlanUpdate] = useState(null);
+  const [lastLabourUpdate, setLastLabourUpdate] = useState(null);
+  const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
+  const [lastSync, setLastSync] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(null); // null | {type, msg, ok}
+  const buildPlanInputRef = useRef(null);
+  const labourInputRef = useRef(null);
+
+  // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
+  const resourceLeaderMap = useMemo(() => {
+    const map = {};
+    for (const r of BUILD_DATA.rows) {
+      if (r.resource && r.leader) map[r.resource] = r.leader;
+    }
+    return map;
+  }, []);
+
   const [lastBuildPlanUpdate, setLastBuildPlanUpdate] = useState(null);
   const [lastLabourUpdate, setLastLabourUpdate] = useState(null);
   const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
@@ -2820,8 +2980,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
   const [reportDate, setReportDate] = useState(nowShiftDate);
-  const [saveState, setSaveState] = useState("idle"); // "idle"|"saving"|"saved"|"error"
+  const [saveState, setSaveState] = useState("idle");
   const [existingSavedAt, setExistingSavedAt] = useState(null);
+  const [exportState, setExportState] = useState("idle");
+  const [exportMsg, setExportMsg] = useState("");
   const [activeTab, setActiveTab] = useState("current"); // "current"|"history"
   const [historyReports, setHistoryReports] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -3050,6 +3212,33 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     } catch(e) { console.error("Save WO note failed:", e); }
   };
 
+  const exportToSheets = async (monthFilter) => {
+    setExportState("exporting");
+    setExportMsg(monthFilter ? `Exporting ${monthFilter}…` : "Exporting all reports…");
+    try {
+      const token = await getGoogleAccessToken();
+      const snap = await shiftReportsRef.get();
+      let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (monthFilter) {
+        docs = docs.filter(d => {
+          if (!d.date) return false;
+          const dt = new Date(d.date + "T12:00:00");
+          const tab = dt.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+          return tab === monthFilter;
+        });
+      }
+      const tabCount = await exportReportsToSheet(docs, token);
+      setExportState("done");
+      setExportMsg(`✓ Exported ${docs.length} reports across ${tabCount} month tab${tabCount !== 1 ? "s" : ""}`);
+      setTimeout(() => { setExportState("idle"); setExportMsg(""); }, 5000);
+    } catch(e) {
+      console.error("Export failed:", e);
+      setExportState("error");
+      setExportMsg("Export failed — " + e.message);
+      setTimeout(() => { setExportState("idle"); setExportMsg(""); }, 5000);
+    }
+  };
+
   const saveHistoryNote = async () => {
     if (!historyNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
     setHistoryNoteSaving(true);
@@ -3084,6 +3273,14 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
               <button onClick={() => { setActiveTab("history"); setHistoryReports(null); setSelectedHistoryReport(null); }} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
             </div>
+            <button
+              onClick={() => exportToSheets()}
+              disabled={exportState === "exporting"}
+              title="Export all shift reports to Google Sheets"
+              style={{backgroundColor: exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#0f7a3c", border:"none", borderRadius:6, padding:"5px 10px", color:"white", fontSize:11, fontWeight:600, cursor: exportState==="exporting"?"wait":"pointer"}}
+            >
+              {exportState==="exporting" ? "⏳ Exporting…" : exportState==="done" ? "✓ Sheets" : exportState==="error" ? "⚠ Error" : "📊 → Sheets"}
+            </button>
             <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
         </div>
@@ -3280,7 +3477,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               </div>
               {/* List */}
               <div className="p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Saved reports — {buName(historyBuFilter)}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                <span>Saved reports — {buName(historyBuFilter)}</span>
+                {exportMsg && <span className={`text-[10px] font-semibold ${exportState==="done"?"text-emerald-600":exportState==="error"?"text-rose-600":"text-blue-500"}`}>{exportMsg}</span>}
+              </div>
               {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>}
               {!historyLoading && historyReports!==null && historyReports.length===0 && <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found.</div>}
               {!historyLoading && historyReports && historyReports.length>0 && (() => {
