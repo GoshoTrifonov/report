@@ -713,17 +713,6 @@ function BuildTracker() {
   }, []);
 
 
-
-
-  // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
-  const resourceLeaderMap = useMemo(() => {
-    const map = {};
-    for (const r of BUILD_DATA.rows) {
-      if (r.resource && r.leader) map[r.resource] = r.leader;
-    }
-    return map;
-  }, []);
-
   // ── Live build plan from Firestore (falls back to BUILD_DATA if none uploaded) ──
   const [buildPlanRows, setBuildPlanRows] = useState(null); // null = use BUILD_DATA
   useEffect(() => {
