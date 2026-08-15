@@ -713,8 +713,7 @@ function BuildTracker() {
   }, []);
 
 
-  const buildPlanInputRef = useRef(null);
-  const labourInputRef = useRef(null);
+
 
   // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
   const resourceLeaderMap = useMemo(() => {
