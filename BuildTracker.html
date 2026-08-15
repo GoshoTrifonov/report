@@ -712,11 +712,7 @@ function BuildTracker() {
     return map;
   }, []);
 
-  const [lastBuildPlanUpdate, setLastBuildPlanUpdate] = useState(null);
-  const [lastLabourUpdate, setLastLabourUpdate] = useState(null);
-  const [presentationMode, setPresentationMode] = useState(false); // "loading"|"live"|"error"
-  const [lastSync, setLastSync] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState(null); // null | {type, msg, ok}
+
   const buildPlanInputRef = useRef(null);
   const labourInputRef = useRef(null);
 
