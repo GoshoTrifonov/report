@@ -2968,7 +2968,11 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const [existingSavedAt, setExistingSavedAt] = useState(null);
   const [exportState, setExportState] = useState("idle");
   const [exportMsg, setExportMsg] = useState("");
-  const [activeTab, setActiveTab] = useState("current"); // "current"|"history"
+  const [activeTab, setActiveTab] = useState("current"); // "current"|"history"|"analytics"
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsDays, setAnalyticsDays] = useState(7);
+  const [analyticsBu, setAnalyticsBu] = useState(selectedLeader);
   const [historyReports, setHistoryReports] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
@@ -3223,6 +3227,86 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }
   };
 
+  // Load analytics data when tab is active
+  useEffect(() => {
+    if (activeTab !== "analytics" || !shiftReportsRef) return;
+    setAnalyticsLoading(true);
+    setAnalyticsData(null);
+    shiftReportsRef.get().then(snap => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - analyticsDays);
+      const cutoffISO = cutoff.toISOString().slice(0, 10);
+      const docs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(d => d.date >= cutoffISO && (analyticsBu === "__ALL__" || d.leader === analyticsBu));
+
+      const TARGET = 90;
+      // Aggregate by resource
+      const byResource = {};
+      // Aggregate by shift
+      const byShift = { 1: { earned: 0, hrs: 0, units: 0, count: 0 }, 2: { earned: 0, hrs: 0, units: 0, count: 0 }, 3: { earned: 0, hrs: 0, units: 0, count: 0 } };
+      // Week-over-week
+      const midCutoff = new Date();
+      midCutoff.setDate(midCutoff.getDate() - (analyticsDays === 7 ? 14 : analyticsDays * 2));
+      const midISO = midCutoff.toISOString().slice(0, 10);
+      let thisEarned = 0, thisHrs = 0, thisUnits = 0, thisLost = 0;
+      let prevEarned = 0, prevHrs = 0;
+      const reasonCount = {};
+
+      for (const doc of docs) {
+        const isThisWeek = doc.date >= cutoffISO;
+        const isPrevWeek = doc.date >= midISO && doc.date < cutoffISO;
+        const s = byShift[doc.shiftId] || byShift[2];
+        for (const w of (doc.wos || [])) {
+          if (!w.qty && !w.hrs) continue;
+          // Resource aggregation
+          if (!byResource[w.resource]) byResource[w.resource] = { resource: w.resource, earned: 0, hrs: 0, lost: 0, units: 0, reasons: {} };
+          const r = byResource[w.resource];
+          r.earned += w.earned || 0;
+          r.hrs    += w.hrs    || 0;
+          r.lost   += w.lost   || 0;
+          r.units  += w.qty    || 0;
+          if (w.reason) { r.reasons[w.reason] = (r.reasons[w.reason] || 0) + 1; reasonCount[w.reason] = (reasonCount[w.reason] || 0) + 1; }
+          // Shift aggregation
+          s.earned += w.earned || 0;
+          s.hrs    += w.hrs    || 0;
+          s.units  += w.qty    || 0;
+          s.count++;
+          // Overall
+          thisEarned += w.earned || 0;
+          thisHrs    += w.hrs    || 0;
+          thisUnits  += w.qty    || 0;
+          thisLost   += w.lost   || 0;
+        }
+      }
+      // Previous period for trend
+      const prevDocs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(d => d.date >= midISO && d.date < cutoffISO && (analyticsBu === "__ALL__" || d.leader === analyticsBu));
+      for (const doc of prevDocs) {
+        for (const w of (doc.wos || [])) {
+          prevEarned += w.earned || 0;
+          prevHrs    += w.hrs    || 0;
+        }
+      }
+
+      const thisEff = thisHrs > 0 ? Math.round(thisEarned / thisHrs * 1000) / 10 : null;
+      const prevEff = prevHrs > 0 ? Math.round(prevEarned / prevHrs * 1000) / 10 : null;
+
+      // Sort resources by lost hours (most lost = most struggling)
+      const resources = Object.values(byResource)
+        .map(r => ({
+          ...r,
+          eff: r.hrs > 0 ? Math.round(r.earned / r.hrs * 1000) / 10 : null,
+          topReason: Object.entries(r.reasons).sort((a,b) => b[1]-a[1])[0]?.[0] || "",
+        }))
+        .sort((a, b) => (a.lost || 0) - (b.lost || 0)); // most negative = most lost
+
+      setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET });
+      setAnalyticsLoading(false);
+    }).catch(e => { console.error(e); setAnalyticsLoading(false); });
+  }, [activeTab, analyticsDays, analyticsBu]);
+
   const saveHistoryNote = async () => {
     if (!historyNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
     setHistoryNoteSaving(true);
@@ -3256,6 +3340,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
               <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
               <button onClick={() => { setActiveTab("history"); setHistoryReports(null); setSelectedHistoryReport(null); }} style={{backgroundColor: activeTab==="history"?"#1e3a5f":"white", color: activeTab==="history"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">History</button>
+              <button onClick={() => setActiveTab("analytics")} style={{backgroundColor: activeTab==="analytics"?"#1e3a5f":"white", color: activeTab==="analytics"?"white":"#64748b"}} className="px-3 py-1.5 border-l border-stone-200">Analytics</button>
             </div>
             <button
               onClick={() => exportToSheets()}
@@ -3269,7 +3354,149 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           </div>
         </div>
 
-        {activeTab === "history" ? (
+        {activeTab === "analytics" ? (
+          /* ── Analytics tab ── */
+          <div className="flex-1 overflow-auto">
+            {/* Filters */}
+            <div className="px-4 pt-3 pb-2 border-b border-stone-100 bg-stone-50 flex items-center gap-3 flex-wrap flex-shrink-0">
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-1">BU</span>
+                {[{v: selectedLeader, label: buName(selectedLeader)}, ...leaderList.filter(l => l.name !== selectedLeader).map(l => ({v: l.name, label: buName(l.name)}))].map(opt => (
+                  <button key={opt.v} onClick={() => setAnalyticsBu(opt.v)}
+                    style={{backgroundColor: analyticsBu===opt.v?"#1e3a5f":"white", color: analyticsBu===opt.v?"white":"#64748b", border:"1px solid #e2e8f0"}}
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold">{opt.label}</button>
+                ))}
+              </div>
+              <div className="w-px h-4 bg-stone-200" />
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-1">Range</span>
+                {[{d:7,label:"7d"},{d:30,label:"30d"},{d:62,label:"62d"}].map(opt => (
+                  <button key={opt.d} onClick={() => setAnalyticsDays(opt.d)}
+                    style={{backgroundColor: analyticsDays===opt.d?"#1e3a5f":"white", color: analyticsDays===opt.d?"white":"#64748b", border:"1px solid #e2e8f0"}}
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold">{opt.label}</button>
+                ))}
+              </div>
+            </div>
+            {analyticsLoading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
+            {!analyticsLoading && !analyticsData && <div className="text-center py-12 text-sm text-slate-400 italic">No data found for this period.</div>}
+            {!analyticsLoading && analyticsData && (() => {
+              const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET } = analyticsData;
+              const trend = thisEff != null && prevEff != null ? thisEff - prevEff : null;
+              const effColor = thisEff == null ? "#64748b" : thisEff >= TARGET ? "#16a34a" : thisEff >= 76.5 ? "#d97706" : "#dc2626";
+              const effBg = thisEff == null ? "#f8fafc" : thisEff >= TARGET ? "#f0fdf4" : thisEff >= 76.5 ? "#fffbeb" : "#fff1f2";
+              return (
+                <div className="p-4 space-y-5">
+                  {/* Section 1 — At a glance */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">At a glance — last {analyticsDays} days</div>
+                    <div className="grid grid-cols-4 gap-2 mb-2">
+                      {/* Big efficiency number */}
+                      <div className="col-span-1 rounded-lg border-2 px-3 py-3 flex flex-col items-center justify-center" style={{backgroundColor: effBg, borderColor: effColor}}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: effColor}}>Efficiency</div>
+                        <div className="text-2xl font-bold tabular-nums" style={{color: effColor}}>{thisEff != null ? thisEff.toFixed(1)+"%" : "—"}</div>
+                        <div className="text-[10px] font-semibold mt-1" style={{color: effColor}}>target {TARGET}%</div>
+                        {trend != null && (
+                          <div className={`text-[11px] font-bold mt-1 ${trend >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            {trend >= 0 ? "▲" : "▼"} {Math.abs(trend).toFixed(1)}% vs prev
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 flex flex-col justify-center">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Total units</div>
+                        <div className="text-xl font-bold text-slate-800 tabular-nums">{thisUnits.toLocaleString()}</div>
+                      </div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 flex flex-col justify-center">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Hours worked</div>
+                        <div className="text-xl font-bold text-slate-800 tabular-nums">{thisHrs.toFixed(0)}h</div>
+                      </div>
+                      <div className={`rounded-lg border px-3 py-3 flex flex-col justify-center ${thisLost < 0 ? "bg-rose-50 border-rose-200" : "bg-emerald-50 border-emerald-200"}`}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{thisLost < 0 ? "Lost hours" : "Earned hours"}</div>
+                        <div className={`text-xl font-bold tabular-nums ${thisLost < 0 ? "text-rose-700" : "text-emerald-700"}`}>{thisLost.toFixed(1)}h</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2 — Where we struggle */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Where we struggle — by resource</div>
+                    <div className="border border-stone-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-stone-100 border-b border-stone-200">
+                            <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Resource</th>
+                            <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Eff%</th>
+                            <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Lost Hrs</th>
+                            <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Units</th>
+                            <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Top reason</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                          {resources.map((r, i) => {
+                            const rc = r.eff == null ? "#64748b" : r.eff >= TARGET ? "#16a34a" : r.eff >= 76.5 ? "#d97706" : "#dc2626";
+                            const rb = r.eff == null ? "white" : r.eff >= TARGET ? "#f0fdf4" : r.eff >= 76.5 ? "#fffbeb" : "#fff1f2";
+                            return (
+                              <tr key={i} style={{backgroundColor: rb}}>
+                                <td className="px-3 py-2 font-semibold text-slate-800 text-xs">{r.resource}</td>
+                                <td className="px-3 py-2 text-right">
+                                  <span className="text-xs font-bold tabular-nums" style={{color: rc}}>{r.eff != null ? r.eff.toFixed(1)+"%" : "—"}</span>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <span className={`text-xs font-semibold tabular-nums ${r.lost < 0 ? "text-rose-600" : "text-emerald-600"}`}>{r.lost.toFixed(1)}h</span>
+                                </td>
+                                <td className="px-3 py-2 text-right text-xs text-slate-600 tabular-nums">{r.units.toLocaleString()}</td>
+                                <td className="px-3 py-2 text-xs text-slate-500 italic">{r.topReason || <span className="text-slate-300">—</span>}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {resources.filter(r => r.eff != null && r.eff < TARGET).length === 0 && (
+                      <div className="text-center text-xs text-emerald-600 font-semibold mt-2">✓ All resources at or above target</div>
+                    )}
+                  </div>
+
+                  {/* Section 3 — Shift breakdown */}
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Shift breakdown</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SHIFTS.map(s => {
+                        const sd = byShift[s.id] || { earned: 0, hrs: 0, units: 0 };
+                        const sEff = sd.hrs > 0 ? Math.round(sd.earned / sd.hrs * 1000) / 10 : null;
+                        const sc = sEff == null ? "#64748b" : sEff >= TARGET ? "#16a34a" : sEff >= 76.5 ? "#d97706" : "#dc2626";
+                        const sb = sEff == null ? "#f8fafc" : sEff >= TARGET ? "#f0fdf4" : sEff >= 76.5 ? "#fffbeb" : "#fff1f2";
+                        return (
+                          <div key={s.id} className="rounded-lg border-2 px-3 py-3" style={{backgroundColor: sb, borderColor: sc}}>
+                            <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{color: sc}}>{s.label}</div>
+                            <div className="text-[9px] text-slate-400 mb-2">{s.time}</div>
+                            <div className="text-xl font-bold tabular-nums mb-1" style={{color: sc}}>{sEff != null ? sEff.toFixed(1)+"%" : "—"}</div>
+                            <div className="text-[10px] text-slate-500">{sd.units.toLocaleString()} units</div>
+                            <div className="text-[10px] text-slate-400">{sd.hrs.toFixed(0)}h worked</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Section 4 — Top reasons (if any) */}
+                  {Object.keys(reasonCount).length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Top downtime reasons</div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(reasonCount).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => (
+                          <div key={reason} className="px-2.5 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-xs">
+                            <span className="font-semibold text-amber-900">{reason}</span>
+                            <span className="text-amber-600 ml-1.5">{count}×</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        ) : activeTab === "history" ? (
           selectedHistoryReport ? (
             /* ── History detail view ── */
             <div className="flex flex-col flex-1 overflow-hidden">
