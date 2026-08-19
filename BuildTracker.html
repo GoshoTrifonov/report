@@ -3018,6 +3018,9 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       .then(snap => setShiftLogs(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => setShiftLogs([]));
   }, [reportShiftId, reportDate]);
+
+  // Load history when tab switches to history
+  useEffect(() => {
     if (activeTab !== "history" || !shiftReportsRef) return;
     setHistoryLoading(true);
     shiftReportsRef
