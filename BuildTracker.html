@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BuildTracker v2.1 - 2026-08-19 - Safety/NC/Analytics -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -3256,7 +3257,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     if (activeTab !== "analytics" || !shiftReportsRef) return;
     setAnalyticsLoading(true);
     setAnalyticsData(null);
-    shiftReportsRef.get().then(snap => {
+    (async () => {
+    shiftReportsRef.get().then(async snap => {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - analyticsDays);
       const cutoffISO = cutoff.toISOString().slice(0, 10);
@@ -3342,6 +3344,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount });
       setAnalyticsLoading(false);
     }).catch(e => { console.error(e); setAnalyticsLoading(false); });
+    })();
   }, [activeTab, analyticsDays, analyticsBu, shiftLogsRef]);
 
   const saveHistoryNote = async () => {
