@@ -1043,6 +1043,8 @@ function BuildTracker() {
 
   const allRows = useMemo(() => {
     const sourceRows = buildPlanRows || BUILD_DATA.rows;
+    const rows43 = sourceRows.filter(r => r.resource === "43" || r.resource === "45");
+    console.log(`[allRows] source rows for 43/45:`, rows43.length, rows43.map(r => ({resource: r.resource, wo: r.wo, status: r.status, leader: r.leader})));
     const rows = sourceRows.map((r, idx) => {
       const tagged = { ...r, _idx: idx, comp_qty: parseFloat(r.comp_qty) || 0 }; // _idx kept for ordering only
       const o = overrides[rowKey(tagged)];
