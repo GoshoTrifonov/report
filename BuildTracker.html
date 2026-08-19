@@ -40,6 +40,7 @@
   const db = firebase.firestore();
   // Shared collections
   const BT_SHIFT_REPORTS_REF = db.collection("shift_reports");
+  const BT_SHIFT_LOGS_REF    = db.collection("shift_logs");
   const BT_OVERRIDES_REF  = db.collection("buildtracker").doc("overrides");
   const BT_LINEDOWN_REF   = db.collection("buildtracker").doc("line_down");
   const BT_BUILDPLAN_REF  = db.collection("buildtracker").doc("build_plan");
@@ -1480,6 +1481,7 @@ function BuildTracker() {
   const totalStickyTop = stickyH.header + stickyH.abr + stickyH.brs;
 
   const [showShiftReport, setShowShiftReport] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(null); // null | "safety" | "nc"
   const [lineDownTarget, setLineDownTarget] = useState(null); // resource name or null
   const [showNextNotReady, setShowNextNotReady] = useState(false);
   const [showNextSummary, setShowNextSummary] = useState(false);
@@ -1776,6 +1778,10 @@ function BuildTracker() {
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠ {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
             style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
+          <button onClick={() => setShowLogModal("safety")}
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ Safety</button>
+          <button onClick={() => setShowLogModal("nc")}
+            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔴 NC</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -1783,7 +1789,8 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
-        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
+        {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
       </div>
     );
   }
@@ -2000,6 +2007,8 @@ function BuildTracker() {
         >
           <FileCheck2 className="w-3 h-3" /> Shift Report
         </button>
+        <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">⚠️ Safety</button>
+        <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">🔴 NC</button>
         {overrideCount > 0 && (
           <>
             <button onClick={exportOverrides} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600"><Download className="w-3 h-3" /> Export CSV</button>
@@ -2042,10 +2051,12 @@ function BuildTracker() {
           selectedLeader={selectedLeader}
           lineDown={lineDown}
           shiftReportsRef={BT_SHIFT_REPORTS_REF}
+          shiftLogsRef={BT_SHIFT_LOGS_REF}
           leaderList={leaderList}
           onClose={() => setShowShiftReport(false)}
         />
       )}
+      {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
       {lineDownTarget && (
         <LineDownModal
           resource={lineDownTarget}
@@ -2959,11 +2970,12 @@ function InitialsModal({ current, onSave, onCancel }) {
   );
 }
 
-function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, leaderList = [], onClose }) {
+function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
   const [reportDate, setReportDate] = useState(nowShiftDate);
+  const [shiftLogs, setShiftLogs] = useState([]);
   const [saveState, setSaveState] = useState("idle");
   const [existingSavedAt, setExistingSavedAt] = useState(null);
   const [exportState, setExportState] = useState("idle");
@@ -2995,8 +3007,17 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }).catch(() => {});
   }, [reportDocId]);
 
-  // Load history when tab switches to history
+  // Load safety/NC logs for the selected shift
   useEffect(() => {
+    if (!shiftLogsRef) return;
+    const dateISO = reportDate.toISOString().slice(0, 10);
+    shiftLogsRef
+      .where("shiftDate", "==", dateISO)
+      .where("shiftId", "==", reportShiftId)
+      .get()
+      .then(snap => setShiftLogs(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => setShiftLogs([]));
+  }, [reportShiftId, reportDate]);
     if (activeTab !== "history" || !shiftReportsRef) return;
     setHistoryLoading(true);
     shiftReportsRef
@@ -3302,10 +3323,23 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         }))
         .sort((a, b) => (a.lost || 0) - (b.lost || 0)); // most negative = most lost
 
-      setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET });
+      // Load safety/NC logs for analytics period
+      let safetyCount = 0, ncCount = 0;
+      try {
+        const logsSnap = await shiftLogsRef.get();
+        logsSnap.docs.forEach(d => {
+          const log = d.data();
+          if (log.shiftDate < cutoffISO) return;
+          if (analyticsBu !== "__ALL__" && log.bu !== analyticsBu) return;
+          if (log.type === "safety") safetyCount++;
+          if (log.type === "nc") ncCount++;
+        });
+      } catch(e) {}
+
+      setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount });
       setAnalyticsLoading(false);
     }).catch(e => { console.error(e); setAnalyticsLoading(false); });
-  }, [activeTab, analyticsDays, analyticsBu]);
+  }, [activeTab, analyticsDays, analyticsBu, shiftLogsRef]);
 
   const saveHistoryNote = async () => {
     if (!historyNoteInput.trim() || !shiftReportsRef || !selectedHistoryReport) return;
@@ -3380,7 +3414,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             {analyticsLoading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
             {!analyticsLoading && !analyticsData && <div className="text-center py-12 text-sm text-slate-400 italic">No data found for this period.</div>}
             {!analyticsLoading && analyticsData && (() => {
-              const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET } = analyticsData;
+              const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount } = analyticsData;
               const trend = thisEff != null && prevEff != null ? thisEff - prevEff : null;
               const effColor = thisEff == null ? "#64748b" : thisEff >= TARGET ? "#16a34a" : thisEff >= 76.5 ? "#d97706" : "#dc2626";
               const effBg = thisEff == null ? "#f8fafc" : thisEff >= TARGET ? "#f0fdf4" : thisEff >= 76.5 ? "#fffbeb" : "#fff1f2";
@@ -3414,6 +3448,24 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                         <div className={`text-xl font-bold tabular-nums ${thisLost < 0 ? "text-rose-700" : "text-emerald-700"}`}>{thisLost.toFixed(1)}h</div>
                       </div>
                     </div>
+                    {(safetyCount > 0 || ncCount > 0) && (
+                      <div className="flex gap-2 mt-2">
+                        {safetyCount > 0 && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">Safety</span>
+                            <span className="text-lg font-bold text-red-700 tabular-nums">{safetyCount}</span>
+                            <span className="text-[10px] text-red-400">incident{safetyCount !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
+                        {ncCount > 0 && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">NC</span>
+                            <span className="text-lg font-bold text-orange-700 tabular-nums">{ncCount}</span>
+                            <span className="text-[10px] text-orange-400">incident{ncCount !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Section 2 — Where we struggle */}
@@ -3877,6 +3929,30 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                   </div>
                 </div>
               )}
+              {/* Safety & NC logs */}
+              {shiftLogs.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-stone-200">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Safety & NC Incidents ({shiftLogs.length})</div>
+                  <div className="space-y-2">
+                    {shiftLogs.map((log, i) => (
+                      <div key={i} className={`rounded-md border px-3 py-2.5 ${log.type === "safety" ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${log.type === "safety" ? "bg-red-600 text-white" : "bg-orange-600 text-white"}`}>
+                              {log.type === "safety" ? "SAFETY" : "NC"}
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-700">{log.severity}</span>
+                            {log.resource && <span className="text-[11px] text-slate-500">{log.resource}</span>}
+                          </div>
+                          <span className="text-[10px] text-slate-400">{log.by} · {new Date(log.loggedAt).toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit"})}</span>
+                        </div>
+                        <div className="text-[12px] text-slate-700 mt-1.5 leading-snug">{log.description}</div>
+                        {log.wo && <div className="text-[10px] text-slate-400 mt-1">WO: {log.wo}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer actions */}
@@ -3907,6 +3983,126 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   );
 }
 
+
+function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitials, onClose }) {
+  const isSafety = type === "safety";
+  const title = isSafety ? "Log Safety Issue" : "Log NC (Non-Conformance)";
+  const color = isSafety ? "#dc2626" : "#ea580c";
+  const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage"];
+  const NC_SEVERITIES = ["Minor", "Major", "Critical"];
+  const severities = isSafety ? SAFETY_SEVERITIES : NC_SEVERITIES;
+
+  const { shiftId, shiftDate } = React.useMemo(() => getCurrentShift(new Date()), []);
+  const [resource, setResource] = React.useState("");
+  const [wo, setWo] = React.useState("");
+  const [severity, setSeverity] = React.useState(severities[0]);
+  const [description, setDescription] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  // Unique resources for current BU
+  const resources = React.useMemo(() => {
+    const seen = new Set();
+    return allRows.filter(r => selectedLeader === "__ALL__" || r.leader === selectedLeader)
+      .map(r => r.resource).filter(r => r && !seen.has(r) && seen.add(r)).sort();
+  }, [allRows, selectedLeader]);
+
+  const handleSave = async () => {
+    if (!description.trim()) return;
+    setSaving(true);
+    try {
+      const now = new Date();
+      const entry = {
+        type,
+        resource: resource || "",
+        wo: wo || "",
+        severity,
+        description: description.trim(),
+        by: userInitials || "?",
+        shiftId,
+        shiftDate: shiftDate.toISOString().slice(0, 10),
+        loggedAt: now.toISOString(),
+        bu: selectedLeader,
+      };
+      await shiftLogsRef.add(entry);
+      setSaved(true);
+      setTimeout(() => onClose(), 1200);
+    } catch(e) { console.error("Save log failed:", e); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="px-5 py-4 flex items-center justify-between" style={{backgroundColor: color}}>
+          <div>
+            <h2 className="text-base font-bold text-white">{title}</h2>
+            <p className="text-xs text-white opacity-80">{new Date().toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"})} · {isSafety ? "Safety" : "Quality"} incident log</p>
+          </div>
+          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 p-1"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-5 space-y-4 overflow-auto">
+          {/* Resource */}
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Resource / Line</label>
+            <select value={resource} onChange={e => setResource(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 bg-white">
+              <option value="">— Select resource —</option>
+              {resources.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          {/* Severity */}
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Severity</label>
+            <div className="flex gap-2 flex-wrap">
+              {severities.map(s => (
+                <button key={s} onClick={() => setSeverity(s)}
+                  style={{
+                    backgroundColor: severity === s ? color : "white",
+                    color: severity === s ? "white" : "#64748b",
+                    border: `1px solid ${severity === s ? color : "#e2e8f0"}`,
+                    borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600
+                  }}>{s}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* WO — optional */}
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">WO # <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+            <input value={wo} onChange={e => setWo(e.target.value)} placeholder="e.g. W1029878/1"
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Description <span className="text-rose-500">*</span></label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)}
+              placeholder={isSafety ? "What happened? Any injuries? Actions taken?" : "What was the non-conformance? What product/process was affected?"}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 resize-none" />
+          </div>
+
+          {/* By */}
+          <div className="text-[11px] text-slate-400">Logged by: <span className="font-semibold text-slate-600">{userInitials || "?"}</span></div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-md bg-stone-200 text-slate-700 text-sm font-semibold">Cancel</button>
+          <button onClick={handleSave} disabled={!description.trim() || saving || saved}
+            style={{backgroundColor: saved ? "#16a34a" : saving ? "#60a5fa" : color, flex: 1}}
+            className="px-4 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-60">
+            {saved ? "✓ Logged!" : saving ? "Saving…" : `Log ${isSafety ? "Safety Issue" : "NC"}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ReportStat({ label, value }) {
   return (
