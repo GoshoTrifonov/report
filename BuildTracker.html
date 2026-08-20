@@ -952,11 +952,12 @@ function BuildTracker() {
               }
             } catch(e) {}
             // Merge existing notes into new WOs
+            // Always use existingWoNotes (manually added via UI) as the source of truth.
+            // Never concatenate w.notes (from labour ticket merge) with existing notes
+            // to prevent the same comment duplicating on every upload.
             const mergedWos = entry.wos.map(w => ({
               ...w,
-              notes: existingWoNotes[w.wo]
-                ? (w.notes ? w.notes + " | " + existingWoNotes[w.wo] : existingWoNotes[w.wo])
-                : (w.notes || ""),
+              notes: existingWoNotes[w.wo] !== undefined ? existingWoNotes[w.wo] : (w.notes || ""),
             }));
             const payload = {
               bu: buName(entry.leader), leader: entry.leader,
