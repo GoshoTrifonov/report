@@ -273,6 +273,7 @@ function ProductionReportTool() {
   const [uploadStatus, setUploadStatus] = React.useState(null); // null | "saving" | {ok, msg}
   const [lastUpdated, setLastUpdated] = React.useState(null);
   const [lastFileName, setLastFileName] = React.useState(null);
+  const [futureDateWarning, setFutureDateWarning] = React.useState(null); // null | string[]
   const fileInputRef = React.useRef(null);
 
   // ── Load from Firebase on mount ────────────────────────────────────────
@@ -283,7 +284,14 @@ function ProductionReportTool() {
         if (!data || !data.rows || data.rows.length === 0) {
           setFbStatus("empty");
         } else {
-          setAllRows(data.rows);
+          const todayISO = new Date().toISOString().slice(0, 10);
+          const badDates = new Set();
+          const clampedRows = data.rows.map(r => {
+            if (r.date > todayISO) { badDates.add(r.date); return { ...r, date: todayISO }; }
+            return r;
+          });
+          setFutureDateWarning(badDates.size > 0 ? [...badDates].sort() : null);
+          setAllRows(clampedRows);
           setLastUpdated(data.uploadedAt ? data.uploadedAt.toDate() : null);
           setLastFileName(data.fileName || null);
           setFbStatus("ready");
@@ -789,6 +797,12 @@ function ProductionReportTool() {
           </div>
         </div>
       </header>
+      {futureDateWarning && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 no-print">
+          <span className="text-amber-700 font-semibold text-xs">⚠️ Future date detected in labour data:</span>
+          <span className="text-amber-700 text-xs">{futureDateWarning.join(", ")} — rows re-dated to today. Upload a corrected ticket to fix.</span>
+        </div>
+      )}
 
       {/* Filter bar */}
       <div className="bg-white border-b border-stone-200 no-print">
