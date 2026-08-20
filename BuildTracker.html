@@ -4117,7 +4117,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitials, onClose }) {
   const isSafety = type === "safety";
   const color = isSafety ? "#dc2626" : "#ea580c";
-  const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage"];
+  const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage", "Not Work Related"];
   const NC_SEVERITIES = ["Minor", "Major", "Critical"];
   const severities = isSafety ? SAFETY_SEVERITIES : NC_SEVERITIES;
 
