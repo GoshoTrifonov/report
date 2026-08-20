@@ -4116,32 +4116,46 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
 function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitials, onClose }) {
   const isSafety = type === "safety";
-  const title = isSafety ? "Log Safety Issue" : "Log NC (Non-Conformance)";
   const color = isSafety ? "#dc2626" : "#ea580c";
   const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage"];
   const NC_SEVERITIES = ["Minor", "Major", "Critical"];
   const severities = isSafety ? SAFETY_SEVERITIES : NC_SEVERITIES;
 
-  const { shiftId, shiftDate } = React.useMemo(() => getCurrentShift(new Date()), []);
+  const [activeTab, setActiveTab] = React.useState("new");
+  const [logs, setLogs] = React.useState([]);
+  const [logsLoading, setLogsLoading] = React.useState(false);
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const { shiftId: currentShiftId } = React.useMemo(() => getCurrentShift(new Date()), []);
   const [resource, setResource] = React.useState("");
   const [wo, setWo] = React.useState("");
   const [severity, setSeverity] = React.useState(severities[0]);
   const [description, setDescription] = React.useState("");
+  const [logDate, setLogDate] = React.useState(todayISO);
+  const [logShiftId, setLogShiftId] = React.useState(currentShiftId);
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [histFilter, setHistFilter] = React.useState("all");
 
-  // Unique resources for current BU
   const resources = React.useMemo(() => {
     const seen = new Set();
     return allRows.filter(r => selectedLeader === "__ALL__" || r.leader === selectedLeader)
       .map(r => r.resource).filter(r => r && !seen.has(r) && seen.add(r)).sort();
   }, [allRows, selectedLeader]);
 
+  React.useEffect(() => {
+    if (activeTab !== "history" || !shiftLogsRef) return;
+    setLogsLoading(true);
+    shiftLogsRef.orderBy("shiftDate", "desc").limit(200).get().then(snap => {
+      setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLogsLoading(false);
+    }).catch(() => setLogsLoading(false));
+  }, [activeTab, shiftLogsRef]);
+
   const handleSave = async () => {
     if (!description.trim()) return;
     setSaving(true);
     try {
-      const now = new Date();
       const entry = {
         type,
         resource: resource || "",
@@ -4149,9 +4163,9 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
         severity,
         description: description.trim(),
         by: userInitials || "?",
-        shiftId,
-        shiftDate: shiftDate.toISOString().slice(0, 10),
-        loggedAt: now.toISOString(),
+        shiftId: logShiftId,
+        shiftDate: logDate,
+        loggedAt: new Date().toISOString(),
         bu: selectedLeader,
       };
       await shiftLogsRef.add(entry);
@@ -4161,78 +4175,145 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
     setSaving(false);
   };
 
+  const filteredLogs = logs.filter(l =>
+    (histFilter === "all" || l.type === histFilter) &&
+    (selectedLeader === "__ALL__" || l.bu === selectedLeader)
+  );
+
+  const shiftLabel = (id) => id === 1 ? "S1 Mid" : id === 2 ? "S2 Day" : id === 3 ? "S3 Aft" : "?";
+  const typeColor = (t) => t === "safety" ? "#dc2626" : "#ea580c";
+  const typeLabel = (t) => t === "safety" ? "Safety" : "NC";
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col overflow-hidden">
-        {/* Header */}
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg flex flex-col overflow-hidden" style={{maxHeight:"90vh"}}>
         <div className="px-5 py-4 flex items-center justify-between" style={{backgroundColor: color}}>
           <div>
-            <h2 className="text-base font-bold text-white">{title}</h2>
-            <p className="text-xs text-white opacity-80">{new Date().toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"})} · {isSafety ? "Safety" : "Quality"} incident log</p>
+            <h2 className="text-base font-bold text-white">{isSafety ? "Safety Log" : "NC Log"}</h2>
+            <p className="text-xs text-white opacity-80">{isSafety ? "Safety incidents & near misses" : "Non-conformance incidents"}</p>
           </div>
           <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 p-1"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="p-5 space-y-4 overflow-auto">
-          {/* Resource */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Resource / Line</label>
-            <select value={resource} onChange={e => setResource(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 bg-white">
-              <option value="">— Select resource —</option>
-              {resources.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
+        <div className="flex border-b border-stone-200 bg-stone-50">
+          {[{id:"new",label:"New Entry"},{id:"history",label:"History"}].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className="px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors"
+              style={{borderColor: activeTab===t.id ? color : "transparent", color: activeTab===t.id ? color : "#64748b"}}>
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Severity */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Severity</label>
-            <div className="flex gap-2 flex-wrap">
-              {severities.map(s => (
-                <button key={s} onClick={() => setSeverity(s)}
-                  style={{
-                    backgroundColor: severity === s ? color : "white",
-                    color: severity === s ? "white" : "#64748b",
-                    border: `1px solid ${severity === s ? color : "#e2e8f0"}`,
-                    borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600
-                  }}>{s}</button>
+        {activeTab === "new" && (
+          <>
+            <div className="p-5 space-y-4 overflow-auto flex-1">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Date</label>
+                  <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Shift</label>
+                  <div className="flex gap-1">
+                    {[{id:1,label:"S1"},{id:2,label:"S2"},{id:3,label:"S3"}].map(s => (
+                      <button key={s.id} onClick={() => setLogShiftId(s.id)}
+                        style={{backgroundColor: logShiftId===s.id ? color : "white", color: logShiftId===s.id ? "white" : "#64748b", border:`1px solid ${logShiftId===s.id ? color : "#e2e8f0"}`}}
+                        className="px-3 py-2 rounded text-[12px] font-semibold">{s.label}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Resource / Line</label>
+                <select value={resource} onChange={e => setResource(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 bg-white">
+                  <option value="">— Select resource —</option>
+                  {resources.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Severity</label>
+                <div className="flex gap-2 flex-wrap">
+                  {severities.map(s => (
+                    <button key={s} onClick={() => setSeverity(s)}
+                      style={{backgroundColor: severity===s ? color : "white", color: severity===s ? "white" : "#64748b",
+                        border:`1px solid ${severity===s ? color : "#e2e8f0"}`, borderRadius:6, padding:"5px 12px", fontSize:12, fontWeight:600}}>{s}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">WO # <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+                <input value={wo} onChange={e => setWo(e.target.value)} placeholder="e.g. W1029878/1"
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Description <span className="text-rose-500">*</span></label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)}
+                  placeholder={isSafety ? "What happened? Any injuries? Actions taken?" : "What was the non-conformance? What product/process was affected?"}
+                  rows={3} className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 resize-none" />
+              </div>
+
+              <div className="text-[11px] text-slate-400">Logged by: <span className="font-semibold text-slate-600">{userInitials || "?"}</span></div>
+            </div>
+            <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex gap-2">
+              <button onClick={onClose} className="px-4 py-2 rounded-md bg-stone-200 text-slate-700 text-sm font-semibold">Cancel</button>
+              <button onClick={handleSave} disabled={!description.trim() || saving || saved}
+                style={{backgroundColor: saved ? "#16a34a" : saving ? "#60a5fa" : color, flex:1}}
+                className="px-4 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-60">
+                {saved ? "Logged!" : saving ? "Saving..." : `Log ${isSafety ? "Safety Issue" : "NC"}`}
+              </button>
+            </div>
+          </>
+        )}
+
+        {activeTab === "history" && (
+          <>
+            <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-stone-100">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1">Show</span>
+              {[{id:"all",label:"All"},{id:"safety",label:"Safety"},{id:"nc",label:"NC"}].map(f => (
+                <button key={f.id} onClick={() => setHistFilter(f.id)}
+                  style={{backgroundColor: histFilter===f.id ? "#1e3a5f" : "white", color: histFilter===f.id ? "white" : "#64748b", border:"1px solid #e2e8f0"}}
+                  className="px-2 py-0.5 rounded text-[11px] font-semibold">{f.label}</button>
+              ))}
+              <span className="ml-auto text-[11px] text-slate-400">{filteredLogs.length} entries</span>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {logsLoading && <div className="text-center py-10 text-sm text-slate-400">Loading...</div>}
+              {!logsLoading && filteredLogs.length === 0 && <div className="text-center py-10 text-sm text-slate-400">No entries found.</div>}
+              {!logsLoading && filteredLogs.map(log => (
+                <div key={log.id} className="px-4 py-3 border-b border-stone-100 hover:bg-stone-50">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded text-white" style={{backgroundColor: typeColor(log.type)}}>{typeLabel(log.type)}</span>
+                      <span className="text-[11px] font-semibold text-slate-600">{log.severity}</span>
+                      {log.resource && <span className="text-[11px] text-slate-400">· {log.resource}</span>}
+                      {log.wo && <span className="text-[11px] text-slate-400">· {log.wo}</span>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[11px] font-semibold text-slate-700">{log.shiftDate}</div>
+                      <div className="text-[10px] text-slate-400">{shiftLabel(log.shiftId)} · {log.by}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-600">{log.description}</div>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* WO — optional */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">WO # <span className="font-normal normal-case text-slate-400">(optional)</span></label>
-            <input value={wo} onChange={e => setWo(e.target.value)} placeholder="e.g. W1029878/1"
-              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Description <span className="text-rose-500">*</span></label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)}
-              placeholder={isSafety ? "What happened? Any injuries? Actions taken?" : "What was the non-conformance? What product/process was affected?"}
-              rows={3}
-              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 resize-none" />
-          </div>
-
-          {/* By */}
-          <div className="text-[11px] text-slate-400">Logged by: <span className="font-semibold text-slate-600">{userInitials || "?"}</span></div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-md bg-stone-200 text-slate-700 text-sm font-semibold">Cancel</button>
-          <button onClick={handleSave} disabled={!description.trim() || saving || saved}
-            style={{backgroundColor: saved ? "#16a34a" : saving ? "#60a5fa" : color, flex: 1}}
-            className="px-4 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-60">
-            {saved ? "✓ Logged!" : saving ? "Saving…" : `Log ${isSafety ? "Safety Issue" : "NC"}`}
-          </button>
-        </div>
+            <div className="px-5 py-3 border-t border-stone-200 bg-stone-50">
+              <button onClick={onClose} className="px-4 py-2 rounded-md bg-stone-200 text-slate-700 text-sm font-semibold">Close</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
+
 
 function ReportStat({ label, value }) {
   return (
