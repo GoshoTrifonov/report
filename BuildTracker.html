@@ -1421,7 +1421,7 @@ function BuildTracker() {
 
   // Log a shift entry. Adds qty (delta) to comp_qty and appends to shifts history.
   // Adds qty delta to comp_qty and triggers status transitions via updateRow.
-  const logShiftEntry = (row, { shiftId, shiftDate, qty, notes, reason }) => {
+  const logShiftEntry = (row, { shiftId, shiftDate, qty, notes, reason, downtimeReason, downtimeDuration }) => {
     const existingShifts = row.shifts || [];
     const newShifts = [
       ...existingShifts,
@@ -1433,6 +1433,8 @@ function BuildTracker() {
         reason: reason || "",
         by: userInitials || "",
         loggedAt: new Date().toISOString(),
+        downtimeReason: downtimeReason || "",
+        downtimeDuration: downtimeReason ? (Number(downtimeDuration) || 0) : 0,
       },
     ];
     const currentComp = row.comp_qty || 0;
@@ -4373,6 +4375,11 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
   const [showHistory, setShowHistory] = useState(true);
+  const [showDowntime, setShowDowntime] = useState(false);
+  const [downtimeReason, setDowntimeReason] = useState("");
+  const [downtimeDuration, setDowntimeDuration] = useState(8);
+  const DOWN_REASONS = ["Quality", "Tooling", "Machinery", "No Manpower", "Materials", "Other"];
+  const DURATIONS = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8];
 
   const remaining = Math.max(0, (row.start_qty || 0) - (row.comp_qty || 0));
   const history = (row.shifts || []).slice().sort((a, b) =>
@@ -4403,10 +4410,16 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
       alert(`Quantity is ${isOver ? "above 115%" : "below 95%"} of expected (${expectedShift}). Please pick a reason.`);
       return;
     }
-    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: hasQty ? n : 0, notes, reason: hasQty && (isShort || isOver) ? reason : "" });
+    logShiftEntry(row, { shiftId, shiftDate: defaultDate, qty: hasQty ? n : 0, notes, reason: hasQty && (isShort || isOver) ? reason : "",
+      downtimeReason: showDowntime && downtimeReason ? downtimeReason : "",
+      downtimeDuration: showDowntime && downtimeReason ? downtimeDuration : 0,
+    });
     setQty("");
     setNotes("");
     setReason("");
+    setShowDowntime(false);
+    setDowntimeReason("");
+    setDowntimeDuration(8);
   };
 
   const meta = SHIFTS.find(s => s.id === shiftId);
@@ -4507,6 +4520,44 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         />
       </div>
 
+      {/* Downtime toggle */}
+      <div className="mb-2.5">
+        <button onClick={() => { setShowDowntime(p => !p); setDowntimeReason(""); setDowntimeDuration(8); }}
+          className={`w-full px-3 py-1.5 rounded-md border-2 text-xs font-semibold text-left flex items-center justify-between transition-colors ${
+            showDowntime ? "bg-rose-50 border-rose-400 text-rose-700" : "bg-white border-stone-200 text-slate-500 hover:border-rose-300"
+          }`}>
+          <span>{showDowntime ? "\u25bc" : "\u25b6"} Log Downtime <span className="font-normal opacity-70">(optional)</span></span>
+          {showDowntime && downtimeReason && <span className="text-rose-600 font-bold">{downtimeReason} {downtimeDuration}h</span>}
+        </button>
+        {showDowntime && (
+          <div className="mt-2 p-2.5 rounded-md bg-rose-50 border-2 border-rose-300 space-y-2">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block mb-1.5">Reason</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {DOWN_REASONS.map(r => (
+                  <button key={r} onClick={() => { setDowntimeReason(r); setDowntimeDuration(8); }}
+                    className={`px-2 py-1.5 rounded-md border-2 text-xs font-semibold ${
+                      downtimeReason === r ? "bg-rose-600 border-rose-700 text-white" : "bg-white border-rose-200 text-slate-700 hover:border-rose-400"
+                    }`}>{r}</button>
+                ))}
+              </div>
+            </div>
+            {downtimeReason && (
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block mb-1.5">Duration</label>
+                <div className="flex items-center gap-2">
+                  <select value={downtimeDuration} onChange={e => setDowntimeDuration(Number(e.target.value))}
+                    className="px-3 py-1.5 text-sm border border-rose-300 rounded-md bg-white focus:outline-none focus:border-rose-500">
+                    {DURATIONS.map(d => <option key={d} value={d}>{d}h</option>)}
+                  </select>
+                  <span className="text-xs text-rose-700">Default 8h — adjust if partial</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <button
         onClick={submit}
         disabled={(!qty || Number(qty) <= 0) && !notes.trim()}
@@ -4573,6 +4624,12 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 {entry.reason && (
                   <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">⚠ {entry.reason}</div>
+                )}
+                {entry.downtimeReason && (
+                  <div className="mt-1 flex items-center gap-1">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">🔴 Down: {entry.downtimeReason}</span>
+                    {entry.downtimeDuration > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-800">{entry.downtimeDuration}h</span>}
+                  </div>
                 )}
                 {entry.notes && (
                   <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
