@@ -3370,6 +3370,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           r.lost   += w.lost   || 0;
           r.units  += w.qty    || 0;
           if (w.reason) { r.reasons[w.reason] = (r.reasons[w.reason] || 0) + 1; reasonCount[w.reason] = (reasonCount[w.reason] || 0) + 1; }
+          // Downtime from WO shift entries
+          if (w.downtimeReason && w.downtimeDuration > 0) {
+            r.downtimeHrs = (r.downtimeHrs || 0) + w.downtimeDuration;
+            r.downtimeReasons = r.downtimeReasons || {};
+            r.downtimeReasons[w.downtimeReason] = (r.downtimeReasons[w.downtimeReason] || 0) + w.downtimeDuration;
+          }
           // Shift aggregation
           s.earned += w.earned || 0;
           s.hrs    += w.hrs    || 0;
@@ -3396,12 +3402,25 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       const thisEff = thisHrs > 0 ? Math.round(thisEarned / thisHrs * 1000) / 10 : null;
       const prevEff = prevHrs > 0 ? Math.round(prevEarned / prevHrs * 1000) / 10 : null;
 
+      // Include line-level downtime (from linesDown) per resource
+      for (const doc of docs) {
+        for (const d of (doc.linesDown || [])) {
+          if (!d.resource || !d.reason || d.reason === "Not Scheduled" || !(d.duration > 0)) continue;
+          if (!byResource[d.resource]) continue;
+          byResource[d.resource].downtimeHrs = (byResource[d.resource].downtimeHrs || 0) + d.duration;
+          byResource[d.resource].downtimeReasons = byResource[d.resource].downtimeReasons || {};
+          byResource[d.resource].downtimeReasons[d.reason] = (byResource[d.resource].downtimeReasons[d.reason] || 0) + d.duration;
+        }
+      }
+
       // Sort resources by lost hours (most lost = most struggling)
       const resources = Object.values(byResource)
         .map(r => ({
           ...r,
           eff: r.hrs > 0 ? Math.round(r.earned / r.hrs * 1000) / 10 : null,
           topReason: Object.entries(r.reasons).sort((a,b) => b[1]-a[1])[0]?.[0] || "",
+          downtimeHrs: r.downtimeHrs || 0,
+          downtimeReasons: r.downtimeReasons || {},
         }))
         .sort((a, b) => (a.lost || 0) - (b.lost || 0)); // most negative = most lost
 
@@ -3419,7 +3438,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         });
       } catch(e) {}
 
-      setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount });
+      const totalDowntimeHrs = resources.reduce((s, r) => s + (r.downtimeHrs || 0), 0);
+      setAnalyticsData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs });
       setAnalyticsLoading(false);
     }).catch(e => { console.error(e); setAnalyticsLoading(false); });
     })();
@@ -3513,7 +3533,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             {analyticsLoading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
             {!analyticsLoading && !analyticsData && <div className="text-center py-12 text-sm text-slate-400 italic">No data found for this period.</div>}
             {!analyticsLoading && analyticsData && (() => {
-              const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount } = analyticsData;
+              const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs } = analyticsData;
               const trend = thisEff != null && prevEff != null ? thisEff - prevEff : null;
               const effColor = thisEff == null ? "#64748b" : thisEff >= TARGET ? "#16a34a" : thisEff >= 76.5 ? "#d97706" : "#dc2626";
               const effBg = thisEff == null ? "#f8fafc" : thisEff >= TARGET ? "#f0fdf4" : thisEff >= 76.5 ? "#fffbeb" : "#fff1f2";
@@ -3606,6 +3626,38 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                       <div className="text-center text-xs text-emerald-600 font-semibold mt-2">✓ All resources at or above target</div>
                     )}
                   </div>
+
+                  {/* Section 2b — Downtime by resource */}
+                  {totalDowntimeHrs > 0 && (() => {
+                    const withDowntime = resources.filter(r => r.downtimeHrs > 0).sort((a,b) => b.downtimeHrs - a.downtimeHrs);
+                    const allDowntimeReasons = {};
+                    withDowntime.forEach(r => Object.entries(r.downtimeReasons).forEach(([reason, hrs]) => {
+                      allDowntimeReasons[reason] = (allDowntimeReasons[reason] || 0) + hrs;
+                    }));
+                    return (
+                      <div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Downtime by resource</div>
+                          <div className="text-[11px] font-bold text-rose-600">{totalDowntimeHrs.toFixed(1)}h total</div>
+                        </div>
+                        <div className="space-y-1.5">
+                          {withDowntime.map(r => (
+                            <div key={r.resource} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12px] font-semibold text-slate-800 truncate">{r.resource}</div>
+                                <div className="flex gap-1 flex-wrap mt-0.5">
+                                  {Object.entries(r.downtimeReasons).sort((a,b)=>b[1]-a[1]).map(([reason, hrs]) => (
+                                    <span key={reason} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-800 font-semibold">{reason} {hrs}h</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="text-base font-bold text-rose-700 tabular-nums shrink-0">{r.downtimeHrs.toFixed(1)}h</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Section 3 — Shift breakdown */}
                   <div>
