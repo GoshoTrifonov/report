@@ -309,14 +309,10 @@ function parseBuildPlan(workbook) {
   }
 
   const rows = [];
-  let skipped43 = [], skipped45 = [];
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
     const resource = String(r[COL_RESOURCE] || "").trim();
     const wo = String(r[COL_WO] || "").trim();
-    if (resource === "43" || resource === "45") {
-      console.log(`[ParseBP] Row ${i}: resource="${resource}" wo="${wo}" skip=${!resource || !wo}`);
-    }
     if (!resource || !wo) continue;
     const compRaw = r[COL_COMPQTY];
     const compQty = typeof compRaw === "number" ? compRaw : (parseInt(compRaw) || 0);
@@ -333,9 +329,6 @@ function parseBuildPlan(workbook) {
       status: compQty > 0 && compQty >= (parseInt(r[COL_STARTQTY]) || 0) ? "done" : "todo",
     });
   }
-  const has43 = rows.filter(r => r.resource === "43").length;
-  const has45 = rows.filter(r => r.resource === "45").length;
-  console.log(`[ParseBP] Total rows: ${rows.length}, resource 43: ${has43}, resource 45: ${has45}`);
   return rows.length > 0 ? rows : null;
 }
 
@@ -941,11 +934,13 @@ function BuildTracker() {
             // Fetch existing doc to preserve manually-added notes on WOs and reportNotes
             let existingWoNotes = {}; // wo -> notes string
             let existingReportNotes = [];
+            let existingLinesDown = [];
             try {
               const existing = await BT_SHIFT_REPORTS_REF.doc(docId).get();
               if (existing.exists) {
                 const d = existing.data();
                 existingReportNotes = d.reportNotes || [];
+                existingLinesDown = d.linesDown || [];
                 for (const w of (d.wos || [])) {
                   if (w.notes) existingWoNotes[w.wo] = w.notes;
                 }
@@ -969,7 +964,7 @@ function BuildTracker() {
               totalLost:  Math.round(entry.totalLost   * 100) / 100,
               totalEff, entries: mergedWos.filter(w => w.qty > 0).length,
               resourceCount: new Set(mergedWos.map(w => w.resource)).size,
-              linesDown: [], wos: mergedWos,
+              linesDown: existingLinesDown, wos: mergedWos,
               reportNotes: existingReportNotes,
               autoSavedAt: uploadedAt,
             };
@@ -1045,7 +1040,6 @@ function BuildTracker() {
   const allRows = useMemo(() => {
     const sourceRows = buildPlanRows || BUILD_DATA.rows;
     const rows43 = sourceRows.filter(r => r.resource === "43" || r.resource === "45");
-    console.log(`[allRows] source rows for 43/45:`, rows43.length, rows43.map(r => ({resource: r.resource, wo: r.wo, status: r.status, leader: r.leader})));
     const rows = sourceRows.map((r, idx) => {
       const tagged = { ...r, _idx: idx, comp_qty: parseFloat(r.comp_qty) || 0 }; // _idx kept for ordering only
       const o = overrides[rowKey(tagged)];
