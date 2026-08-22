@@ -363,9 +363,10 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
   const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT — preferred
   const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc — fallback
-  const COL_HRS    = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
-  const COL_EARNED = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
-  const COL_LOST   = col(["LOST", "LOST_HRS"], 20);
+  const COL_HRS      = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
+  const COL_EARNED   = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
+  const COL_LOST     = col(["LOST", "LOST_HRS"], 20);
+  const COL_RESOURCE = col(["RESOURCE_ID", "RESOURCE"], 1);
   const totals = {};
   // Group by WO + date + shiftId → accumulate qty, hrs, earned, lost
   const byWoShift = {};
@@ -374,7 +375,7 @@ function parseLabourTicketsForWOs(workbook) {
     const rawWo = String(r[COL_WO] || "").trim();
     if (!rawWo) continue;
     const qty = parseFloat(r[COL_QTY]) || 0;
-    if (qty <= 0) continue;
+    // Include zero-qty rows: prep work and rework still have hrs/earned/lost
     totals[rawWo] = (totals[rawWo] || 0) + qty;
     // Parse date
     let dateISO = "";
@@ -400,9 +401,10 @@ function parseLabourTicketsForWOs(workbook) {
     const hrs    = parseFloat(r[COL_HRS])    || 0;
     const earned = COL_EARNED >= 0 ? (parseFloat(r[COL_EARNED]) || 0) : 0;
     const lost   = COL_LOST   >= 0 ? (parseFloat(r[COL_LOST])   || 0) : 0;
+    const rawResource = String(r[COL_RESOURCE] || "").trim();
     const groupKey = `${rawWo}||${dateISO}||${shiftId}`;
     if (!byWoShift[groupKey]) {
-      byWoShift[groupKey] = { wo: rawWo, dateISO, shiftId, qty: 0, hrs: 0, earned: 0, lost: 0 };
+      byWoShift[groupKey] = { wo: rawWo, resource: rawResource, dateISO, shiftId, qty: 0, hrs: 0, earned: 0, lost: 0 };
     }
     byWoShift[groupKey].qty    += qty;
     byWoShift[groupKey].hrs    += hrs;
@@ -416,10 +418,11 @@ function parseLabourTicketsForWOs(workbook) {
     if (!shiftDetail[entry.wo]) shiftDetail[entry.wo] = [];
     const eff = entry.hrs > 0 ? Math.round((entry.earned / entry.hrs * 100) * 10) / 10 : null;
     shiftDetail[entry.wo].push({
-      wo:      entry.wo,
-      dateISO: entry.dateISO,
-      shiftId: entry.shiftId,
-      qty:     Math.round(entry.qty),
+      wo:       entry.wo,
+      resource: entry.resource || "",
+      dateISO:  entry.dateISO,
+      shiftId:  entry.shiftId,
+      qty:      Math.round(entry.qty),
       hrs:     Math.round(entry.hrs    * 100) / 100,
       earned:  Math.round(entry.earned * 100) / 100,
       lost:    Math.round(entry.lost   * 100) / 100,
@@ -925,6 +928,31 @@ function BuildTracker() {
               entry.totalLost   += s.lost   || 0;
             });
           });
+
+          // Add unmatched WOs (not in build plan OR 0-qty prep/rework) to reportMap
+          const matchedWOSet = new Set(sourceRows.map(r => r.wo).filter(Boolean));
+          for (const [wo, shifts] of Object.entries(shiftDetail)) {
+            if (matchedWOSet.has(wo)) continue;
+            for (const s of shifts) {
+              if (!s.hrs && !s.qty && !s.lost) continue;
+              const matchingKey = Object.keys(reportMap).find(k => k.includes(`||${s.dateISO}||${s.shiftId}`));
+              const bucketLeader = matchingKey ? reportMap[matchingKey].leader : (selectedLeader !== "__ALL__" ? selectedLeader : "__ALL__");
+              const rKey = matchingKey || `${bucketLeader}||${s.dateISO}||${s.shiftId}`;
+              if (!reportMap[rKey]) reportMap[rKey] = { leader: bucketLeader, dateISO: s.dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
+              const entry = reportMap[rKey];
+              entry.wos.push({
+                resource: s.resource || wo, wo,
+                descr: "", qty: s.qty || 0, compQty: 0, startQty: 0,
+                eff: s.eff ?? null, hrs: s.hrs || 0, earned: s.earned || 0, lost: s.lost || 0,
+                notes: "", reason: "", by: "", source: "labour", unmatched: true,
+              });
+              entry.totalUnits  += s.qty    || 0;
+              entry.totalHrs    += s.hrs    || 0;
+              entry.totalEarned += s.earned || 0;
+              entry.totalLost   += s.lost   || 0;
+            }
+          }
+
           // Write each report doc — fetch existing first to preserve manually-added WO notes
           const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
           const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
@@ -3566,6 +3594,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{thisLost < 0 ? "Lost hours" : "Earned hours"}</div>
                         <div className={`text-xl font-bold tabular-nums ${thisLost < 0 ? "text-rose-700" : "text-emerald-700"}`}>{thisLost.toFixed(1)}h</div>
                       </div>
+                      {totalDowntimeHrs > 0 && (
+                        <div className="rounded-lg border bg-rose-50 border-rose-300 px-3 py-3 flex flex-col justify-center">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-400 mb-1">Downtime</div>
+                          <div className="text-xl font-bold tabular-nums text-rose-700">{totalDowntimeHrs.toFixed(1)}h</div>
+                        </div>
+                      )}
                     </div>
                     {(safetyCount > 0 || ncCount > 0) && (
                       <div className="flex gap-2 mt-2">
@@ -3762,7 +3796,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                             {items.map((w,i)=>(
                               <div key={i} className={`px-3 py-2.5 text-sm ${w.statusOnly?"bg-stone-50":""}`}>
                                 <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0"><span className="font-mono font-semibold text-slate-900 text-xs">{w.wo}</span><span className="text-slate-500 ml-2 text-xs">{w.descr}</span></div>
+                                  <div className="min-w-0 flex items-center gap-1 flex-wrap"><span className="font-mono font-semibold text-slate-900 text-xs">{w.wo}</span><span className="text-slate-500 ml-1 text-xs">{w.descr}</span>{w.unmatched && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-violet-100 text-violet-700 uppercase tracking-wide">Prep/Rework</span>}</div>
                                   {w.qty>0 && <div className="text-right shrink-0"><div className="font-bold text-emerald-700 tabular-nums">+{w.qty.toLocaleString()}</div><div className="text-[10px] text-slate-400 tabular-nums">{(w.compQty||0).toLocaleString()} / {(w.startQty||0).toLocaleString()}</div></div>}
                                   {w.statusOnly && <span className="text-[10px] text-slate-400 uppercase font-bold shrink-0">{w.status} (no entries)</span>}
                                 </div>
