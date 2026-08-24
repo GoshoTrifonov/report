@@ -992,7 +992,21 @@ function BuildTracker() {
               totalLost:  Math.round(entry.totalLost   * 100) / 100,
               totalEff, entries: mergedWos.filter(w => w.qty > 0).length,
               resourceCount: new Set(mergedWos.map(w => w.resource)).size,
-              linesDown: existingLinesDown, wos: mergedWos,
+              linesDown: (() => {
+                // Pull live lineDown state for this date+shift, merge with any previously saved
+                const liveDown = [];
+                for (const [res, entries] of Object.entries(lineDown || {})) {
+                  const match = entries.find(e => {
+                    const eDate = e.shiftDateISO ? e.shiftDateISO.slice(0,10) : "";
+                    return eDate === entry.dateISO && e.shiftId === entry.shiftId;
+                  });
+                  if (match) liveDown.push({ resource: res, reason: match.reason || "", notes: match.notes || "", by: match.by || "", duration: match.duration ?? (match.reason === "Not Scheduled" ? 0 : 8) });
+                }
+                // Merge: live state wins over stale Firestore doc entries
+                const liveResources = new Set(liveDown.map(d => d.resource));
+                const preserved = existingLinesDown.filter(d => !liveResources.has(d.resource));
+                return liveDown.length > 0 ? [...liveDown, ...preserved] : existingLinesDown;
+              })(), wos: mergedWos,
               reportNotes: existingReportNotes,
               autoSavedAt: uploadedAt,
             };
