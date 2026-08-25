@@ -3171,6 +3171,41 @@ function InitialsModal({ current, onSave, onCancel }) {
   );
 }
 
+function DowntimeCard({ r }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasNotes = r.downtimeNotes && r.downtimeNotes.length > 0;
+  return (
+    <div className="rounded-lg bg-rose-50 border border-rose-200 overflow-hidden">
+      <div className={`flex items-center gap-2 px-3 py-2 ${hasNotes ? "cursor-pointer hover:bg-rose-100" : ""}`}
+        onClick={() => hasNotes && setExpanded(e => !e)}>
+        <div className="flex-1 min-w-0">
+          <div className="text-[12px] font-semibold text-slate-800 truncate">{r.resource}</div>
+          <div className="flex gap-1 flex-wrap mt-0.5">
+            {Object.entries(r.downtimeReasons).sort((a,b)=>b[1]-a[1]).map(([reason, hrs]) => (
+              <span key={reason} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-800 font-semibold">{reason} {hrs}h</span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {hasNotes && <span className="text-[10px] text-rose-400">{expanded ? "▲" : "▼"} notes</span>}
+          <div className="text-base font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</div>
+        </div>
+      </div>
+      {expanded && hasNotes && (
+        <div className="border-t border-rose-200 px-3 py-2 space-y-1 bg-white">
+          {r.downtimeNotes.map((n, i) => (
+            <div key={i} className="text-xs text-slate-600">
+              <span className="font-mono text-[10px] text-slate-400 mr-1">{n.wo}</span>
+              <span className="font-semibold text-rose-600 mr-1">{n.reason}:</span>
+              {n.note}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
@@ -3807,40 +3842,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div className="text-[11px] font-bold text-rose-600">{totalDowntimeHrs.toFixed(1)}h total</div>
                         </div>
                         <div className="space-y-1.5">
-                          {withDowntime.map(r => {
-                            const hasNotes = r.downtimeNotes && r.downtimeNotes.length > 0;
-                            const [expanded, setExpanded] = React.useState(false);
-                            return (
-                            <div key={r.resource} className="rounded-lg bg-rose-50 border border-rose-200 overflow-hidden">
-                              <div className={`flex items-center gap-2 px-3 py-2 ${hasNotes ? "cursor-pointer hover:bg-rose-100" : ""}`}
-                                onClick={() => hasNotes && setExpanded(e => !e)}>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-[12px] font-semibold text-slate-800 truncate">{r.resource}</div>
-                                  <div className="flex gap-1 flex-wrap mt-0.5">
-                                    {Object.entries(r.downtimeReasons).sort((a,b)=>b[1]-a[1]).map(([reason, hrs]) => (
-                                      <span key={reason} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-800 font-semibold">{reason} {hrs}h</span>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  {hasNotes && <span className="text-[10px] text-rose-400">{expanded ? "▲" : "▼"} notes</span>}
-                                  <div className="text-base font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</div>
-                                </div>
-                              </div>
-                              {expanded && hasNotes && (
-                                <div className="border-t border-rose-200 px-3 py-2 space-y-1 bg-white">
-                                  {r.downtimeNotes.map((n, i) => (
-                                    <div key={i} className="text-xs text-slate-600">
-                                      <span className="font-mono text-[10px] text-slate-400 mr-1">{n.wo}</span>
-                                      <span className="font-semibold text-rose-600 mr-1">{n.reason}:</span>
-                                      {n.note}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            );
-                          })}
+                          {withDowntime.map(r => <DowntimeCard key={r.resource} r={r} />)}
                         </div>
                       </div>
                     );
