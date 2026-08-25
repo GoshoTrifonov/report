@@ -915,6 +915,7 @@ function BuildTracker() {
               const manualNotes = manualForThisShift.map(m => m.notes).filter(Boolean).join(" | ");
               const manualReason = manualForThisShift.map(m => m.reason).filter(Boolean).join(", ");
               const manualBy = manualForThisShift.map(m => m.by).filter(Boolean).join(", ");
+              const downtimeEntry = manualForThisShift.find(m => m.downtimeReason);
               entry.wos.push({
                 resource: row.resource, wo: row.wo,
                 descr: row.descr || row.part || "",
@@ -924,6 +925,8 @@ function BuildTracker() {
                 reason: manualReason || s.reason || "",
                 by: manualBy || s.by || "",
                 source: s.source || "",
+                downtimeReason: downtimeEntry ? (downtimeEntry.downtimeReason || "") : "",
+                downtimeDuration: downtimeEntry ? (downtimeEntry.downtimeDuration || 0) : 0,
               });
               entry.totalUnits  += s.qty    || 0;
               entry.totalHrs    += s.hrs    || 0;
@@ -958,10 +961,9 @@ function BuildTracker() {
               if (!leaderFromBu && buLower) {
                 leaderFromBu = Object.entries(BU_TO_LEADER).find(([bu]) => buLower.includes(bu) || bu.includes(buLower))?.[1] || null;
               }
-              const matchingKey = Object.keys(reportMap).find(k => k.includes(`||${s.dateISO}||${s.shiftId}`)
-                && (!leaderFromBu || k.startsWith(leaderFromBu + "||")));
-              const bucketLeader = leaderFromBu || (matchingKey ? reportMap[matchingKey].leader : (selectedLeader !== "__ALL__" ? selectedLeader : "__ALL__"));
-              const rKey = matchingKey || `${bucketLeader}||${s.dateISO}||${s.shiftId}`;
+              const bucketLeader = leaderFromBu || (selectedLeader !== "__ALL__" ? selectedLeader : null);
+              if (!bucketLeader) continue;
+              const rKey = `${bucketLeader}||${s.dateISO}||${s.shiftId}`;
               if (!reportMap[rKey]) reportMap[rKey] = { leader: bucketLeader, dateISO: s.dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
               const entry = reportMap[rKey];
               entry.wos.push({
@@ -3847,6 +3849,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                   </div>
                                 )}
                                 {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
+                                {w.downtimeReason && (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">🔴 {w.downtimeReason}</span>
+                                    {w.downtimeDuration > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-800">{w.downtimeDuration}h</span>}
+                                  </div>
+                                )}
                                 {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
                                 {/* WO note input */}
                                 {woNoteTarget === w.wo ? (
