@@ -2762,7 +2762,10 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                           <div key={c.key} onClick={e => { e.stopPropagation(); toggleCheck(e, r, c.key); }}
                             style={{ background: bg, border, borderRadius: 4, padding: "3px 7px", fontSize: 10, fontWeight: 700, color, cursor: "pointer", userSelect: "none" }}
                             className="hover:opacity-80">
-                            {c.label}{badge}{c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
+                            {c.label}{badge}
+                            {!c.ok && c.extra ? ` · ${c.extra}` : ""}
+                            {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}` : ""}
+                            {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                           </div>
                         );
                       })}
@@ -2837,6 +2840,35 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
           <button
             onClick={() => {
               const now = new Date().toLocaleString();
+              // Build 0-qty section HTML
+              const zeroRows_html = (nowZeroQtyList || []).map(r => {
+                const liveRow = getLiveRow(r);
+                const ready = liveRow.readiness || {};
+                const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
+                const allReady = isReady(liveRow);
+                const checks2 = [
+                  { label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId },
+                  { label: "Labels", ok: ready.labels?.ok },
+                  { label: "Kit",    ok: ready.kit?.ok },
+                ];
+                const pillsHtml2 = checks2.map(c => {
+                  const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "#fff";
+                  const border = c.ok ? "none" : "2px solid #ef4444";
+                  const color = c.ok ? "#fff" : "#f87171";
+                  const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
+                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " \xb7 " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " \xb7 " + c.extra : ""}</span>`;
+                }).join("");
+                const readyBadge2 = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">\u2713 Ready</span>' : '';
+                return `<tr style="background:#fffbeb;border-bottom:1px solid #fde68a">
+                  <td style="padding:6px 8px;font-size:11px;color:#92400e;white-space:nowrap">${liveRow.resource}${readyBadge2}<span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">0 qty</span></td>
+                  <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
+                  <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
+                  <td style="padding:6px 8px;white-space:nowrap">${pillsHtml2}</td>
+                </tr>`;
+              }).join("");
+              const zeroSection_html = (nowZeroQtyList || []).length > 0
+                ? `<tr><td colspan="4" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">⚠ NOW — Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
+                : "";
               const rows_html = sorted.map(r => {
                 const liveRow = getLiveRow(r);
                 const ready = liveRow.readiness || {};
@@ -2886,7 +2918,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                   <th style="padding:6px 8px;text-align:left">WO</th>
                   <th style="padding:6px 8px;text-align:left">Description</th>
                   <th style="padding:6px 8px;text-align:left">Readiness</th>
-                </tr></thead><tbody>${rows_html}</tbody></table>
+                </tr></thead><tbody>${zeroSection_html}${rows_html}</tbody></table>
               </body></html>`);
               win.document.close();
             }}
