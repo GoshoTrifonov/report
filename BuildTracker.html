@@ -2456,8 +2456,8 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                 <div key={line.resource} className={`relative ${bgClass}`}>
 
                   <div
-                    className={`sticky z-10 pointer-events-none ${bgClass}`}
-                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", marginBottom: "-2.25rem" }}
+                    className={`sticky z-20 ${bgClass}`}
+                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem" }}
                   >
                     <span className="sr-only">{line.resource}</span>
                   </div>
