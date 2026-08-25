@@ -367,6 +367,7 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_EARNED   = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
   const COL_LOST     = col(["LOST", "LOST_HRS"], 20);
   const COL_RESOURCE = col(["RESOURCE_ID", "RESOURCE"], 1);
+  const COL_BU       = col(["BU", "UNIT LEAD", "UNIT_LEAD"], 46); // BU name column (e.g. "BU Verathon")
   const totals = {};
   // Group by WO + date + shiftId → accumulate qty, hrs, earned, lost
   const byWoShift = {};
@@ -402,9 +403,10 @@ function parseLabourTicketsForWOs(workbook) {
     const earned = COL_EARNED >= 0 ? (parseFloat(r[COL_EARNED]) || 0) : 0;
     const lost   = COL_LOST   >= 0 ? (parseFloat(r[COL_LOST])   || 0) : 0;
     const rawResource = String(r[COL_RESOURCE] || "").trim();
+    const rawBu       = String(r[COL_BU]       || "").trim();
     const groupKey = `${rawWo}||${dateISO}||${shiftId}`;
     if (!byWoShift[groupKey]) {
-      byWoShift[groupKey] = { wo: rawWo, resource: rawResource, dateISO, shiftId, qty: 0, hrs: 0, earned: 0, lost: 0 };
+      byWoShift[groupKey] = { wo: rawWo, resource: rawResource, bu: rawBu, dateISO, shiftId, qty: 0, hrs: 0, earned: 0, lost: 0 };
     }
     byWoShift[groupKey].qty    += qty;
     byWoShift[groupKey].hrs    += hrs;
@@ -420,6 +422,7 @@ function parseLabourTicketsForWOs(workbook) {
     shiftDetail[entry.wo].push({
       wo:       entry.wo,
       resource: entry.resource || "",
+      bu:       entry.bu || "",
       dateISO:  entry.dateISO,
       shiftId:  entry.shiftId,
       qty:      Math.round(entry.qty),
@@ -931,12 +934,33 @@ function BuildTracker() {
 
           // Add unmatched WOs (not in build plan OR 0-qty prep/rework) to reportMap
           const matchedWOSet = new Set(sourceRows.map(r => r.wo).filter(Boolean));
+          // Build reverse zone->leader map from BUILD_DATA
+          const zoneLeaderMap = {};
+          for (const r of BUILD_DATA.rows) {
+            if (r.resource && r.leader) zoneLeaderMap[r.resource.toUpperCase()] = r.leader;
+          }
           for (const [wo, shifts] of Object.entries(shiftDetail)) {
             if (matchedWOSet.has(wo)) continue;
             for (const s of shifts) {
               if (!s.hrs && !s.qty && !s.lost) continue;
-              const matchingKey = Object.keys(reportMap).find(k => k.includes(`||${s.dateISO}||${s.shiftId}`));
-              const bucketLeader = matchingKey ? reportMap[matchingKey].leader : (selectedLeader !== "__ALL__" ? selectedLeader : "__ALL__");
+              // Resolve leader from the BU column in the labour ticket (same as Production Report)
+              const BU_TO_LEADER = {
+                "bu verathon":   "George",
+                "bu molding":    "Andrew B.",
+                "bu tier 1":     "Mark P.",
+                "bu tier 2":     "Lori F.",
+                "bu bellfarm":   "Rob S.",
+                "bu bell farm":  "Rob S.",
+              };
+              const buLower = (s.bu || "").toLowerCase().trim();
+              let leaderFromBu = BU_TO_LEADER[buLower] || null;
+              // Partial match fallback (in case BU value has extra text)
+              if (!leaderFromBu && buLower) {
+                leaderFromBu = Object.entries(BU_TO_LEADER).find(([bu]) => buLower.includes(bu) || bu.includes(buLower))?.[1] || null;
+              }
+              const matchingKey = Object.keys(reportMap).find(k => k.includes(`||${s.dateISO}||${s.shiftId}`)
+                && (!leaderFromBu || k.startsWith(leaderFromBu + "||")));
+              const bucketLeader = leaderFromBu || (matchingKey ? reportMap[matchingKey].leader : (selectedLeader !== "__ALL__" ? selectedLeader : "__ALL__"));
               const rKey = matchingKey || `${bucketLeader}||${s.dateISO}||${s.shiftId}`;
               if (!reportMap[rKey]) reportMap[rKey] = { leader: bucketLeader, dateISO: s.dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
               const entry = reportMap[rKey];
