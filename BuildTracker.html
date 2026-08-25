@@ -2730,19 +2730,47 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">⚠ NOW — Running but 0 qty produced</span>
                 <span className="text-[10px] text-amber-500">{nowZeroQtyList.length} line{nowZeroQtyList.length !== 1 ? "s" : ""}</span>
               </div>
-              {nowZeroQtyList.map((r, i) => (
+              {nowZeroQtyList.map((r, i) => {
+                const liveRow = getLiveRow(r);
+                const ready = liveRow.readiness || {};
+                const allReady = isReady(liveRow);
+                const toolId = WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id || null;
+                const checks = [
+                  { key: "tool",   label: "Tool",   ok: ready.tool?.ok,   auto: ready.tool?.auto, na: ready.tool?.na, extra: toolId, by: ready.tool?.by },
+                  { key: "labels", label: "Labels", ok: ready.labels?.ok, by: ready.labels?.by },
+                  { key: "kit",    label: "Kit",    ok: ready.kit?.ok,    by: ready.kit?.by },
+                ];
+                return (
                 <button key={i} onClick={() => onSelect(r)}
                   className="w-full text-left px-4 py-2.5 hover:bg-amber-50 border-b border-amber-100 bg-amber-50/50">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[11px] font-semibold text-amber-700 mb-0.5">{r.resource}</div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[11px] font-semibold text-amber-700">{r.resource}</span>
+                        {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
+                      </div>
                       <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                       <div className="text-xs text-slate-500 truncate">{r.descr || r.part}</div>
                     </div>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 shrink-0">0 qty</span>
+                    <div className="flex gap-1.5 shrink-0">
+                      {checks.map(c => {
+                        const bg = c.ok ? (c.na ? "#64748b" : c.auto ? "#0ea5e9" : "#16a34a") : "transparent";
+                        const border = c.ok ? "2px solid transparent" : "2px solid #ef4444";
+                        const color = c.ok ? "white" : "#f87171";
+                        const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
+                        return (
+                          <div key={c.key} onClick={e => { e.stopPropagation(); toggleCheck(e, r, c.key); }}
+                            style={{ background: bg, border, borderRadius: 4, padding: "3px 7px", fontSize: 10, fontWeight: 700, color, cursor: "pointer", userSelect: "none" }}
+                            className="hover:opacity-80">
+                            {c.label}{badge}{c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
           {sorted.length === 0 ? (
