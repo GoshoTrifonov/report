@@ -10,10 +10,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  body { margin:0; background:#030712; font-family:system-ui,sans-serif; }
+  body { margin:0; background:#f8fafc; font-family:system-ui,sans-serif; }
   ::-webkit-scrollbar{width:6px;height:6px}
-  ::-webkit-scrollbar-track{background:#111827}
-  ::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}
+  ::-webkit-scrollbar-track{background:#e2e8f0}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
 </style>
 </head>
 <body>
@@ -126,34 +126,34 @@ function App() {
   const s = (obj) => Object.assign({}, obj); // style helper
 
   return (
-    <div style={{minHeight:'100vh',background:'#030712',color:'#f9fafb',display:'flex',flexDirection:'column'}}>
+    <div style={{minHeight:'100vh',background:'#f8fafc',color:'#0f172a',display:'flex',flexDirection:'column'}}>
       {/* Header */}
-      <div style={{background:'#111827',borderBottom:'1px solid #1f2937',padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+      <div style={{background:'#ffffff',borderBottom:'1px solid #e2e8f0',padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
         <div>
-          <div style={{fontSize:17,fontWeight:700,color:'#fff'}}>SMI Build Plan Tracker</div>
-          <div style={{fontSize:11,color:'#6b7280',marginTop:2}}>Data as of {dataDate} · {data.length} parts · {allResources.length-1} resources</div>
+          <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>SMI Build Plan Tracker</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Data as of {dataDate} · {data.length} parts · {allResources.length-1} resources</div>
         </div>
-        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#fff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
+        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#ffffff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
           onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
           {uploading ? 'Parsing…' : '⬆ Update File'}
           <input type="file" accept=".xlsm,.xlsx" style={{display:'none'}} onChange={onFileInput}/>
         </label>
       </div>
 
-      {uploadError && <div style={{background:'rgba(127,29,29,0.7)',borderBottom:'1px solid #7f1d1d',color:'#fca5a5',padding:'8px 20px',fontSize:13}}>⚠ {uploadError}</div>}
+      {uploadError && <div style={{background:'#fee2e2',borderBottom:'1px solid #fca5a5',color:'#991b1b',padding:'8px 20px',fontSize:13}}>⚠ {uploadError}</div>}
 
       {/* Resource filter bar */}
-      <div style={{background:'rgba(17,24,39,0.8)',borderBottom:'1px solid #1f2937',padding:'8px 20px',overflowX:'auto'}}>
+      <div style={{background:'#f1f5f9',borderBottom:'1px solid #e2e8f0',padding:'8px 20px',overflowX:'auto'}}>
         <div style={{display:'flex',gap:6,alignItems:'center',minWidth:'max-content'}}>
-          <span style={{fontSize:11,color:'#6b7280',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Resource:</span>
+          <span style={{fontSize:11,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Resource:</span>
           {allResources.map(res => {
             const active = selectedResource === res;
-            const color = res === 'All' ? '#6b7280' : resourceColor(res, allResources.slice(1));
+            const color = res === 'All' ? '#94a3b8' : resourceColor(res, allResources.slice(1));
             return (
               <button key={res} onClick={() => setSelectedResource(res)}
-                style={{padding:'4px 12px',borderRadius:20,fontSize:12,fontWeight:active?600:400,cursor:'pointer',border:`1px solid ${active ? color : '#374151'}`,
+                style={{padding:'4px 12px',borderRadius:20,fontSize:12,fontWeight:active?600:400,cursor:'pointer',border:`1px solid ${active ? color : '#cbd5e1'}`,
                   background: active ? color + '33' : 'transparent',
-                  color: active ? color : '#9ca3af', transition:'all 0.15s', flexShrink:0}}>
+                  color: active ? color : '#64748b', transition:'all 0.15s', flexShrink:0}}>
                 {res}
               </button>
             );
@@ -162,13 +162,13 @@ function App() {
       </div>
 
       {/* Controls */}
-      <div style={{background:'rgba(17,24,39,0.5)',borderBottom:'1px solid #1f2937',padding:'8px 20px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+      <div style={{background:'#f8fafc',borderBottom:'1px solid #e2e8f0',padding:'8px 20px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <input type="text" placeholder="Search part, description…" value={search} onChange={e=>setSearch(e.target.value)}
-          style={{flex:1,minWidth:180,background:'#1f2937',border:'1px solid #374151',borderRadius:7,padding:'7px 12px',fontSize:13,color:'#f9fafb',outline:'none'}}/>
-        <div style={{display:'flex',borderRadius:7,overflow:'hidden',border:'1px solid #374151',flexShrink:0}}>
-          {[['week','Week View'],['table','Multi-Week']].map(([m,label]) => (
+          style={{flex:1,minWidth:180,background:'#e2e8f0',border:'1px solid #cbd5e1',borderRadius:7,padding:'7px 12px',fontSize:13,color:'#0f172a',outline:'none'}}/>
+        <div style={{display:'flex',borderRadius:7,overflow:'hidden',border:'1px solid #cbd5e1',flexShrink:0}}>
+          {[['week','Week View'],['table','Multi-Week'],['avg','Avg / Resource']].map(([m,label]) => (
             <button key={m} onClick={()=>setViewMode(m)}
-              style={{padding:'7px 14px',fontSize:13,fontWeight:500,cursor:'pointer',border:'none',background:viewMode===m?'#2563eb':'#1f2937',color:viewMode===m?'#fff':'#9ca3af'}}>
+              style={{padding:'7px 14px',fontSize:13,fontWeight:500,cursor:'pointer',border:'none',background:viewMode===m?'#2563eb':'#e2e8f0',color:viewMode===m?'#fff':'#64748b'}}>
               {label}
             </button>
           ))}
@@ -177,15 +177,15 @@ function App() {
 
       {/* Week selector */}
       {viewMode === 'week' && (
-        <div style={{background:'rgba(17,24,39,0.3)',borderBottom:'1px solid #1f2937',padding:'8px 20px',overflowX:'auto'}}>
+        <div style={{background:'#f1f5f9',borderBottom:'1px solid #e2e8f0',padding:'8px 20px',overflowX:'auto'}}>
           <div style={{display:'flex',alignItems:'center',gap:6,minWidth:'max-content'}}>
-            <span style={{fontSize:11,color:'#6b7280',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Week:</span>
+            <span style={{fontSize:11,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Week:</span>
             {allWeeks.map(w => (
               <button key={w} onClick={()=>setSelectedWeek(w)}
                 style={{fontSize:12,padding:'4px 11px',borderRadius:20,cursor:'pointer',border:'1px solid',flexShrink:0,
-                  background: w===currentWeek?'#2563eb': 'transparent',
-                  borderColor: w===currentWeek?'#3b82f6': w===defaultWeek?'#1e3a5f':'#374151',
-                  color: w===currentWeek?'#fff': w===defaultWeek?'#93c5fd':'#6b7280',
+                  background: w===currentWeek?'#2563eb': '#ffffff',
+                  borderColor: w===currentWeek?'#3b82f6': w===defaultWeek?'#1e3a5f':'#cbd5e1',
+                  color: w===currentWeek?'#fff': w===defaultWeek?'#93c5fd':'#94a3b8',
                   fontWeight: w===currentWeek?600:400}}>
                 {fmtWeek(w)}
               </button>
@@ -198,6 +198,8 @@ function App() {
       <div style={{flex:1,overflow:'auto',padding:20}}>
         {viewMode === 'week'
           ? <WeekView rows={weekRows} week={currentWeek} allResources={allResources.slice(1)} selectedResource={selectedResource} />
+          : viewMode === 'avg'
+          ? <AvgView rows={filtered} weeks={visibleWeeks} allResources={allResources.slice(1)} />
           : <TableView rows={filtered} weeks={visibleWeeks} allWeeks={allWeeks} allResources={allResources.slice(1)} />}
       </div>
     </div>
@@ -205,8 +207,8 @@ function App() {
 }
 
 function WeekView({ rows, week, allResources, selectedResource }) {
-  if (!week) return <div style={{textAlign:'center',color:'#6b7280',paddingTop:60}}>No data loaded.</div>;
-  if (rows.length === 0) return <div style={{textAlign:'center',color:'#6b7280',paddingTop:60}}>No build plan for week of {fmtWeek(week)}.</div>;
+  if (!week) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No data loaded.</div>;
+  if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No build plan for week of {fmtWeek(week)}.</div>;
   const total = rows.reduce((s,r) => s+(r.weeks[week]||0), 0);
 
   // Group by resource
@@ -219,8 +221,8 @@ function WeekView({ rows, week, allResources, selectedResource }) {
 
   return (
     <div>
-      <div style={{color:'#6b7280',fontSize:13,marginBottom:14}}>
-        <span style={{color:'#fff',fontWeight:600}}>{rows.length}</span> parts · <span style={{color:'#fff',fontWeight:600}}>{total.toLocaleString()}</span> total units
+      <div style={{color:'#94a3b8',fontSize:13,marginBottom:14}}>
+        <span style={{color:'#0f172a',fontWeight:600}}>{rows.length}</span> parts · <span style={{color:'#0f172a',fontWeight:600}}>{total.toLocaleString()}</span> total units
       </div>
       {groups.map(res => {
         const parts = seen[res];
@@ -232,18 +234,18 @@ function WeekView({ rows, week, allResources, selectedResource }) {
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
               <div style={{width:4,height:20,borderRadius:2,background:color,flexShrink:0}}/>
               <span style={{fontSize:14,fontWeight:700,color:color}}>{res}</span>
-              <span style={{fontSize:12,color:'#6b7280',marginLeft:4}}>{resTotal.toLocaleString()} units · {parts.length} part{parts.length>1?'s':''}</span>
+              <span style={{fontSize:12,color:'#94a3b8',marginLeft:4}}>{resTotal.toLocaleString()} units · {parts.length} part{parts.length>1?'s':''}</span>
             </div>
             <div style={{display:'grid',gap:6,paddingLeft:14,borderLeft:`2px solid ${color}33`}}>
               {parts.map(r => (
-                <div key={r.part_id} style={{background:'#111827',border:'1px solid #1f2937',borderRadius:10,padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                <div key={r.part_id} style={{background:'#ffffff',border:'1px solid #e2e8f0',borderRadius:10,padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
                   <div style={{minWidth:0}}>
-                    <div style={{color:'#f3f4f6',fontWeight:500,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.description||r.part_id}</div>
-                    <div style={{color:'#4b5563',fontSize:11,marginTop:2}}>{r.part_id}</div>
+                    <div style={{color:'#0f172a',fontWeight:500,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.description||r.part_id}</div>
+                    <div style={{color:'#64748b',fontSize:11,marginTop:2}}>{r.part_id}</div>
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
                     <div style={{fontSize:22,fontWeight:700,color}}>{fmtQty(r.weeks[week])}</div>
-                    <div style={{color:'#4b5563',fontSize:10}}>units</div>
+                    <div style={{color:'#64748b',fontSize:10}}>units</div>
                   </div>
                 </div>
               ))}
@@ -258,7 +260,7 @@ function WeekView({ rows, week, allResources, selectedResource }) {
 function TableView({ rows, weeks, allWeeks, allResources }) {
   const [showAll, setShowAll] = useState(false);
   const displayWeeks = showAll ? allWeeks : weeks;
-  if (rows.length === 0) return <div style={{textAlign:'center',color:'#6b7280',paddingTop:60}}>No results.</div>;
+  if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No results.</div>;
 
   // Group rows by resource
   const groups = [];
@@ -271,19 +273,19 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
   return (
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:8}}>
-        <div style={{color:'#6b7280',fontSize:13}}>
-          <span style={{color:'#fff',fontWeight:600}}>{rows.length}</span> parts · <span style={{color:'#fff',fontWeight:600}}>{displayWeeks.length}</span> weeks
+        <div style={{color:'#94a3b8',fontSize:13}}>
+          <span style={{color:'#0f172a',fontWeight:600}}>{rows.length}</span> parts · <span style={{color:'#0f172a',fontWeight:600}}>{displayWeeks.length}</span> weeks
         </div>
-        <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#60a5fa',background:'transparent',border:'1px solid #374151',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
+        <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#2563eb',background:'transparent',border:'1px solid #cbd5e1',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
           {showAll ? 'Show near-term only' : `Show all ${allWeeks.length} weeks`}
         </button>
       </div>
-      <div style={{overflowX:'auto',borderRadius:10,border:'1px solid #1f2937'}}>
+      <div style={{overflowX:'auto',borderRadius:10,border:'1px solid #e2e8f0'}}>
         <table style={{minWidth:'100%',borderCollapse:'collapse',fontSize:12}}>
           <thead>
-            <tr style={{background:'#0f172a',color:'#6b7280',fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em'}}>
-              <th style={{position:'sticky',left:0,zIndex:10,background:'#0f172a',padding:'9px 14px',textAlign:'left',borderBottom:'1px solid #1f2937',borderRight:'1px solid #1f2937',minWidth:170,whiteSpace:'nowrap'}}>Resource / Part</th>
-              {displayWeeks.map(w => <th key={w} style={{padding:'9px 10px',textAlign:'center',borderBottom:'1px solid #1f2937',minWidth:68,whiteSpace:'nowrap'}}>{fmtWeek(w)}</th>)}
+            <tr style={{background:'#f1f5f9',color:'#94a3b8',fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em'}}>
+              <th style={{position:'sticky',left:0,zIndex:10,background:'#f1f5f9',padding:'9px 14px',textAlign:'left',borderBottom:'1px solid #e2e8f0',borderRight:'1px solid #e2e8f0',minWidth:170,whiteSpace:'nowrap'}}>Resource / Part</th>
+              {displayWeeks.map(w => <th key={w} style={{padding:'9px 10px',textAlign:'center',borderBottom:'1px solid #e2e8f0',minWidth:68,whiteSpace:'nowrap'}}>{fmtWeek(w)}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -294,32 +296,32 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
               return (
                 <React.Fragment key={res}>
                   {/* Resource subtotal row */}
-                  <tr style={{background:'#0f172a'}}>
-                    <td style={{position:'sticky',left:0,zIndex:5,background:'#0f172a',padding:'7px 14px',borderRight:'1px solid #1f2937',borderBottom:'1px solid #374151'}}>
+                  <tr style={{background:'#f1f5f9'}}>
+                    <td style={{position:'sticky',left:0,zIndex:5,background:'#f1f5f9',padding:'7px 14px',borderRight:'1px solid #e2e8f0',borderBottom:'1px solid #cbd5e1'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <div style={{width:3,height:16,borderRadius:2,background:color,flexShrink:0}}/>
                         <span style={{color,fontWeight:700,fontSize:12}}>{res}</span>
-                        <span style={{color:'#4b5563',fontSize:11}}>({parts.length})</span>
+                        <span style={{color:'#64748b',fontSize:11}}>({parts.length})</span>
                       </div>
                     </td>
                     {resRows.map((total,i) => (
-                      <td key={i} style={{padding:'7px 10px',textAlign:'center',borderBottom:'1px solid #374151',whiteSpace:'nowrap'}}>
-                        {total > 0 ? <span style={{color,fontWeight:700,fontSize:12}}>{fmtQty(total)}</span> : <span style={{color:'#1f2937'}}>—</span>}
+                      <td key={i} style={{padding:'7px 10px',textAlign:'center',borderBottom:'1px solid #cbd5e1',whiteSpace:'nowrap'}}>
+                        {total > 0 ? <span style={{color,fontWeight:700,fontSize:12}}>{fmtQty(total)}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       </td>
                     ))}
                   </tr>
                   {/* Part rows */}
                   {parts.map((r,i) => (
-                    <tr key={r.part_id} style={{background: i%2===0 ? '#030712' : 'rgba(17,24,39,0.3)', borderBottom:'1px solid rgba(31,41,55,0.4)'}}>
-                      <td style={{position:'sticky',left:0,zIndex:5,background: i%2===0?'#030712':'rgba(15,20,30,0.95)',padding:'8px 14px 8px 24px',borderRight:'1px solid #1f2937',minWidth:170}}>
-                        <div style={{color:'#d1d5db',fontWeight:500,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:155}}>{r.description||r.part_id}</div>
-                        <div style={{color:'#374151',fontSize:10,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.part_id}</div>
+                    <tr key={r.part_id} style={{background: i%2===0 ? '#ffffff' : '#f8fafc', borderBottom:'1px solid #e2e8f0'}}>
+                      <td style={{position:'sticky',left:0,zIndex:5,background: i%2===0?'#ffffff':'#f8fafc',padding:'8px 14px 8px 24px',borderRight:'1px solid #e2e8f0',minWidth:170}}>
+                        <div style={{color:'#1e293b',fontWeight:500,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:155}}>{r.description||r.part_id}</div>
+                        <div style={{color:'#cbd5e1',fontSize:10,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.part_id}</div>
                       </td>
                       {displayWeeks.map(w => {
                         const qty = r.weeks[w];
                         return (
                           <td key={w} style={{padding:'8px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                            {qty != null ? <span style={{color:'#93c5fd',fontWeight:600}}>{fmtQty(qty)}</span> : <span style={{color:'#1f2937'}}>—</span>}
+                            {qty != null ? <span style={{color:'#1d4ed8',fontWeight:600}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                           </td>
                         );
                       })}
@@ -330,6 +332,103 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function AvgView({ rows, weeks, allResources }) {
+  if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No results.</div>;
+
+  // Build per-resource stats across the next 8 weeks
+  const resources = [];
+  const seen = {};
+  rows.forEach(r => {
+    if (!seen[r.resource]) { seen[r.resource] = []; resources.push(r.resource); }
+    seen[r.resource].push(r);
+  });
+
+  const resourceStats = resources.map(res => {
+    const parts = seen[res];
+    // For each week, sum all parts in this resource
+    const weekTotals = weeks.map(w => parts.reduce((s, r) => s + (r.weeks[w] || 0), 0));
+    const activeWeeks = weekTotals.filter(v => v > 0);
+    const totalUnits = weekTotals.reduce((s, v) => s + v, 0);
+    const avg = activeWeeks.length > 0 ? Math.round(totalUnits / weeks.length) : 0; // avg over all 8 weeks (incl. zeros)
+    const avgActive = activeWeeks.length > 0 ? Math.round(totalUnits / activeWeeks.length) : 0;
+    const maxWeek = weeks[weekTotals.indexOf(Math.max(...weekTotals))];
+    const maxVal = Math.max(...weekTotals);
+    return { res, parts, weekTotals, totalUnits, avg, avgActive, activeWeeks: activeWeeks.length, maxWeek, maxVal };
+  });
+
+  const globalMax = Math.max(...resourceStats.map(s => s.avg));
+
+  return (
+    <div>
+      <div style={{color:'#94a3b8',fontSize:13,marginBottom:16}}>
+        Average weekly build plan per resource · next <span style={{color:'#0f172a',fontWeight:600}}>{weeks.length}</span> weeks
+        ({weeks.length > 0 ? fmtWeek(weeks[0]) + ' – ' + fmtWeek(weeks[weeks.length-1]) : '—'})
+      </div>
+      <div style={{display:'grid',gap:10}}>
+        {resourceStats.sort((a,b) => b.avg - a.avg).map(({ res, parts, weekTotals, totalUnits, avg, avgActive, activeWeeks, maxWeek, maxVal }) => {
+          const color = resourceColor(res, allResources);
+          const barPct = globalMax > 0 ? (avg / globalMax) * 100 : 0;
+          return (
+            <div key={res} style={{background:'#ffffff',border:'1px solid #e2e8f0',borderRadius:12,padding:'14px 18px'}}>
+              {/* Top row */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                  <div style={{width:4,height:20,borderRadius:2,background:color,flexShrink:0}}/>
+                  <span style={{color,fontWeight:700,fontSize:14}}>{res}</span>
+                  <span style={{color:'#64748b',fontSize:12,marginLeft:2}}>{parts.length} part{parts.length>1?'s':''}</span>
+                </div>
+                <div style={{display:'flex',gap:20,flexShrink:0}}>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:24,fontWeight:800,color}}>{avg > 0 ? fmtQty(avg) : '—'}</div>
+                    <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg / week (all 8)</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:18,fontWeight:600,color:'#1e293b'}}>{avgActive > 0 ? fmtQty(avgActive) : '—'}</div>
+                    <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg on active weeks</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:16,fontWeight:600,color:'#64748b'}}>{fmtQty(totalUnits)}</div>
+                    <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>total 8 weeks</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bar */}
+              <div style={{background:'#e2e8f0',borderRadius:4,height:6,marginBottom:10,overflow:'hidden'}}>
+                <div style={{width:barPct+'%',height:'100%',background:color,borderRadius:4,transition:'width 0.3s'}}/>
+              </div>
+
+              {/* Per-week breakdown */}
+              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                {weeks.map((w, i) => {
+                  const val = weekTotals[i];
+                  const isMax = val === maxVal && val > 0;
+                  return (
+                    <div key={w} style={{flex:'1 1 60px',minWidth:56,background: val > 0 ? color+'18' : '#f8fafc',border:`1px solid ${val > 0 ? color+'44' : '#e2e8f0'}`,
+                      borderRadius:7,padding:'6px 8px',textAlign:'center'}}>
+                      <div style={{fontSize:10,color:'#94a3b8',marginBottom:3}}>{fmtWeek(w)}</div>
+                      <div style={{fontSize:13,fontWeight:val>0?700:400,color: isMax ? color : val>0 ? '#1e293b' : '#cbd5e1'}}>
+                        {val > 0 ? fmtQty(val) : '—'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Active weeks note */}
+              {activeWeeks < weeks.length && (
+                <div style={{marginTop:8,fontSize:11,color:'#94a3b8'}}>
+                  Active {activeWeeks}/{weeks.length} weeks · peak {maxVal > 0 ? fmtQty(maxVal) + ' on ' + fmtWeek(maxWeek) : '—'}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
