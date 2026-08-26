@@ -81,7 +81,7 @@ function App() {
   const [uploadError, setUploadError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedWeek, setSelectedWeek] = useState('');
-  const [selectedResource, setSelectedResource] = useState('All');
+  const [selectedResources, setSelectedResources] = useState(new Set());
   const [viewMode, setViewMode] = useState('week');
 
   const today = new Date().toISOString().slice(0,10);
@@ -99,10 +99,10 @@ function App() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return data.filter(r =>
-      (selectedResource === 'All' || r.resource === selectedResource) &&
+      (selectedResources.size === 0 || selectedResources.has(r.resource)) &&
       (!q || r.resource.toLowerCase().includes(q) || r.part_id.toLowerCase().includes(q) || r.description.toLowerCase().includes(q))
     );
-  }, [data, search, selectedResource]);
+  }, [data, search, selectedResources]);
 
   const weekRows = useMemo(() => filtered.filter(r => r.weeks[currentWeek] != null), [filtered, currentWeek]);
   const visibleWeeks = useMemo(() => allWeeks.filter(w => w >= today).slice(0, 8), [allWeeks, today]);
@@ -115,7 +115,7 @@ function App() {
       if (parsed.length === 0) throw new Error('No Build Plan rows found.');
       setData(parsed);
       setDataDate(new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
-      setSelectedWeek(''); setSelectedResource('All');
+      setSelectedWeek(''); setSelectedResources(new Set());
     } catch(err) { setUploadError(err.message || 'Failed to parse file.'); }
     finally { setUploading(false); }
   }, []);
@@ -147,17 +147,32 @@ function App() {
         <div style={{display:'flex',gap:6,alignItems:'center',minWidth:'max-content'}}>
           <span style={{fontSize:11,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Resource:</span>
           {allResources.map(res => {
-            const active = selectedResource === res;
-            const color = res === 'All' ? '#94a3b8' : resourceColor(res, allResources.slice(1));
+            const isAll = res === 'All';
+            const active = isAll ? selectedResources.size === 0 : selectedResources.has(res);
+            const color = isAll ? '#64748b' : resourceColor(res, allResources.slice(1));
+            const handleClick = () => {
+              if (isAll) { setSelectedResources(new Set()); return; }
+              setSelectedResources(prev => {
+                const next = new Set(prev);
+                if (next.has(res)) next.delete(res); else next.add(res);
+                return next;
+              });
+            };
             return (
-              <button key={res} onClick={() => setSelectedResource(res)}
+              <button key={res} onClick={handleClick}
                 style={{padding:'4px 12px',borderRadius:20,fontSize:12,fontWeight:active?600:400,cursor:'pointer',border:`1px solid ${active ? color : '#cbd5e1'}`,
-                  background: active ? color + '33' : 'transparent',
+                  background: active ? color + '22' : 'transparent',
                   color: active ? color : '#64748b', transition:'all 0.15s', flexShrink:0}}>
                 {res}
               </button>
             );
           })}
+          {selectedResources.size > 0 && (
+            <button onClick={() => setSelectedResources(new Set())}
+              style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',border:'1px solid #fca5a5',background:'#fee2e2',color:'#dc2626',flexShrink:0,marginLeft:4}}>
+              ✕ Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,7 +212,7 @@ function App() {
       {/* Content */}
       <div style={{flex:1,overflow:'auto',padding:20}}>
         {viewMode === 'week'
-          ? <WeekView rows={weekRows} week={currentWeek} allResources={allResources.slice(1)} selectedResource={selectedResource} />
+          ? <WeekView rows={weekRows} week={currentWeek} allResources={allResources.slice(1)} />
           : viewMode === 'avg'
           ? <AvgView rows={filtered} weeks={visibleWeeks} allResources={allResources.slice(1)} />
           : viewMode === 'camera'
@@ -208,7 +223,7 @@ function App() {
   );
 }
 
-function WeekView({ rows, week, allResources, selectedResource }) {
+function WeekView({ rows, week, allResources }) {
   if (!week) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No data loaded.</div>;
   if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No build plan for week of {fmtWeek(week)}.</div>;
   const total = rows.reduce((s,r) => s+(r.weeks[week]||0), 0);
