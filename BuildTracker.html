@@ -2059,18 +2059,38 @@ function BuildTracker() {
       />
 
       <div className="sticky bottom-0 z-30 border-t border-slate-300 bg-slate-900 text-white px-4 py-2 flex items-center gap-3 text-xs flex-wrap">
-        <a href="https://goshotrifonov.github.io/report/index.html" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          📊 Production Report
-        </a>
-        <a href="BetaApp.html" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          👥 Shift Assignment
-        </a>
-        <a href="ShiftReadiness.html" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          ✅ Shift Readiness
-        </a>
+        {/* Go to dropdown */}
+        {(() => {
+          const [gotoOpen, setGotoOpen] = React.useState(false);
+          const apps = [
+            { label: "📊 Production Report",  href: "https://goshotrifonov.github.io/report/index.html" },
+            { label: "🟢 VER Build Plan",      href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
+            { label: "👥 Shift Assignment",   href: "BetaApp.html" },
+            { label: "✅ Shift Readiness",     href: "ShiftReadiness.html" },
+          ];
+          return (
+            <div className="relative shrink-0">
+              <button onClick={() => setGotoOpen(o => !o)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold">
+                🔗 Go to ▾
+              </button>
+              {gotoOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setGotoOpen(false)} />
+                  <div className="absolute bottom-full left-0 mb-1 z-50 bg-white rounded-lg shadow-xl border border-stone-200 py-1 min-w-[200px]">
+                    {apps.map(app => (
+                      <a key={app.href} href={app.href} target="_blank" rel="noopener noreferrer"
+                        onClick={() => setGotoOpen(false)}
+                        className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 font-medium">
+                        {app.label}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
         {overrideCount > 0 ? (
           <>
             <Pencil className="w-3.5 h-3.5" />
