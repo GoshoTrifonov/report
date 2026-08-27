@@ -99,7 +99,7 @@ function App() {
 
   // Load actuals from Firestore on mount
   useEffect(() => {
-    const DOC_REF = db.collection('production_data').doc('latest');
+    const DOC_REF = db.collection('production_data').doc('ver_actuals');
     DOC_REF.get().then(snap => {
       if (!snap.exists) { console.warn('[VERBuildPlan] production_data/latest does not exist'); setActualsLoading(false); return; }
       const d = snap.data();
