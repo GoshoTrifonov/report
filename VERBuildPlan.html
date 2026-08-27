@@ -84,7 +84,7 @@ function parseXlsm(file) {
 function fmtWeek(d) { const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 function fmtQty(n) { return n >= 1000 ? n.toLocaleString() : String(n); }
 
-const RESOURCE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#a855f7','#eab308','#6366f1','#22c55e','#fb923c'];
+const RESOURCE_COLORS = ['#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af','#1e40af'];
 function resourceColor(resource, allResources) {
   const idx = allResources.indexOf(resource);
   return RESOURCE_COLORS[idx % RESOURCE_COLORS.length];
@@ -185,7 +185,7 @@ function App() {
       {/* Header */}
       <div style={{background:'#ffffff',borderBottom:'1px solid #e2e8f0',padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
         <div>
-          <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>SMI Build Plan Tracker</div>
+          <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>VER Weekly Plan</div>
           <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Data as of {dataDate} · {data.length} parts · {allResources.length-1} resources</div>
         </div>
         <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#ffffff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
@@ -204,7 +204,7 @@ function App() {
           {allResources.map(res => {
             const isAll = res === 'All';
             const active = isAll ? selectedResources.size === 0 : selectedResources.has(res);
-            const color = isAll ? '#64748b' : resourceColor(res, allResources.slice(1));
+            const color = isAll ? '#64748b' : '#1e40af';
             const handleClick = () => {
               if (isAll) { setSelectedResources(new Set()); return; }
               setSelectedResources(prev => {
@@ -298,66 +298,72 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
           ? <span style={{color:'#94a3b8',fontSize:12}}>⏳ Loading actuals…</span>
           : <span style={{color:'#64748b',fontSize:12}}>● Actuals from labour tickets</span>}
       </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
       {groups.map(res => {
         const parts = seen[res];
         const resPlanned = parts.reduce((s,r)=>s+(r.weeks[week]||0),0);
         const resActual = parts.reduce((s,r)=>s+((actuals[r.part_id]||{})[week]||0),0);
         const resPct = resPlanned > 0 ? Math.min(100, Math.round(resActual/resPlanned*100)) : 0;
-        const color = resourceColor(res, allResources);
+        const color = '#1e40af';
+        const barColor = resPct>=100?'#16a34a': resPct>=50?'#f59e0b':color;
         return (
-          <div key={res} style={{marginBottom:20}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-              <div style={{width:4,height:20,borderRadius:2,background:color,flexShrink:0}}/>
-              <span style={{fontSize:14,fontWeight:700,color}}>{res}</span>
-              <span style={{fontSize:12,color:'#94a3b8',marginLeft:4}}>{resPlanned.toLocaleString()} planned · {parts.length} part{parts.length>1?'s':''}</span>
+          <div key={res} style={{background:'#ffffff',border:'1px solid #e2e8f0',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
+            {/* Resource header */}
+            <div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
+                <span style={{fontSize:16,fontWeight:800,color:'#0f172a',letterSpacing:'-0.3px'}}>{res}</span>
+                {!actualsLoading && resPlanned > 0 && (
+                  <span style={{fontSize:13,fontWeight:700,color:barColor}}>{resPct}%</span>
+                )}
+              </div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:11,color:'#94a3b8',marginBottom:6}}>
+                <span>{parts.length} part{parts.length>1?'s':''} · {resPlanned.toLocaleString()} planned</span>
+                {!actualsLoading && resPlanned > 0 && <span style={{color:barColor,fontWeight:600}}>{resActual.toLocaleString()} actual</span>}
+              </div>
               {!actualsLoading && resPlanned > 0 && (
-                <span style={{marginLeft:'auto',fontSize:12,fontWeight:600,color: resPct>=100?'#16a34a': resPct>=50?'#d97706':'#64748b'}}>
-                  {resActual.toLocaleString()} actual · {resPct}%
-                </span>
+                <div style={{height:5,background:'#f1f5f9',borderRadius:4,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:resPct+'%',background:barColor,borderRadius:4}}/>
+                </div>
               )}
             </div>
-            {!actualsLoading && resPlanned > 0 && (
-              <div style={{height:4,background:'#e2e8f0',borderRadius:4,marginBottom:8,marginLeft:14,overflow:'hidden'}}>
-                <div style={{height:'100%',width:resPct+'%',background: resPct>=100?'#16a34a': resPct>=50?'#f59e0b':color,borderRadius:4}}/>
-              </div>
-            )}
-            <div style={{display:'grid',gap:6,paddingLeft:14,borderLeft:`2px solid ${color}22`}}>
+            {/* Parts */}
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
               {parts.map(r => {
                 const planned = r.weeks[week] || 0;
                 const actual = ((actuals[r.part_id]||{})[week]||0);
                 const pct = planned > 0 ? Math.min(100, Math.round(actual/planned*100)) : 0;
-                const barColor = pct >= 100 ? '#16a34a' : pct >= 50 ? '#f59e0b' : color;
+                const pBarColor = pct>=100?'#16a34a': pct>=50?'#f59e0b':'#1e40af';
                 return (
-                  <div key={r.part_id} style={{background:'#ffffff',border:'1px solid #e2e8f0',borderRadius:10,padding:'10px 16px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:!actualsLoading&&planned>0?8:0}}>
+                  <div key={r.part_id} style={{background:'#f8fafc',borderRadius:8,padding:'10px 12px'}}>
+                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:!actualsLoading&&planned>0?7:0}}>
                       <div style={{minWidth:0}}>
-                        <div style={{color:'#0f172a',fontWeight:500,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.description||r.part_id}</div>
-                        <div style={{color:'#94a3b8',fontSize:11,marginTop:2}}>{r.part_id}</div>
+                        <div style={{color:'#1e293b',fontWeight:600,fontSize:12,lineHeight:1.3}}>{r.description||r.part_id}</div>
+                        <div style={{color:'#cbd5e1',fontSize:10,marginTop:2}}>{r.part_id}</div>
                       </div>
-                      <div style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
                         {!actualsLoading && planned > 0 && (
                           <div style={{textAlign:'right'}}>
-                            <div style={{fontSize:13,fontWeight:600,color:barColor}}>{actual.toLocaleString()}</div>
-                            <div style={{color:'#94a3b8',fontSize:10}}>actual</div>
+                            <div style={{fontSize:12,fontWeight:700,color:pBarColor}}>{actual.toLocaleString()}</div>
+                            <div style={{color:'#94a3b8',fontSize:9}}>actual</div>
                           </div>
                         )}
                         <div style={{textAlign:'right'}}>
-                          <div style={{fontSize:22,fontWeight:700,color}}>{fmtQty(planned)}</div>
-                          <div style={{color:'#94a3b8',fontSize:10}}>planned</div>
+                          <div style={{fontSize:18,fontWeight:800,color:'#0f172a'}}>{fmtQty(planned)}</div>
+                          <div style={{color:'#94a3b8',fontSize:9}}>planned</div>
                         </div>
                       </div>
                     </div>
                     {!actualsLoading && planned > 0 && (
-                      <div style={{height:6,background:'#f1f5f9',borderRadius:4,overflow:'hidden'}}>
-                        <div style={{height:'100%',width:pct+'%',background:barColor,borderRadius:4}}/>
-                      </div>
-                    )}
-                    {!actualsLoading && planned > 0 && (
-                      <div style={{display:'flex',justifyContent:'space-between',marginTop:4}}>
-                        <span style={{fontSize:10,color:'#94a3b8'}}>{pct}% complete</span>
-                        {actual > 0 && planned - actual > 0 && <span style={{fontSize:10,color:'#94a3b8'}}>{(planned-actual).toLocaleString()} remaining</span>}
-                        {actual >= planned && planned > 0 && <span style={{fontSize:10,color:'#16a34a',fontWeight:600}}>✓ Target reached</span>}
-                      </div>
+                      <>
+                        <div style={{height:4,background:'#e2e8f0',borderRadius:4,overflow:'hidden'}}>
+                          <div style={{height:'100%',width:pct+'%',background:pBarColor,borderRadius:4}}/>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+                          <span style={{fontSize:9,color:'#94a3b8'}}>{pct}% complete</span>
+                          {actual >= planned && <span style={{fontSize:9,color:'#16a34a',fontWeight:700}}>✓ Done</span>}
+                          {actual > 0 && planned - actual > 0 && <span style={{fontSize:9,color:'#94a3b8'}}>{(planned-actual).toLocaleString()} left</span>}
+                        </div>
+                      </>
                     )}
                   </div>
                 );
@@ -366,6 +372,7 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
