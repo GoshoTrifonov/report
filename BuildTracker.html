@@ -1060,7 +1060,6 @@ function BuildTracker() {
             const COL_LOST    = col(["LOST","LOST_HRS"], 20);
             const COL_LEAD    = col(["BU","UNIT LEAD","UNIT_LEAD"], 46);
             const COL_PART_ID = col(["PART_ID","PART"], 1);
-            const COL_WO_PR   = col(["WORKORDER_ID","WORKORDER","WO"], 10);
             const SHIFT_MAP = {
               "ASSEMBLY 1":"Midnights","ASSEMBLY 2":"Days","ASSEMBLY 3":"Afternoons",
               "EXTRUDER 1":"Midnights","EXTRUDER 2":"Days","EXTRUDER 3":"Afternoons",
@@ -1085,7 +1084,7 @@ function BuildTracker() {
               if (typeof dateVal === "number") { const d = new Date(Math.round((dateVal-25569)*86400*1000)); dateStr = d.toISOString().slice(0,10); }
               else if (dateVal) { const d = new Date(dateVal); dateStr = isNaN(d) ? String(dateVal).trim() : d.toISOString().slice(0,10); }
               if (!dateStr) continue;
-              prRows.push({ date: dateStr, resource, hrs, qty: parseFloat(r[COL_QTY])||0, part_id: String(r[COL_PART_ID]||"").trim(), wo: String(r[COL_WO_PR]||"").trim(), shift: SHIFT_MAP[shiftCode]||shiftCode, earned: parseFloat(r[COL_EARNED])||0, lost, unitLead: unitLead || "Other" });
+              prRows.push({ date: dateStr, resource, hrs, qty: parseFloat(r[COL_QTY])||0, shift: SHIFT_MAP[shiftCode]||shiftCode, earned: parseFloat(r[COL_EARNED])||0, lost, unitLead: unitLead || "Other" });
             }
             if (prRows.length > 0) {
               await db.collection("production_data").doc("latest").set({
@@ -1094,6 +1093,9 @@ function BuildTracker() {
                 fileName: file.name,
                 rowCount: prRows.length,
               });
+              // Slim doc for VERBuildPlan - only part_id+qty+date, stays under 1MB
+              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: parseFloat(r[COL_QTY])||0 })).filter(r=>r.part_id&&r.date&&r.qty>0);
+              if (slimRows.length > 0) { await db.collection("production_data").doc("ver_actuals").set({ rows: slimRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() }); console.log("[VER] Saved", slimRows.length, "slim rows"); }
             }
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
