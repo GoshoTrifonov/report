@@ -101,10 +101,15 @@ function App() {
   useEffect(() => {
     const DOC_REF = db.collection('production_data').doc('latest');
     DOC_REF.get().then(snap => {
-      if (!snap.exists) { setActualsLoading(false); return; }
+      if (!snap.exists) { console.warn('[VERBuildPlan] production_data/latest does not exist'); setActualsLoading(false); return; }
       const d = snap.data();
       const rows = d.rows || [];
-      // Build: { part_id -> { weekStart -> qty } }
+      console.log('[VERBuildPlan] Firestore rows loaded:', rows.length);
+      // Sample first few rows to debug
+      const sample = rows.slice(0, 3);
+      console.log('[VERBuildPlan] Sample rows:', JSON.stringify(sample));
+      const woRows = rows.filter(r => r.wo && r.wo.trim());
+      console.log('[VERBuildPlan] Rows with wo field:', woRows.length, 'of', rows.length);
       const map = {};
       rows.forEach(r => {
         const wo = (r.wo || '').trim();
@@ -115,9 +120,11 @@ function App() {
         if (!map[wo]) map[wo] = {};
         map[wo][week] = (map[wo][week] || 0) + qty;
       });
+      console.log('[VERBuildPlan] Unique WOs with actuals:', Object.keys(map).length);
+      console.log('[VERBuildPlan] Sample WO keys:', Object.keys(map).slice(0, 5));
       setActuals(map);
       setActualsLoading(false);
-    }).catch(() => setActualsLoading(false));
+    }).catch(err => { console.error('[VERBuildPlan] Firestore error:', err); setActualsLoading(false); });
   }, []);
   const [uploadError, setUploadError] = useState('');
   const [search, setSearch] = useState('');
@@ -134,7 +141,14 @@ function App() {
     return Array.from(s).sort();
   }, [data]);
 
-  const defaultWeek = useMemo(() => allWeeks.find(w => w >= today) || allWeeks[0] || '', [allWeeks, today]);
+  const defaultWeek = useMemo(() => {
+    const thisMonday = toMonday(today);
+    // If this Monday exists in allWeeks, use it; otherwise find closest past week
+    if (allWeeks.includes(thisMonday)) return thisMonday;
+    // Fall back to most recent week that is <= today
+    const past = allWeeks.filter(w => w <= today);
+    return past.length > 0 ? past[past.length - 1] : (allWeeks[0] || '');
+  }, [allWeeks, today]);
   const currentWeek = selectedWeek || defaultWeek;
 
   const filtered = useMemo(() => {
@@ -171,7 +185,7 @@ function App() {
       {/* Header */}
       <div style={{background:'#ffffff',borderBottom:'1px solid #e2e8f0',padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
         <div>
-          <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>VER Weekly Build Plan Tracker</div>
+          <div style={{fontSize:17,fontWeight:700,color:'#0f172a'}}>SMI Build Plan Tracker</div>
           <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Data as of {dataDate} · {data.length} parts · {allResources.length-1} resources</div>
         </div>
         <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#ffffff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
