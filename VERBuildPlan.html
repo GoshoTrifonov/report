@@ -108,11 +108,11 @@ function App() {
       // Sample first few rows to debug
       const sample = rows.slice(0, 3);
       console.log('[VERBuildPlan] Sample rows:', JSON.stringify(sample));
-      const woRows = rows.filter(r => r.wo && r.wo.trim());
-      console.log('[VERBuildPlan] Rows with wo field:', woRows.length, 'of', rows.length);
+      const woRows = rows.filter(r => r.part_id && r.part_id.trim());
+      console.log('[VERBuildPlan] Rows with part_id field:', woRows.length, 'of', rows.length);
       const map = {};
       rows.forEach(r => {
-        const wo = (r.wo || '').trim();
+        const wo = (r.part_id || '').trim();
         const qty = parseFloat(r.qty) || 0;
         const date = r.date || '';
         if (!wo || !date || qty <= 0) return;
@@ -120,8 +120,8 @@ function App() {
         if (!map[wo]) map[wo] = {};
         map[wo][week] = (map[wo][week] || 0) + qty;
       });
-      console.log('[VERBuildPlan] Unique WOs with actuals:', Object.keys(map).length);
-      console.log('[VERBuildPlan] Sample WO keys:', Object.keys(map).slice(0, 5));
+      console.log('[VERBuildPlan] Unique part_ids with actuals:', Object.keys(map).length);
+      console.log('[VERBuildPlan] Sample part_id keys:', Object.keys(map).slice(0, 5));
       setActuals(map);
       setActualsLoading(false);
     }).catch(err => { console.error('[VERBuildPlan] Firestore error:', err); setActualsLoading(false); });
