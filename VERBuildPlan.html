@@ -310,19 +310,28 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
           <div key={res} style={{background:'#d8e4f0',border:'1px solid #c4d4e8',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
             {/* Resource header */}
             <div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:6}}>
                 <span style={{fontSize:16,fontWeight:800,color:'#0f172a',letterSpacing:'-0.3px'}}>{res}</span>
                 {!actualsLoading && resPlanned > 0 && (
-                  <span style={{fontSize:13,fontWeight:700,color:barColor}}>{resPct}%</span>
+                  <span style={{fontSize:14,fontWeight:800,color:barColor}}>{resPct}%</span>
                 )}
               </div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:11,color:'#94a3b8',marginBottom:6}}>
-                <span>{parts.length} part{parts.length>1?'s':''} · {resPlanned.toLocaleString()} planned</span>
-                {!actualsLoading && resPlanned > 0 && <span style={{color:barColor,fontWeight:600}}>{resActual.toLocaleString()} actual</span>}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                <div>
+                  <span style={{fontSize:11,color:'#64748b'}}>{parts.length} part{parts.length>1?'s':''} · </span>
+                  <span style={{fontSize:13,fontWeight:700,color:'#0f172a'}}>{resPlanned.toLocaleString()}</span>
+                  <span style={{fontSize:11,color:'#64748b'}}> planned</span>
+                </div>
+                {!actualsLoading && resPlanned > 0 && (
+                  <div style={{textAlign:'right'}}>
+                    <span style={{fontSize:20,fontWeight:800,color:barColor}}>{resActual.toLocaleString()}</span>
+                    <span style={{fontSize:11,color:'#64748b',marginLeft:4}}>actual</span>
+                  </div>
+                )}
               </div>
               {!actualsLoading && resPlanned > 0 && (
-                <div style={{height:5,background:'#f1f5f9',borderRadius:4,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:resPct+'%',background:barColor,borderRadius:4}}/>
+                <div style={{height:10,background:'#b8cfe0',borderRadius:6,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:resPct+'%',background:barColor,borderRadius:6}}/>
                 </div>
               )}
             </div>
