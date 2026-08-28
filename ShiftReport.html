@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<!-- ShiftReport v1.0 - 2026-08-27 - Standalone History & Analytics -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMI Shift Reports</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+  <style>*,:after,:before{box-sizing:border-box;margin:0;padding:0}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:#f8f7f4}
+  @media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{position:fixed!important;inset:0!important;background:white!important;padding:24px!important}button{display:none!important}}
+  </style>
+<!-- Firebase v10 compat CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
+    authDomain: "smi-production-report.firebaseapp.com",
+    projectId: "smi-production-report",
+    storageBucket: "smi-production-report.firebasestorage.app",
+    messagingSenderId: "934983410817",
+    appId: "1:934983410817:web:77a10c77b6ee36c9ded980"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const SHIFT_REPORTS_REF = db.collection("shift_reports");
+  const SHIFT_LOGS_REF    = db.collection("shift_logs");
+
+  // -- Google Sheets export config --
+  const SHEETS_CONFIG = {
+    spreadsheetId: "1hXam4mC0QhGvQ60UAWjFnPxUNKU5sfyzVx80aOXvtZ8",
+    clientEmail:   "smi-shift-report@smi-shift-report.iam.gserviceaccount.com",
+    privateKey:    "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8+psFrEPLx2m/\n/pnwLz5eqJI2cHknOMwtI7flMxhT9ELJDz7vqraeEe84q/FmacyYKAoG1Evk+si7\n+xZCzyo4KjC/HbApnQADMLKtXb+UySb2gegLGIsomXnI556Ut1rlJLQvWnOJWC87\nG0TK0WsPTSQ25GSaIWODhFkaazrr/1TbeKgF0BE8vQhaElr+NlidHckPxl/QRXIU\ngMQkTHV6m4my7Gf1wEAnT9LNitRG0OQnMKoftwlZY0xueW1yJCUBRGNZInD96etg\nOOb7o0Jost+srKrfOe2z4Yy0RbX/2UuhnQVLIbeqXTYBRlhqbOvK9je7Fuyugpfz\nwjnZOgQhAgMBAAECggEAErQCHrlyC5uErFNQPJ9jCVmequj5HKLNllQYJwTRDhIO\ngA6puGz0CPNBHUyV0NXSFrxeYwGk3JiIwGNfzHnrYEamBMGKm1EQshV3lu/rKO26\n6kpowvG0EsRpyLKfv8aL0OzlMQs/Lw3SvYNRN3oqzIdieP+kCJsbBGZXWTrZSIeU\n6SiXJ90n0vwy/ldqEih/aC44QneI0lU4vsusQzGsY6i4RRjGS6kYb6eD7UdNY2s9\npe0ipMDq/Omsa1QU3cJvigPRbgRxUm4A9Fnn59yvxe/tACBHnuJUrrUU10ITyd+w\nJY5S725/2uQH0JNZudUBYj0Pwl22H11oPQ+8Hc5w7wKBgQDqBzfzKBWTKVrxIFml\nV8P0U7hhBcXHxA0jm7QWQRwzyz24DeKA7CicN1LQkR80pWOoG96ENuDP+wfbbmcm\nb0tPA2tWFHe1+xUc7FaBk3u91WgnTokLJFt//0fdaMqCnga3TEOS3itk6Mn1coBt\n7hhS1gdWY9tzBvvzJ/eoFCpqxwKBgQDOuKT4f1VmPNnA+narO/OEbvVqpKlgbAWP\nWdv/UrJKCgxChN0JmfP+PQUR/fw0IrozyDg6RDyzjpMrz80e5cXmH4Af6RXE5yoB\nB+WszuM0nReLhdOyZGNywzTai64gZKAyalCh9koLa8S0bvEVLUrBNIM8e7PVz4NY\nEgAbr0Px1wKBgQC5Tm/x/JpgxU06QshZEM6bhzMmuABsdoOE34RQXsvrAxJiy7O/\nK7/YOkI73b1c3Vy0vySJgj6u0HHfQWMx3sw9y1JRfbFwilikZ0r0HQjNPs7S2O/Q\nv8An8MZBvfkkRebBewTCpWKs61sHG9wvr2jZJpn2wOkCAtS7K7mBAD65/wKBgEmv\nBx6MRKRsjDF9FU9zzxklc9TPXJBB8LloDkKz91jsu/H56c/CUHYOyf/fyEXNGxHa\nDDC4oepep5a2OycIP8IG+GRncJr+yroTVoqCM/pNBFd3HD46Cjid2/kKUMa7F17h\nBly0rS/k+fhWkxg5TKwRS7YDYdaUYPzDbcZwcoeBAoGAGIB2NW4grANLAc8ypR4N\na7HSHNu6nk0QMhhYh5+gVbpGqhybmX4Gfg+qKbK3MeBRqMQ7RrF34AA3ko7R3RnF\n/NcWKp6U4UuJBAfi1y3JqEF1VB33PHzxJwE3nuMT22O2S6rnOp6ELWLbhMG0u9iU\nd4+9/n97BEVy6zvhJiEmtdE=\n-----END PRIVATE KEY-----\n",
+  };
+
+  async function getGoogleAccessToken() {
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: "RS256", typ: "JWT" };
+    const payload = {
+      iss: SHEETS_CONFIG.clientEmail,
+      scope: "https://www.googleapis.com/auth/spreadsheets",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600, iat: now,
+    };
+    const b64 = obj => btoa(JSON.stringify(obj)).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const sigInput = `${b64(header)}.${b64(payload)}`;
+    const pemBody = SHEETS_CONFIG.privateKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g,"");
+    const keyData = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey("pkcs8", keyData.buffer, { name:"RSASSA-PKCS1-v1_5", hash:"SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(sigInput));
+    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+    const jwt = `${sigInput}.${sigB64}`;
+    const resp = await fetch("https://oauth2.googleapis.com/token", {
+      method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:`grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+    });
+    const data = await resp.json();
+    if (!data.access_token) throw new Error("Token error: " + JSON.stringify(data));
+    return data.access_token;
+  }
+
+  async function exportReportsToSheet(docs, token) {
+    const SHEET_ID = SHEETS_CONFIG.spreadsheetId;
+    const API = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const byMonth = {};
+    for (const doc of docs) {
+      if (!doc.date) continue;
+      const d = new Date(doc.date + "T12:00:00");
+      const tab = d.toLocaleDateString("en-US", { month:"short", year:"numeric" });
+      if (!byMonth[tab]) byMonth[tab] = [];
+      byMonth[tab].push(doc);
+    }
+    const metaResp = await fetch(`${API}?fields=sheets.properties`, { headers });
+    const meta = await metaResp.json();
+    const existingTabs = (meta.sheets||[]).map(s => s.properties.title);
+    for (const [tabName, tabDocs] of Object.entries(byMonth)) {
+      if (!existingTabs.includes(tabName)) {
+        await fetch(`${API}:batchUpdate`, { method:"POST", headers,
+          body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title:tabName } } }] }) });
+      }
+      const rows = [["Date","Day","Shift","BU","Resource","WO","Description","Qty","Eff%","Hrs Worked","Lost/Earned","Notes","Reason","By"]];
+      for (const doc of tabDocs.sort((a,b) => a.date.localeCompare(b.date)||a.shiftId-b.shiftId)) {
+        const d = new Date(doc.date+"T12:00:00");
+        const dateStr = d.toLocaleDateString("en-CA");
+        const dayStr  = d.toLocaleDateString("en-US",{weekday:"short"});
+        const sl = doc.shiftLabel||`Shift ${doc.shiftId}`;
+        const bu = doc.bu||"";
+        for (const w of (doc.wos||[])) {
+          if (!w.qty && !w.notes) continue;
+          rows.push([dateStr,dayStr,sl,bu,w.resource||"",w.wo||"",w.descr||"",w.qty||0,
+            w.eff!=null?parseFloat(w.eff.toFixed(1)):"",
+            w.hrs>0?parseFloat(w.hrs.toFixed(1)):"",
+            w.lost!==0?parseFloat(w.lost.toFixed(1)):"",
+            w.notes||"",w.reason||"",w.by||""]);
+        }
+      }
+      await fetch(`${API}/values/${encodeURIComponent(tabName)}:clear`,{method:"POST",headers});
+      await fetch(`${API}/values/${encodeURIComponent(tabName)}!A1?valueInputOption=RAW`,{
+        method:"PUT",headers,body:JSON.stringify({values:rows})});
+      const sm = await fetch(`${API}?fields=sheets.properties`,{headers});
+      const sd = await sm.json();
+      const so = (sd.sheets||[]).find(s=>s.properties.title===tabName);
+      if (so) {
+        await fetch(`${API}:batchUpdate`,{method:"POST",headers,
+          body:JSON.stringify({requests:[{autoResizeDimensions:{dimensions:{sheetId:so.properties.sheetId,dimension:"COLUMNS",startIndex:0,endIndex:14}}}]})});
+      }
+    }
+    return Object.keys(byMonth).length;
+  }
+</script>
+</head>
+<body>
+<div id="root"><div style="padding:40px;text-align:center;color:#888;font-family:system-ui">Loading…</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+const Icon = ({ children, className="w-4 h-4", strokeWidth=2, fill="none", ...rest }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} {...rest}>
+    {children}
+  </svg>
+);
+const X          = p => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+const ChevLeft   = p => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+const Printer    = p => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></Icon>;
+const Clipboard  = p => <Icon {...p}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></Icon>;
+const Sheet      = p => <Icon {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></Icon>;
+const BarChart2  = p => <Icon {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></Icon>;
+const Clock      = p => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+const ExternalLink = p => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Icon>;
+
+// ── Constants ──────────────────────────────────────────────────────────────
+const LEADER_TO_BU = {
+  "George":    "BU Verathon",
+  "Andrew B.": "BU Molding",
+  "Mark P.":   "BU Tier 1",
+  "Lori F.":   "BU Tier 2",
+  "Rob S.":    "BU Bellfarm",
+};
+const ALL_LEADERS = Object.keys(LEADER_TO_BU);
+const buName = (leader) => LEADER_TO_BU[leader] || leader;
+
+const SHIFTS = [
+  { id:1, label:"Shift 1", time:"11pm–7am" },
+  { id:2, label:"Shift 2", time:"7am–3pm"  },
+  { id:3, label:"Shift 3", time:"3pm–11pm" },
+];
+const fmtNum = (n) => n==null ? "–" : Number(n).toLocaleString(undefined,{maximumFractionDigits:1});
+
+// ── Date helpers ───────────────────────────────────────────────────────────
+const ymd = (d) => d.toISOString().slice(0,10);
+const sow = (d) => { const r=new Date(d); r.setDate(r.getDate()-r.getDay()); r.setHours(0,0,0,0); return r; };
+const som = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+
+function rangeISO(key, now) {
+  let fromISO="", toISO=ymd(now), prevFrom="", prevTo="";
+  if (key==="today") {
+    fromISO=toISO=ymd(now);
+    const y=new Date(now); y.setDate(y.getDate()-1);
+    prevFrom=prevTo=ymd(y);
+  } else if (key==="yesterday") {
+    const y=new Date(now); y.setDate(y.getDate()-1);
+    fromISO=toISO=ymd(y);
+    const y2=new Date(now); y2.setDate(y2.getDate()-2);
+    prevFrom=prevTo=ymd(y2);
+  } else if (key==="this_week") {
+    fromISO=ymd(sow(now)); toISO=ymd(now);
+    const lws=sow(now); lws.setDate(lws.getDate()-7);
+    const lwe=new Date(lws); lwe.setDate(lwe.getDate()+6);
+    prevFrom=ymd(lws); prevTo=ymd(lwe);
+  } else if (key==="last_week") {
+    const lws=sow(now); lws.setDate(lws.getDate()-7);
+    const lwe=new Date(lws); lwe.setDate(lwe.getDate()+6);
+    fromISO=ymd(lws); toISO=ymd(lwe);
+    const plws=new Date(lws); plws.setDate(plws.getDate()-7);
+    const plwe=new Date(plws); plwe.setDate(plwe.getDate()+6);
+    prevFrom=ymd(plws); prevTo=ymd(plwe);
+  } else if (key==="this_month") {
+    fromISO=ymd(som(now)); toISO=ymd(now);
+    const lm=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const lme=new Date(now.getFullYear(),now.getMonth(),0);
+    prevFrom=ymd(lm); prevTo=ymd(lme);
+  } else if (key==="last_month") {
+    const lm=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const lme=new Date(now.getFullYear(),now.getMonth(),0);
+    fromISO=ymd(lm); toISO=ymd(lme);
+    const pm=new Date(now.getFullYear(),now.getMonth()-2,1);
+    const pme=new Date(now.getFullYear(),now.getMonth()-1,0);
+    prevFrom=ymd(pm); prevTo=ymd(pme);
+  }
+  return { fromISO, toISO, prevFrom, prevTo };
+}
+
+// ── Small UI bits ──────────────────────────────────────────────────────────
+function RangePicker({ value, onChange }) {
+  const opts = [
+    {key:"today",label:"Today"},{key:"yesterday",label:"Yesterday"},
+    {key:"this_week",label:"This week"},{key:"last_week",label:"Last week"},
+    {key:"this_month",label:"This month"},{key:"last_month",label:"Last month"},
+  ];
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {opts.map(o=>(
+        <button key={o.key} onClick={()=>onChange(o.key)}
+          style={{backgroundColor:value===o.key?"#1e3a5f":"white",color:value===o.key?"white":"#334155",
+                  border:"1px solid",borderColor:value===o.key?"#1e3a5f":"#cbd5e1"}}
+          className="px-2 py-0.5 rounded text-[11px] font-semibold whitespace-nowrap">{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function BUPicker({ value, onChange, includeAll=true }) {
+  const opts = includeAll
+    ? [{ v:"__ALL__", label:"All BUs" }, ...ALL_LEADERS.map(l=>({ v:l, label:buName(l) }))]
+    : ALL_LEADERS.map(l=>({ v:l, label:buName(l) }));
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {opts.map(o=>(
+        <button key={o.v} onClick={()=>onChange(o.v)}
+          style={{backgroundColor:value===o.v?"#1e3a5f":"white",color:value===o.v?"white":"#334155",
+                  border:"1px solid",borderColor:value===o.v?"#1e3a5f":"#cbd5e1"}}
+          className="px-2 py-0.5 rounded text-[11px] font-semibold">{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function ShiftPicker({ value, onChange }) {
+  return (
+    <div className="flex gap-1">
+      {[{id:0,label:"All"},{id:1,label:"S1"},{id:2,label:"S2"},{id:3,label:"S3"}].map(o=>(
+        <button key={o.id} onClick={()=>onChange(o.id)}
+          style={{backgroundColor:value===o.id?"#1e3a5f":"white",color:value===o.id?"white":"#334155",
+                  border:"1px solid",borderColor:value===o.id?"#1e3a5f":"#cbd5e1"}}
+          className="px-2 py-0.5 rounded text-[11px] font-semibold">{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent="slate", big=false }) {
+  const colors = {
+    slate: { bg:"bg-slate-50",  border:"border-slate-200",  text:"text-slate-800" },
+    green: { bg:"bg-emerald-50",border:"border-emerald-300",text:"text-emerald-700"},
+    amber: { bg:"bg-amber-50",  border:"border-amber-300",  text:"text-amber-700" },
+    rose:  { bg:"bg-rose-50",   border:"border-rose-300",   text:"text-rose-700"  },
+  };
+  const c = colors[accent]||colors.slate;
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 flex flex-col justify-center ${c.bg} ${c.border}`}>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</div>
+      <div className={`${big?"text-2xl":"text-xl"} font-bold tabular-nums ${c.text}`}>{value}</div>
+    </div>
+  );
+}
+
+function EffBadge({ eff, size="md" }) {
+  if (eff==null) return <span className="text-slate-400 text-xs">—</span>;
+  const color = eff>=90?"text-emerald-700":eff>=76.5?"text-amber-700":"text-rose-700";
+  const sz = size==="lg"?"text-2xl font-bold":size==="sm"?"text-[11px] font-semibold":"text-sm font-bold";
+  return <span className={`tabular-nums ${color} ${sz}`}>{eff.toFixed(1)}%</span>;
+}
+
+function DowntimeCard({ r }) {
+  const [open, setOpen] = useState(false);
+  const reasons = Object.entries(r.downtimeReasons||{}).sort((a,b)=>b[1]-a[1]);
+  return (
+    <div className="border border-rose-200 rounded-lg bg-rose-50 overflow-hidden">
+      <button onClick={()=>setOpen(o=>!o)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-rose-100 transition-colors">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-rose-800 truncate">{r.resource}</span>
+          {reasons[0] && <span className="text-[10px] text-rose-600 italic truncate">{reasons[0][0]}</span>}
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-xs font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</span>
+          <span className="text-rose-400 text-[10px]">{open?"▲":"▼"}</span>
+        </div>
+      </button>
+      {open && (
+        <div className="px-3 pb-2 space-y-1">
+          {reasons.map(([reason,hrs])=>(
+            <div key={reason} className="flex justify-between text-[11px]">
+              <span className="text-rose-700">{reason}</span>
+              <span className="font-semibold text-rose-800 tabular-nums">{hrs.toFixed(1)}h</span>
+            </div>
+          ))}
+          {(r.downtimeNotes||[]).map((n,i)=>(
+            <div key={i} className="text-[10px] text-rose-600 italic border-l-2 border-rose-300 pl-2 mt-1">
+              {n.wo && <span className="font-semibold mr-1">{n.wo}:</span>}{n.note}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── History tab ────────────────────────────────────────────────────────────
+function HistoryTab({ allDocs, shiftLogsRef }) {
+  const [buFilter,   setBuFilter]   = useState("__ALL__");
+  const [shiftF,     setShiftF]     = useState(0);
+  const [rangeF,     setRangeF]     = useState("this_week");
+  const [selected,   setSelected]   = useState(null);
+  const [noteInput,  setNoteInput]  = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [woNoteTarget, setWoNoteTarget] = useState(null);
+  const [woNoteInput,  setWoNoteInput]  = useState("");
+  // local copy so note saves reflect immediately
+  const [docs, setDocs] = useState(allDocs);
+  useEffect(() => { setDocs(allDocs); }, [allDocs]);
+
+  const now = new Date();
+  const { fromISO, toISO } = rangeISO(rangeF, now);
+
+  const filtered = useMemo(() => {
+    return docs
+      .filter(r =>
+        r.date >= fromISO && r.date <= toISO &&
+        (buFilter==="__ALL__" || r.leader===buFilter) &&
+        (shiftF===0 || r.shiftId===shiftF)
+      )
+      .sort((a,b) => b.date!==a.date ? b.date.localeCompare(a.date) : b.shiftId-a.shiftId);
+  }, [docs, fromISO, toISO, buFilter, shiftF]);
+
+  const saveHistoryNote = async () => {
+    if (!noteInput.trim()||!selected) return;
+    setNoteSaving(true);
+    const newNote = { text:noteInput.trim(), by:localStorage.getItem("build_tracker_initials")||"?", at:new Date().toISOString() };
+    try {
+      await SHIFT_REPORTS_REF.doc(selected.id).update({
+        reportNotes: firebase.firestore.FieldValue.arrayUnion(newNote)
+      });
+      const updated = { ...selected, reportNotes:[...(selected.reportNotes||[]),newNote] };
+      setSelected(updated);
+      setDocs(prev => prev.map(d => d.id===selected.id ? updated : d));
+      setNoteInput("");
+    } catch(e) { console.error(e); }
+    setNoteSaving(false);
+  };
+
+  const saveWoNote = async (woKey) => {
+    if (!woNoteInput.trim()||!selected) return;
+    const by = localStorage.getItem("build_tracker_initials")||"?";
+    const updatedWos = (selected.wos||[]).map(w => {
+      if (w.wo===woKey) {
+        const existing = w.notes ? w.notes+" | " : "";
+        return { ...w, notes: existing+`[${by}] ${woNoteInput.trim()}` };
+      }
+      return w;
+    });
+    try {
+      await SHIFT_REPORTS_REF.doc(selected.id).update({ wos:updatedWos });
+      const updated = { ...selected, wos:updatedWos };
+      setSelected(updated);
+      setDocs(prev => prev.map(d => d.id===selected.id ? updated : d));
+      setWoNoteTarget(null); setWoNoteInput("");
+    } catch(e) { console.error(e); }
+  };
+
+  const printReport = () => window.print();
+
+  const copyReport = (r) => {
+    const lines = [];
+    lines.push(`SHIFT REPORT — ${r.bu||buName(r.leader)}`);
+    const dt = new Date(r.date+"T12:00:00");
+    lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" — "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
+    lines.push("=".repeat(60));
+    lines.push(`Total units: ${(r.totalUnits||0).toLocaleString()}`);
+    if (r.totalEff!=null) lines.push(`Efficiency: ${r.totalEff.toFixed(1)}%`);
+    if (r.totalHrs>0) lines.push(`Hours: ${r.totalHrs.toFixed(1)}h`);
+    lines.push("");
+    const wos=r.wos||[]; const byRes={};
+    for (const w of wos) { if (!byRes[w.resource]) byRes[w.resource]=[]; byRes[w.resource].push(w); }
+    for (const [res,items] of Object.entries(byRes)) {
+      lines.push(`--- ${res} ---`);
+      for (const w of items) {
+        lines.push(`  ${w.wo} — ${w.descr||""}: +${w.qty} units${w.eff!=null?" Eff "+w.eff.toFixed(1)+"%" : ""}`);
+        if (w.notes) lines.push(`    ${w.notes}`);
+      }
+    }
+    navigator.clipboard.writeText(lines.join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Copy failed"));
+  };
+
+  if (selected) {
+    const wos = selected.wos||[];
+    const byRes = {};
+    for (const w of wos) { if (!byRes[w.resource]) byRes[w.resource]=[]; byRes[w.resource].push(w); }
+    const dt = new Date(selected.date+"T12:00:00");
+    const dateStr = dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});
+    const sMeta = SHIFTS.find(s=>s.id===selected.shiftId)||SHIFTS[0];
+    return (
+      <div className="flex flex-col h-full print-area">
+        {/* Back bar */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-stone-200 bg-stone-50 print:hidden flex-shrink-0">
+          <button onClick={()=>setSelected(null)}
+            className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800">
+            <ChevLeft className="w-4 h-4"/> Back
+          </button>
+          <span className="text-slate-300">|</span>
+          <span className="text-sm font-semibold text-slate-700">{selected.shiftLabel||sMeta.label}</span>
+          <span className="text-slate-300">—</span>
+          <span className="text-sm text-slate-600">{dateStr}</span>
+          <span className="text-xs text-slate-400">{selected.shiftTime||sMeta.time}</span>
+          <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+            {selected.bu||buName(selected.leader)}
+          </span>
+        </div>
+
+        {/* Stats */}
+        <div className="flex-1 overflow-auto p-4">
+          {/* Print header */}
+          <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
+            <h1 className="text-xl font-bold">Shift Report — {selected.bu||buName(selected.leader)}</h1>
+            <p className="text-sm">{dateStr} — {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            <StatCard label="Total units" value={(selected.totalUnits||0).toLocaleString()} />
+            <StatCard label="Entries"     value={selected.entries||0} />
+            <StatCard label="Resources"   value={selected.resourceCount||0} />
+            <StatCard label="Lines down"  value={(selected.linesDown||[]).length} />
+          </div>
+          {(selected.totalEff!=null||selected.totalHrs>0) && (
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {selected.totalEff!=null && (
+                <div className={`rounded-md border px-3 py-2.5 ${selected.totalEff>=90?"bg-emerald-50 border-emerald-300":selected.totalEff>=76.5?"bg-amber-50 border-amber-300":"bg-rose-50 border-rose-300"}`}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                  <div className={`text-xl font-bold tabular-nums ${selected.totalEff>=90?"text-emerald-700":selected.totalEff>=76.5?"text-amber-700":"text-rose-700"}`}>{selected.totalEff.toFixed(1)}%</div>
+                </div>
+              )}
+              {selected.totalHrs>0 && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                  <div className="text-xl font-bold tabular-nums text-slate-700">{selected.totalHrs.toFixed(1)}h</div>
+                </div>
+              )}
+              {selected.totalLost!==0 && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{selected.totalLost<0?"Lost hrs":"Earned hrs"}</div>
+                  <div className="text-xl font-bold tabular-nums text-slate-700">{selected.totalLost.toFixed(1)}h</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Lines down */}
+          {(selected.linesDown||[]).length>0 && (
+            <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
+              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selected.linesDown.length})</div>
+              {selected.linesDown.map((d,i)=>(
+                <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-semibold">{d.resource}</span>
+                    <span className="text-xs text-slate-500">{d.reason}</span>
+                  </div>
+                  {d.notes && <div className="text-xs text-slate-600 mt-0.5">{d.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* WOs by resource */}
+          <div className="space-y-3">
+            {Object.entries(byRes).map(([res,items])=>(
+              <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                <div className="divide-y divide-stone-100">
+                  {items.map((w,i)=>(
+                    <div key={i} className={`px-3 py-2.5 text-sm ${w.statusOnly?"bg-stone-50":""}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-1 flex-wrap">
+                          <span className="font-mono font-semibold text-slate-900 text-[13px]">{w.wo}</span>
+                          {w.descr && <span className="text-slate-500 text-xs">{w.descr}</span>}
+                        </div>
+                        {w.qty>0 && (
+                          <div className="text-right shrink-0">
+                            <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(w.qty)}</div>
+                            {w.compQty>0 && <div className="text-[10px] text-slate-400">{fmtNum(w.compQty)}/{fmtNum(w.startQty)}</div>}
+                          </div>
+                        )}
+                        {w.statusOnly && <span className="text-[10px] text-slate-400 uppercase font-bold shrink-0">{w.status} (no entries)</span>}
+                      </div>
+                      {(w.eff!=null||w.hrs>0||w.lost!==0) && (
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {w.eff!=null && (
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${w.eff>=90?"bg-emerald-100 text-emerald-700":w.eff>=76.5?"bg-amber-100 text-amber-700":"bg-rose-100 text-rose-700"}`}>
+                              Eff {w.eff.toFixed(1)}%
+                            </div>
+                          )}
+                          {w.hrs>0 && <span className="text-[10px] text-slate-500"><span className="font-semibold">{w.hrs.toFixed(1)}h</span> worked</span>}
+                          {w.lost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{w.lost.toFixed(1)}h lost</span>}
+                        </div>
+                      )}
+                      {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{w.reason}</div>}
+                      {w.downtimeReason && (
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">⏸ {w.downtimeReason}</span>
+                          {w.downtimeDuration>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">{w.downtimeDuration}h</span>}
+                        </div>
+                      )}
+                      {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
+                      {/* WO note input */}
+                      {woNoteTarget===w.wo ? (
+                        <div className="flex gap-1.5 mt-2 print:hidden">
+                          <input autoFocus value={woNoteInput} onChange={e=>setWoNoteInput(e.target.value)}
+                            placeholder="Add note…"
+                            className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            onKeyDown={e=>{ if(e.key==="Enter"&&woNoteInput.trim()) saveWoNote(w.wo); if(e.key==="Escape"){setWoNoteTarget(null);setWoNoteInput("");} }}
+                          />
+                          <button onClick={()=>saveWoNote(w.wo)} disabled={!woNoteInput.trim()}
+                            className="px-2 py-1 text-xs font-semibold bg-blue-600 text-white rounded disabled:opacity-40">Save</button>
+                          <button onClick={()=>{setWoNoteTarget(null);setWoNoteInput("");}}
+                            className="px-2 py-1 text-xs font-semibold bg-stone-200 text-slate-700 rounded">Cancel</button>
+                        </div>
+                      ) : (
+                        <button onClick={()=>{setWoNoteTarget(w.wo);setWoNoteInput("");}}
+                          className="mt-1 text-[10px] text-blue-500 hover:text-blue-700 print:hidden">+ Add note</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
+          {/* Report-level notes */}
+          {(selected.reportNotes||[]).length>0 && (
+            <div className="mb-3 space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Report notes</div>
+              {selected.reportNotes.map((n,i)=>(
+                <div key={i} className="bg-white border border-stone-200 rounded p-2">
+                  <div className="text-[12px] text-slate-700 leading-snug">{n.text}</div>
+                  <div className="text-[9px] text-slate-400 mt-1">
+                    {n.by && <span className="font-semibold text-slate-500 mr-1">{n.by}</span>}
+                    {new Date(n.at).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 mb-2">
+            <input value={noteInput} onChange={e=>setNoteInput(e.target.value)}
+              placeholder="Add a note to this report…"
+              className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+              onKeyDown={e=>{ if(e.key==="Enter"&&noteInput.trim()) saveHistoryNote(); }}
+            />
+            <button onClick={saveHistoryNote} disabled={!noteInput.trim()||noteSaving}
+              style={{backgroundColor:noteSaving?"#60a5fa":"#2563eb"}}
+              className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
+              {noteSaving?"…":"Add"}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={()=>copyReport(selected)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">
+              <Clipboard className="w-4 h-4"/> Copy
+            </button>
+            <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 text-slate-800 text-sm font-semibold hover:bg-stone-300 flex items-center gap-1.5">
+              <Printer className="w-4 h-4"/> Print
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // List view
+  return (
+    <div className="flex flex-col h-full">
+      {/* Filters */}
+      <div className="px-4 pt-3 pb-2 border-b border-stone-100 bg-stone-50 flex flex-col gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">BU</span>
+          <BUPicker value={buFilter} onChange={v=>{setBuFilter(v);setSelected(null);}} />
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shift</span>
+            <ShiftPicker value={shiftF} onChange={setShiftF} />
+          </div>
+          <RangePicker value={rangeF} onChange={setRangeF} />
+          <span className="text-[10px] text-slate-400 ml-auto">{filtered.length} report{filtered.length!==1?"s":""}</span>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-auto p-4">
+        {filtered.length===0 && (
+          <div className="text-center py-12 text-sm text-slate-400 italic">No saved reports for this selection.</div>
+        )}
+        <div className="space-y-2">
+          {filtered.map(r=>{
+            const effColor = r.totalEff==null?"text-slate-400":r.totalEff>=90?"text-emerald-600":r.totalEff>=76.5?"text-amber-600":"text-rose-600";
+            const effBg    = r.totalEff==null?"bg-slate-50 border-slate-200":r.totalEff>=90?"bg-emerald-50 border-emerald-200":r.totalEff>=76.5?"bg-amber-50 border-amber-200":"bg-rose-50 border-rose-200";
+            const dt = new Date(r.date+"T12:00:00");
+            const dateStr = dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+            const sMeta = SHIFTS.find(s=>s.id===r.shiftId)||SHIFTS[0];
+            return (
+              <div key={r.id} onClick={()=>setSelected(r)}
+                className="border border-stone-200 rounded-lg p-3 bg-white hover:border-blue-300 hover:shadow-sm cursor-pointer transition-all">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                      {r.bu||buName(r.leader)}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
+                    <span className="text-[11px] text-slate-400">{r.shiftLabel||sMeta.label} · {r.shiftTime||sMeta.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {r.totalEff!=null && (
+                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>
+                        {r.totalEff.toFixed(1)}%
+                      </span>
+                    )}
+                    <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()}</span>
+                    <span className="text-slate-300 text-xs">›</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  {r.entries>0   && <span className="text-[10px] text-slate-500">{r.entries} WOs</span>}
+                  {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
+                  {r.totalHrs>0  && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
+                  {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost<0?"lost":"earned"}</span>}
+                  {(r.linesDown||[]).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {r.linesDown.length} down</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Analytics tab ──────────────────────────────────────────────────────────
+function AnalyticsTab({ allDocs, allLogsSnap }) {
+  const [buFilter,    setBuFilter]    = useState("__ALL__");
+  const [rangeF,      setRangeF]      = useState("this_week");
+  const [shiftF,      setShiftF]      = useState(0);
+  const [loading,     setLoading]     = useState(false);
+  const [data,        setData]        = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setData(null);
+    const now = new Date();
+    const { fromISO, toISO, prevFrom, prevTo } = rangeISO(rangeF, now);
+    const TARGET = 90;
+
+    const docs = allDocs.filter(d =>
+      d.date>=fromISO && d.date<=toISO &&
+      (buFilter==="__ALL__" || d.leader===buFilter) &&
+      (shiftF===0 || d.shiftId===shiftF)
+    );
+    const prevDocs = allDocs.filter(d =>
+      d.date>=prevFrom && d.date<=prevTo &&
+      (buFilter==="__ALL__" || d.leader===buFilter)
+    );
+
+    const byResource = {};
+    const byShift = {1:{earned:0,hrs:0,units:0,count:0},2:{earned:0,hrs:0,units:0,count:0},3:{earned:0,hrs:0,units:0,count:0}};
+    let thisEarned=0,thisHrs=0,thisUnits=0,thisLost=0;
+    let prevEarned=0,prevHrs=0;
+    const reasonCount={};
+    const dailyEff={};
+
+    for (const doc of docs) {
+      const s=byShift[doc.shiftId]||byShift[2];
+      for (const w of (doc.wos||[])) {
+        if (!w.qty&&!w.hrs) continue;
+        if (!byResource[w.resource]) byResource[w.resource]={resource:w.resource,earned:0,hrs:0,lost:0,units:0,reasons:{},downtimeHrs:0,downtimeReasons:{},downtimeNotes:[]};
+        const r=byResource[w.resource];
+        r.earned+=w.earned||0; r.hrs+=w.hrs||0; r.lost+=w.lost||0; r.units+=w.qty||0;
+        if (w.reason) { r.reasons[w.reason]=(r.reasons[w.reason]||0)+1; reasonCount[w.reason]=reasonCount[w.reason]||{count:0,lost:0}; reasonCount[w.reason].count+=1; reasonCount[w.reason].lost+=w.lost||0; }
+        if (w.downtimeReason&&w.downtimeDuration>0) {
+          r.downtimeHrs+=w.downtimeDuration; r.downtimeReasons[w.downtimeReason]=(r.downtimeReasons[w.downtimeReason]||0)+w.downtimeDuration;
+          if (w.notes) r.downtimeNotes.push({wo:w.wo,note:w.notes,reason:w.downtimeReason});
+        }
+        s.earned+=w.earned||0; s.hrs+=w.hrs||0; s.units+=w.qty||0; s.count++;
+        thisEarned+=w.earned||0; thisHrs+=w.hrs||0; thisUnits+=w.qty||0; thisLost+=w.lost||0;
+        if (!dailyEff[doc.date]) dailyEff[doc.date]={earned:0,hrs:0};
+        dailyEff[doc.date].earned+=w.earned||0; dailyEff[doc.date].hrs+=w.hrs||0;
+      }
+    }
+    for (const doc of prevDocs) {
+      for (const w of (doc.wos||[])) { prevEarned+=w.earned||0; prevHrs+=w.hrs||0; }
+    }
+    // Line-level downtime
+    for (const doc of docs) {
+      for (const d of (doc.linesDown||[])) {
+        if (!d.resource||!d.reason||d.reason==="Not Scheduled"||!(d.duration>0)) continue;
+        if (!byResource[d.resource]) continue;
+        byResource[d.resource].downtimeHrs=(byResource[d.resource].downtimeHrs||0)+d.duration;
+        byResource[d.resource].downtimeReasons=byResource[d.resource].downtimeReasons||{};
+        byResource[d.resource].downtimeReasons[d.reason]=(byResource[d.resource].downtimeReasons[d.reason]||0)+d.duration;
+      }
+    }
+
+    const thisEff = thisHrs>0 ? Math.round(thisEarned/thisHrs*1000)/10 : null;
+    const prevEff = prevHrs>0 ? Math.round(prevEarned/prevHrs*1000)/10 : null;
+    const totalDowntimeHrs = Object.values(byResource).reduce((s,r)=>s+(r.downtimeHrs||0),0);
+    const resources = Object.values(byResource).map(r=>({
+      ...r,
+      eff: r.hrs>0 ? Math.round(r.earned/r.hrs*1000)/10 : null,
+      topReason: Object.entries(r.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||"",
+    })).sort((a,b)=>(a.lost||0)-(b.lost||0));
+    const dailyEffSorted = Object.entries(dailyEff).sort(([a],[b])=>a.localeCompare(b)).map(([date,d])=>({ date, eff:d.hrs>0?Math.round(d.earned/d.hrs*1000)/10:null }));
+
+    // Safety/NC from allLogsSnap
+    let safetyCount=0, ncCount=0;
+    if (allLogsSnap) {
+      allLogsSnap.forEach(doc => {
+        const log=doc.data();
+        if (log.shiftDate<fromISO||log.shiftDate>toISO) return;
+        if (buFilter!=="__ALL__"&&log.bu!==buFilter) return;
+        if (shiftF!==0&&log.shiftId!==shiftF) return;
+        if (log.type==="safety") safetyCount++;
+        if (log.type==="nc") ncCount++;
+      });
+    }
+
+    setData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted });
+    setLoading(false);
+  }, [allDocs, allLogsSnap, buFilter, rangeF, shiftF]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Filters */}
+      <div className="px-4 pt-3 pb-2 border-b border-stone-100 bg-stone-50 flex flex-col gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">BU</span>
+          <BUPicker value={buFilter} onChange={setBuFilter} />
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shift</span>
+            <ShiftPicker value={shiftF} onChange={setShiftF} />
+          </div>
+          <RangePicker value={rangeF} onChange={setRangeF} />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
+        {!loading && !data && <div className="text-center py-12 text-sm text-slate-400 italic">No data</div>}
+        {!loading && data && (() => {
+          const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted } = data;
+          const trend = thisEff!=null&&prevEff!=null ? thisEff-prevEff : null;
+          const effColor = thisEff==null?"#64748b":thisEff>=TARGET?"#16a34a":thisEff>=76.5?"#d97706":"#dc2626";
+          const effBg    = thisEff==null?"#f8fafc":thisEff>=TARGET?"#f0fdf4":thisEff>=76.5?"#fffbeb":"#fff1f2";
+          return (
+            <div className="p-4 space-y-5">
+
+              {/* At a glance */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">At a glance</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  <div className="col-span-1 rounded-lg border-2 px-3 py-3 flex flex-col items-center justify-center" style={{backgroundColor:effBg,borderColor:effColor}}>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color:effColor}}>Efficiency</div>
+                    <div className="text-2xl font-bold tabular-nums" style={{color:effColor}}>{thisEff!=null?thisEff.toFixed(1)+"%":"—"}</div>
+                    <div className="text-[10px] font-semibold mt-1" style={{color:effColor}}>target {TARGET}%</div>
+                    {trend!=null && (
+                      <div className={`text-[11px] font-bold mt-1 ${trend>=0?"text-emerald-600":"text-rose-600"}`}>
+                        {trend>=0?"↑":"↓"} {Math.abs(trend).toFixed(1)}% vs prev
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 flex flex-col justify-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Total units</div>
+                    <div className="text-xl font-bold text-slate-800 tabular-nums">{thisUnits.toLocaleString()}</div>
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 flex flex-col justify-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Hours worked</div>
+                    <div className="text-xl font-bold text-slate-800 tabular-nums">{thisHrs.toFixed(0)}h</div>
+                  </div>
+                  <div className={`rounded-lg border px-3 py-3 flex flex-col justify-center ${thisLost<0?"bg-rose-50 border-rose-300":"bg-emerald-50 border-emerald-200"}`}>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{thisLost<0?"Lost hrs":"Earned hrs"}</div>
+                    <div className={`text-xl font-bold tabular-nums ${thisLost<0?"text-rose-700":"text-emerald-700"}`}>{thisLost.toFixed(1)}h</div>
+                  </div>
+                  {totalDowntimeHrs>0 && (
+                    <div className="rounded-lg border bg-rose-50 border-rose-300 px-3 py-3 flex flex-col justify-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-400 mb-1">Downtime</div>
+                      <div className="text-xl font-bold tabular-nums text-rose-700">{totalDowntimeHrs.toFixed(1)}h</div>
+                    </div>
+                  )}
+                </div>
+                {(safetyCount>0||ncCount>0) && (
+                  <div className="flex gap-2 mt-2">
+                    {safetyCount>0 && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">Safety</span>
+                        <span className="text-lg font-bold text-red-700 tabular-nums">{safetyCount}</span>
+                        <span className="text-[10px] text-red-400">incident{safetyCount!==1?"s":""}</span>
+                      </div>
+                    )}
+                    {ncCount>0 && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">NC</span>
+                        <span className="text-lg font-bold text-orange-700 tabular-nums">{ncCount}</span>
+                        <span className="text-[10px] text-orange-400">incident{ncCount!==1?"s":""}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Where we struggle */}
+              <div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Where we struggle</div>
+                  {(() => {
+                    const withEff = resources.filter(r=>r.eff!=null);
+                    const above=withEff.filter(r=>r.eff>=TARGET).length;
+                    const near =withEff.filter(r=>r.eff>=76.5&&r.eff<TARGET).length;
+                    const below=withEff.filter(r=>r.eff<76.5).length;
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        {above>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{above} ✓</span>}
+                        {near >0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{near} ~</span>}
+                        {below>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{below} ✗</span>}
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="border border-stone-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-stone-100 border-b border-stone-200">
+                        <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Resource</th>
+                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Eff</th>
+                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Lost</th>
+                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Units</th>
+                        <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Top reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {resources.map((r,i)=>{
+                        const rc=r.eff==null?"#64748b":r.eff>=TARGET?"#16a34a":r.eff>=76.5?"#d97706":"#dc2626";
+                        const rb=r.eff==null?"white":r.eff>=TARGET?"#f0fdf4":r.eff>=76.5?"#fffbeb":"#fff1f2";
+                        return (
+                          <tr key={i} style={{backgroundColor:rb}}>
+                            <td className="px-3 py-2 font-semibold text-slate-800 text-xs">{r.resource}</td>
+                            <td className="px-3 py-2 text-right">
+                              <span className="text-xs font-bold tabular-nums" style={{color:rc}}>{r.eff!=null?r.eff.toFixed(1)+"%":"—"}</span>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <span className={`text-xs font-semibold tabular-nums ${r.lost<0?"text-rose-600":"text-emerald-600"}`}>{r.lost.toFixed(1)}h</span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-xs text-slate-600 tabular-nums">{r.units.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-xs text-slate-500">
+                              {r.topReason ? <span className="italic">{r.topReason}</span> : <span className="text-slate-300">—</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {resources.filter(r=>r.eff!=null&&r.eff<TARGET).length===0 && (
+                  <div className="text-center text-xs text-emerald-600 font-semibold mt-2">✓ All resources at or above target</div>
+                )}
+              </div>
+
+              {/* Downtime by resource */}
+              {totalDowntimeHrs>0 && (() => {
+                const withDowntime = resources.filter(r=>r.downtimeHrs>0).sort((a,b)=>b.downtimeHrs-a.downtimeHrs);
+                return (
+                  <div>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Downtime by resource</div>
+                      <div className="text-[11px] font-bold text-rose-600">{totalDowntimeHrs.toFixed(1)}h total</div>
+                    </div>
+                    <div className="space-y-1.5">
+                      {withDowntime.map(r=><DowntimeCard key={r.resource} r={r} />)}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Shift breakdown */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Shift breakdown</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {SHIFTS.map(s=>{
+                    const sd=byShift[s.id]||{earned:0,hrs:0,units:0};
+                    const sEff=sd.hrs>0?Math.round(sd.earned/sd.hrs*1000)/10:null;
+                    const sc=sEff==null?"#64748b":sEff>=TARGET?"#16a34a":sEff>=76.5?"#d97706":"#dc2626";
+                    const sb=sEff==null?"#f8fafc":sEff>=TARGET?"#f0fdf4":sEff>=76.5?"#fffbeb":"#fff1f2";
+                    return (
+                      <div key={s.id} className="rounded-lg border-2 px-3 py-3" style={{backgroundColor:sb,borderColor:sc}}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{color:sc}}>{s.label}</div>
+                        <div className="text-[9px] text-slate-400 mb-2">{s.time}</div>
+                        <div className="text-xl font-bold tabular-nums mb-1" style={{color:sc}}>{sEff!=null?sEff.toFixed(1)+"%":"—"}</div>
+                        <div className="text-[10px] text-slate-500">{sd.units.toLocaleString()} units</div>
+                        <div className="text-[10px] text-slate-400">{sd.hrs.toFixed(0)}h worked</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Top underperformance reasons */}
+              {Object.keys(reasonCount).length>0 && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Top underperformance reasons</div>
+                  <div className="space-y-1.5">
+                    {Object.entries(reasonCount).sort((a,b)=>(b[1].lost||0)-(a[1].lost||0)).map(([reason,d])=>{
+                      const maxLost=Math.abs(Object.values(reasonCount).sort((a,b)=>(b.lost||0)-(a.lost||0))[0]?.lost||1);
+                      const pct=Math.min(100,Math.abs(d.lost||0)/maxLost*100);
+                      return (
+                        <div key={reason} className="flex items-center gap-2">
+                          <div className="w-28 shrink-0 text-xs font-semibold text-slate-700 truncate">{reason}</div>
+                          <div className="flex-1 bg-stone-100 rounded-full h-2 overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full" style={{width:pct+"%"}} />
+                          </div>
+                          <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{d.lost.toFixed(1)}h · {d.count}x</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Daily efficiency trend */}
+              {dailyEffSorted&&dailyEffSorted.length>1&&(()=>{
+                const vals=dailyEffSorted.filter(d=>d.eff!=null);
+                if (vals.length<2) return null;
+                const maxV=Math.max(...vals.map(d=>d.eff),TARGET+5);
+                const minV=Math.min(...vals.map(d=>d.eff),TARGET-10);
+                const rng=maxV-minV||1;
+                const W=100/(vals.length-1);
+                const yP=v=>100-((v-minV)/rng*100);
+                const tY=yP(TARGET);
+                const pts=vals.map((d,i)=>`${i*W},${yP(d.eff)}`).join(" ");
+                const byDow={};
+                vals.forEach(d=>{
+                  const dow=new Date(d.date+"T12:00:00").toLocaleDateString("en",{weekday:"short"});
+                  if (!byDow[dow]) byDow[dow]={sum:0,count:0};
+                  byDow[dow].sum+=d.eff; byDow[dow].count++;
+                });
+                const dowAvg=Object.entries(byDow).map(([d,v])=>({day:d,avg:Math.round(v.sum/v.count*10)/10})).sort((a,b)=>b.avg-a.avg);
+                return (
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Daily efficiency trend</div>
+                    <div className="relative bg-stone-50 border border-stone-200 rounded-lg p-3" style={{height:120}}>
+                      <svg width="100%" height="88%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <line x1="0" y1={tY} x2="100" y2={tY} stroke="#16a34a" strokeWidth="0.5" strokeDasharray="2,2"/>
+                        <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+                        {vals.map((d,i)=>(
+                          <circle key={i} cx={i*W} cy={yP(d.eff)} r="1.5"
+                            fill={d.eff>=TARGET?"#16a34a":d.eff>=76.5?"#d97706":"#dc2626"}
+                            vectorEffect="non-scaling-stroke"/>
+                        ))}
+                      </svg>
+                      <div className="absolute bottom-1 left-3 right-3 flex justify-between">
+                        <span className="text-[8px] text-slate-400">{vals[0].date.slice(5)}</span>
+                        <span className="text-[9px] text-emerald-600 font-semibold">{TARGET}% target</span>
+                        <span className="text-[8px] text-slate-400">{vals[vals.length-1].date.slice(5)}</span>
+                      </div>
+                    </div>
+                    {dowAvg.length>=3 && (
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">By day:</span>
+                        {dowAvg.map((d,i)=>(
+                          <span key={d.day} className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                            style={{background:i===0?"#dcfce7":i===dowAvg.length-1?"#fff1f2":"#f1f5f9",
+                                    color:i===0?"#15803d":i===dowAvg.length-1?"#be123c":"#475569"}}>
+                            {d.day} {d.avg.toFixed(1)}%
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ───────────────────────────────────────────────────────────────
+function ShiftReportApp() {
+  const [activeTab,    setActiveTab]    = useState("history");  // "history"|"analytics"
+  const [allDocs,      setAllDocs]      = useState(null);
+  const [allLogsSnap,  setAllLogsSnap]  = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [exportState,  setExportState]  = useState("idle");
+  const [exportMsg,    setExportMsg]    = useState("");
+  const [initials,     setInitials]     = useState(localStorage.getItem("build_tracker_initials")||"");
+  const [showInitials, setShowInitials] = useState(false);
+
+  useEffect(() => {
+    // Load all shift reports + safety logs in parallel
+    Promise.all([
+      SHIFT_REPORTS_REF.get(),
+      SHIFT_LOGS_REF.get(),
+    ]).then(([reportsSnap, logsSnap]) => {
+      const docs = reportsSnap.docs.map(d=>({id:d.id,...d.data()}));
+      setAllDocs(docs);
+      setAllLogsSnap(logsSnap);
+      setLoading(false);
+    }).catch(e => {
+      console.error("Load failed:", e);
+      setAllDocs([]);
+      setLoading(false);
+    });
+  }, []);
+
+  const exportToSheets = async (monthFilter) => {
+    setExportState("exporting");
+    setExportMsg(monthFilter?`Exporting ${monthFilter}…`:"Exporting all reports…");
+    try {
+      const token = await getGoogleAccessToken();
+      let docs = allDocs||[];
+      if (monthFilter) {
+        docs = docs.filter(d=>{
+          if (!d.date) return false;
+          const dt=new Date(d.date+"T12:00:00");
+          const tab=dt.toLocaleDateString("en-US",{month:"short",year:"numeric"});
+          return tab===monthFilter;
+        });
+      }
+      const tabCount = await exportReportsToSheet(docs, token);
+      setExportState("done");
+      setExportMsg(`✓ Exported ${docs.length} reports across ${tabCount} tab${tabCount!==1?"s":""}`);
+      setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
+    } catch(e) {
+      console.error(e);
+      setExportState("error");
+      setExportMsg("Export failed — "+e.message);
+      setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
+    }
+  };
+
+  const saveInitials = (val) => {
+    localStorage.setItem("build_tracker_initials", val.trim().toUpperCase());
+    setInitials(val.trim().toUpperCase());
+    setShowInitials(false);
+  };
+
+  const BT_URL = "https://goshotrifonov.github.io/report/BuildTracker.html";
+
+  return (
+    <div className="flex flex-col h-screen bg-stone-50">
+      {/* Header */}
+      <div style={{backgroundColor:"#1e3a5f"}} className="flex items-center justify-between px-4 py-3 shadow-md flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="text-white font-bold text-base leading-tight">SMI Shift Reports</div>
+            <div className="text-blue-200 text-[10px] font-semibold uppercase tracking-wider">History & Analytics</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Initials */}
+          {showInitials ? (
+            <div className="flex items-center gap-1">
+              <input autoFocus className="px-2 py-1 text-xs rounded border border-slate-300 w-16 text-center uppercase"
+                value={initials} onChange={e=>setInitials(e.target.value.toUpperCase())}
+                onKeyDown={e=>{ if(e.key==="Enter") saveInitials(initials); if(e.key==="Escape") setShowInitials(false); }}
+                maxLength={4} placeholder="ABC"/>
+              <button onClick={()=>saveInitials(initials)} className="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold">✓</button>
+            </div>
+          ) : (
+            <button onClick={()=>setShowInitials(true)}
+              className="text-[11px] font-bold px-2 py-1 rounded text-blue-200 hover:bg-blue-800 border border-blue-700">
+              {initials||"Set initials"}
+            </button>
+          )}
+          {/* Export to Sheets */}
+          <button onClick={()=>exportToSheets()} disabled={exportState==="exporting"||!allDocs}
+            title="Export all shift reports to Google Sheets"
+            style={{backgroundColor:exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#1e4d8c"}}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-[11px] font-semibold border border-blue-700">
+            <Sheet className="w-3.5 h-3.5"/>
+            {exportState==="exporting"?"Exporting…":exportState==="done"?"✓ Done":exportState==="error"?"Error":"Sheets"}
+          </button>
+          {/* Back to BuildTracker */}
+          <a href={BT_URL}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold text-blue-200 hover:bg-blue-800 border border-blue-700">
+            <ExternalLink className="w-3.5 h-3.5"/> BuildTracker
+          </a>
+        </div>
+      </div>
+
+      {/* Export message bar */}
+      {exportMsg && (
+        <div className={`px-4 py-2 text-center text-[11px] font-semibold ${exportState==="done"?"bg-emerald-100 text-emerald-800":exportState==="error"?"bg-rose-100 text-rose-800":"bg-blue-50 text-blue-800"}`}>
+          {exportMsg}
+        </div>
+      )}
+
+      {/* Tab bar */}
+      <div className="flex border-b border-stone-200 bg-white flex-shrink-0">
+        <button onClick={()=>setActiveTab("history")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab==="history"?"border-blue-600 text-blue-700 bg-blue-50":"border-transparent text-slate-500 hover:text-slate-700"}`}>
+          <Clock className="w-4 h-4"/> History
+        </button>
+        <button onClick={()=>setActiveTab("analytics")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab==="analytics"?"border-blue-600 text-blue-700 bg-blue-50":"border-transparent text-slate-500 hover:text-slate-700"}`}>
+          <BarChart2 className="w-4 h-4"/> Analytics
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {loading && (
+          <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="text-center">
+              <div className="text-2xl mb-2">⏳</div>
+              <div className="text-sm">Loading shift reports…</div>
+            </div>
+          </div>
+        )}
+        {!loading && allDocs && (
+          activeTab==="history"
+            ? <HistoryTab allDocs={allDocs} />
+            : <AnalyticsTab allDocs={allDocs} allLogsSnap={allLogsSnap} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<ShiftReportApp />, document.getElementById("root"));
+</script>
+</body>
+</html>
