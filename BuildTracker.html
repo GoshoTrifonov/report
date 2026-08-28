@@ -160,7 +160,7 @@
 </head>
 <body class="bg-stone-50">
   <div id="root">
-    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard�</div>
+    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard…</div>
   </div>
 
   <script type="text/babel" data-presets="react">
@@ -302,7 +302,7 @@ function parseBuildPlan(workbook) {
   const COL_STARTQTY = col(["START_QTY", "QTY"]) >= 0 ? col(["START_QTY", "QTY"]) : 9;
   const COL_COMPQTY  = col(["COMP_QTY"]) >= 0 ? col(["COMP_QTY"]) : 10;
 
-  // We need leader mapping � load from current BUILD_DATA if available, else blank
+  // We need leader mapping — load from current BUILD_DATA if available, else blank
   const leaderMap = {};
   if (typeof BUILD_DATA !== "undefined") {
     for (const r of BUILD_DATA.rows) leaderMap[r.resource] = r.leader;
@@ -361,8 +361,8 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_WO     = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
   const COL_QTY    = col(["GOOD_QTY", "QTY", "UNITS"], 7);
   const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
-  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT � preferred
-  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc � fallback
+  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT — preferred
+  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc — fallback
   const COL_HRS      = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
   const COL_EARNED   = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
   const COL_LOST     = col(["LOST", "LOST_HRS"], 20);
@@ -438,7 +438,7 @@ function parseLabourTicketsForWOs(workbook) {
   return { totals, shiftDetail };
 }
 const SHIFT_HOURS = 8;
-// Business Unit display names � maps internal leader keys to BU labels shown in the UI.
+// Business Unit display names — maps internal leader keys to BU labels shown in the UI.
 // Internal data still uses leader names (e.g. "George") for filtering; this is display-only.
 const LEADER_TO_BU = {
   "George":    "BU Verathon",
@@ -454,16 +454,16 @@ const STATUS = {
   abr:    { label: "Awaiting BR",   dot: "bg-yellow-400",  bar: "bg-yellow-300",  chip: "bg-yellow-50 text-yellow-800 border-yellow-300",    border: "border-yellow-500",  textOnBar: "text-slate-900" },
   wip:    { label: "In Progress",   dot: "bg-amber-500",   bar: "bg-amber-400",   chip: "bg-amber-50 text-amber-800 border-amber-300",       border: "border-amber-500",   textOnBar: "text-slate-900" },
   todo:   { label: "Queued",        dot: "bg-slate-400",   bar: "bg-slate-300",   chip: "bg-slate-50 text-slate-700 border-slate-300",       border: "border-slate-400",   textOnBar: "text-slate-800" },
-  blue:   { label: "Flag � Blue",   dot: "bg-sky-500",     bar: "bg-sky-400",     chip: "bg-sky-50 text-sky-700 border-sky-200",             border: "border-sky-500",     textOnBar: "text-white" },
-  red:    { label: "Flag � Red",    dot: "bg-rose-500",    bar: "bg-rose-500",    chip: "bg-rose-50 text-rose-700 border-rose-200",          border: "border-rose-500",    textOnBar: "text-white" },
-  orange: { label: "Flag � Orange", dot: "bg-orange-500",  bar: "bg-orange-400",  chip: "bg-orange-50 text-orange-700 border-orange-200",    border: "border-orange-500",  textOnBar: "text-slate-900" },
+  blue:   { label: "Flag · Blue",   dot: "bg-sky-500",     bar: "bg-sky-400",     chip: "bg-sky-50 text-sky-700 border-sky-200",             border: "border-sky-500",     textOnBar: "text-white" },
+  red:    { label: "Flag · Red",    dot: "bg-rose-500",    bar: "bg-rose-500",    chip: "bg-rose-50 text-rose-700 border-rose-200",          border: "border-rose-500",    textOnBar: "text-white" },
+  orange: { label: "Flag · Orange", dot: "bg-orange-500",  bar: "bg-orange-400",  chip: "bg-orange-50 text-orange-700 border-orange-200",    border: "border-orange-500",  textOnBar: "text-slate-900" },
 };
 
 const POS_LABELS = ["NOW", "NEXT", "THEN"];
 const POST_PRODUCTION_STATUSES = new Set(["abr", "brs", "done"]);
 
-const fmtHrs = (n) => n == null || n === 0 ? "�" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
-const fmtNum = (n) => n == null ? "�" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
+const fmtHrs = (n) => n == null || n === 0 ? "—" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
+const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}`;
 const isLopro = (name) => /^lopro/i.test(name);
 
@@ -482,15 +482,15 @@ const readyCount = (row) => {
 
 // ============ Shifts ============
 // Shift schedule:
-//   1: 11pm�7am (overnight) � wall-clock window [23, 24) ? [0, 7)
-//   2: 7am�3pm (day)
-//   3: 3pm�11pm (evening)
+//   1: 11pm–7am (overnight) — wall-clock window [23, 24) ? [0, 7)
+//   2: 7am–3pm (day)
+//   3: 3pm–11pm (evening)
 // Grace window: 1 hour past end of a shift, the system still defaults to that ended shift
 // (lets supervisors log the shift they just finished).
 const SHIFTS = [
-  { id: 1, label: "Shift 1", time: "11pm�7am" },
-  { id: 2, label: "Shift 2", time: "7am�3pm" },
-  { id: 3, label: "Shift 3", time: "3pm�11pm" },
+  { id: 1, label: "Shift 1", time: "11pm–7am" },
+  { id: 2, label: "Shift 2", time: "7am–3pm" },
+  { id: 3, label: "Shift 3", time: "3pm–11pm" },
 ];
 // Returns { shiftId, shiftDate } where shiftDate is the calendar date that "owns" this shift.
 // (For Shift 1 in early-morning hours, the shift began the previous evening.)
@@ -498,9 +498,9 @@ const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
   // 1-hour grace: shift "just ended" still defaults to that shift
   // Active windows + grace:
-  // Shift 1 active: 23:00�06:59, grace until 07:59
-  // Shift 2 active: 07:00�14:59, grace until 15:59
-  // Shift 3 active: 15:00�22:59, grace until 23:59 (already covers full window)
+  // Shift 1 active: 23:00–06:59, grace until 07:59
+  // Shift 2 active: 07:00–14:59, grace until 15:59
+  // Shift 3 active: 15:00–22:59, grace until 23:59 (already covers full window)
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
   if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 active or just ended
@@ -509,10 +509,10 @@ const getCurrentShift = (date = new Date()) => {
     // Shift 1 (overnight). Owns date = the *evening start* date.
     shiftId = 1;
     if (h < 8) {
-      // Early morning � shift started yesterday evening
+      // Early morning — shift started yesterday evening
       shiftDate.setDate(shiftDate.getDate() - 1);
     }
-    // h >= 23 � shift just started this evening, shiftDate = today (already correct)
+    // h >= 23 — shift just started this evening, shiftDate = today (already correct)
   }
   return { shiftId, shiftDate };
 };
@@ -528,7 +528,7 @@ const shiftLabel = (entry) => {
   const meta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
   const d = new Date(entry.shiftDateISO);
   const dStr = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  return `${dStr} � ${meta.label} (${meta.time})`;
+  return `${dStr} · ${meta.label} (${meta.time})`;
 };
 
 // ============ Calendar projection ============
@@ -569,7 +569,7 @@ const skipToProductionTime = (d, cov) => {
   if (hour < cov.startHour) {
     cur.setHours(cov.startHour, 0, 0, 0);
   } else if (hour >= cov.endHour) {
-    // Past today's window � go to tomorrow's start
+    // Past today's window — go to tomorrow's start
     cur.setDate(cur.getDate() + 1);
     cur.setHours(cov.startHour, 0, 0, 0);
     if (isWeekend(cur)) {
@@ -684,7 +684,7 @@ function BuildTracker() {
         // Get previous month's name
         const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
           .toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        console.log(`[Auto-export] Exporting ${prevMonth} shift reports to Google Sheets�`);
+        console.log(`[Auto-export] Exporting ${prevMonth} shift reports to Google Sheets…`);
         const token = await getGoogleAccessToken();
         const snap = await BT_SHIFT_REPORTS_REF.get();
         const docs = snap.docs
@@ -780,15 +780,15 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "build", msg: "Parsing build plan�", ok: null });
+    setUploadStatus({ type: "build", msg: "Parsing build plan…", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
         const rows = parseBuildPlan(wb);
-        if (!rows) { setUploadStatus({ type: "build", msg: "No rows found � check sheet name 'Database Query'", ok: false }); return; }
+        if (!rows) { setUploadStatus({ type: "build", msg: "No rows found — check sheet name 'Database Query'", ok: false }); return; }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
-        setUploadStatus({ type: "build", msg: `? Build plan saved � ${rows.length} WOs � reload to apply`, ok: true });
+        setUploadStatus({ type: "build", msg: `? Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "build", msg: "Error: " + err.message, ok: false });
       }
@@ -805,7 +805,7 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "labour", msg: "Parsing labour tickets�", ok: null });
+    setUploadStatus({ type: "labour", msg: "Parsing labour tickets…", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -979,8 +979,8 @@ function BuildTracker() {
             }
           }
 
-          // Write each report doc � fetch existing first to preserve manually-added WO notes
-          const shiftMetas = { 1: { label: "Shift 1", time: "11pm�7am" }, 2: { label: "Shift 2", time: "7am�3pm" }, 3: { label: "Shift 3", time: "3pm�11pm" } };
+          // Write each report doc — fetch existing first to preserve manually-added WO notes
+          const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
           const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
             const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
             const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
@@ -1102,7 +1102,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `? Labour tickets saved � ${matchCount} WOs updated � shift reports auto-saved`, ok: true });
+        setUploadStatus({ type: "labour", msg: `? Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -1121,11 +1121,11 @@ function BuildTracker() {
     });
 
     // Auto-tool inheritance: if a todo WO has the same tool_id as any currently-active
-    // (WIP/abr/brs) WO on the same line, the tool is already in the machine � so we
+    // (WIP/abr/brs) WO on the same line, the tool is already in the machine — so we
     // synthetically mark Tool as ready. The "auto: true" flag distinguishes this from
     // a manual check so the UI can render it differently.
     //
-    // Manual overrides always win � if the user has clicked the Tool button (either to
+    // Manual overrides always win — if the user has clicked the Tool button (either to
     // mark ok or not-ok), we leave it alone. Auto only applies when no manual data exists.
     //
     // Build a set of (resource, tool_id) pairs currently in-machine, then loop again
@@ -1142,7 +1142,7 @@ function BuildTracker() {
       if (r.status !== "todo") return r;
       // Skip if user already has manual tool readiness data
       if (r.readiness && r.readiness.tool !== undefined) return r;
-      // No tool required for this WO � auto-mark as ready (N/A case)
+      // No tool required for this WO — auto-mark as ready (N/A case)
       if (!r.tool_id) {
         return {
           ...r,
@@ -1166,7 +1166,7 @@ function BuildTracker() {
     });
   }, [overrides, buildPlanRows]);
 
-  // Unit Leader picker state � defaults to Andrew B. for the launch.
+  // Unit Leader picker state — defaults to Andrew B. for the launch.
   // Persists in localStorage so each device remembers its leader.
   const LEADER_STORAGE = "build_tracker_leader";
   const [selectedLeader, setSelectedLeader] = useState("__ALL__");
@@ -1199,7 +1199,7 @@ function BuildTracker() {
   // Running lines filter
   const [lineFilter, setLineFilter] = useState("all"); // "all" | "running" | "running_down"
 
-  // User initials � soft attribution (not security). Asks once per device,
+  // User initials — soft attribution (not security). Asks once per device,
   // stamps every action so we know who did what for shift reports.
   const INITIALS_STORAGE = "build_tracker_initials";
   const [userInitials, setUserInitials] = useState("");
@@ -1219,7 +1219,7 @@ function BuildTracker() {
     try { localStorage.setItem(INITIALS_STORAGE, clean); } catch {}
   };
 
-  // Line-down tracking � synced via Firebase so all devices see it live.
+  // Line-down tracking — synced via Firebase so all devices see it live.
   const LINE_DOWN_STORAGE = "build_tracker_line_down";
   const [lineDown, setLineDown] = useState({});
   useEffect(() => {
@@ -1409,7 +1409,7 @@ function BuildTracker() {
     };
   }, [lines, abrList, brsList]);
 
-  // Build "materials needed in next 36h" lists � one per readiness category.
+  // Build "materials needed in next 36h" lists — one per readiness category.
   // For each line, walk the FULL active queue (not just top 3) cumulatively to figure out
   // when each WO would start. If a WO starts within 36h and is missing a readiness check,
   // include it in that category's list. Tool list excludes WOs auto-covered by inheritance.
@@ -1442,7 +1442,7 @@ function BuildTracker() {
           if (!readiness.labels?.ok) lists.labels.push(entry);
           if (!readiness.kit?.ok) lists.kit.push(entry);
         }
-        // Update prevToolId from this WO (regardless of status � WIP sets the "current" tool)
+        // Update prevToolId from this WO (regardless of status — WIP sets the "current" tool)
         if (r.tool_id) prevToolId = r.tool_id;
         cursor += r.run_hrs || 0;
         if (cursor > WINDOW_HOURS) break;
@@ -1623,7 +1623,7 @@ function BuildTracker() {
 
     return (
       <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#0f172a", color: "white", fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif", display: "flex", flexDirection: "column" }}>
-        {/* Exit � invisible until hover */}
+        {/* Exit — invisible until hover */}
         <button onClick={() => setPresentationMode(false)}
           style={{ position: "fixed", top: 8, right: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
           onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
@@ -1659,7 +1659,7 @@ function BuildTracker() {
           </div>
         )}
 
-        {/* Compact header � single row */}
+        {/* Compact header — single row */}
         <div style={{ padding: "6px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontWeight: 800, fontSize: 18 }}>{selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
@@ -1672,9 +1672,9 @@ function BuildTracker() {
           </div>
         </div>
 
-        {/* Lines grid � fills remaining height exactly */}
+        {/* Lines grid — fills remaining height exactly */}
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gridTemplateRows: `repeat(${Math.ceil(tvLines.length / colCount)}, 1fr)`, gap: 6, padding: 6, overflow: "hidden" }}>
-        {/* Sort lines by remaining hours on NOW WO � soonest changeover top-left */}
+        {/* Sort lines by remaining hours on NOW WO — soonest changeover top-left */}
         {[...tvLines].sort((a, b) => {
           const getRemain = (line) => {
             const nowRow = line.rows[0];
@@ -1908,12 +1908,12 @@ function BuildTracker() {
             <div>
               <div className="text-sm font-semibold text-slate-900">Build Plan Tracker</div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} � Bars by run hours � {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
-                {fbStatus === "loading" && <span className="text-amber-600 font-medium">� ? Connecting�</span>}
-                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">� ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-                {fbStatus === "error" && <span className="text-rose-600 font-medium">� ? Offline</span>}
-                {buildPlanRows && <span className="text-blue-600 font-medium">� ?? Custom build plan</span>}
-                {!buildPlanRows && <span className="text-slate-400 font-medium">� using baked-in build plan</span>}
+                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours · {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
+                {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ? Connecting…</span>}
+                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+                {fbStatus === "error" && <span className="text-rose-600 font-medium">· ? Offline</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">· ?? Custom build plan</span>}
+                {!buildPlanRows && <span className="text-slate-400 font-medium">· using baked-in build plan</span>}
               </div>
             </div>
             {/* Leader picker */}
@@ -1968,7 +1968,7 @@ function BuildTracker() {
                 <button
                   onClick={() => labourInputRef.current && labourInputRef.current.click()}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
-                  title="Upload Labour Tickets � updates comp_qty on all matched WOs"
+                  title="Upload Labour Tickets — updates comp_qty on all matched WOs"
                 >
                   ?? Labour Tickets
                 </button>
@@ -1991,7 +1991,7 @@ function BuildTracker() {
               ?? TV Mode
             </button>
 
-            {/* Initials badge � soft attribution */}
+            {/* Initials badge — soft attribution */}
             {userInitials && (
               <button
                 onClick={() => setShowInitialsModal(true)}
@@ -2033,7 +2033,7 @@ function BuildTracker() {
           stickyTop={stickyH.header}
           zIndex={39}
           title="Awaiting Batch Record"
-          subtitle="Production complete � BR pending"
+          subtitle="Production complete · BR pending"
           rows={abrList}
           onSelect={setSelectedWo}
           tone="yellow"
@@ -2186,7 +2186,7 @@ function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, stripRef, s
           {icon}
           <span className="text-xs uppercase tracking-wider">{title}</span>
           <span className="text-xs tabular-nums">({rows.length})</span>
-          <span className="text-[10px] text-slate-500 normal-case font-normal hidden md:inline">� {subtitle}</span>
+          <span className="text-[10px] text-slate-500 normal-case font-normal hidden md:inline">· {subtitle}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {rows.map(r => {
@@ -2194,7 +2194,7 @@ function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, stripRef, s
               <button key={rowKey(r)} onClick={() => onSelect(r)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md hover:shadow-sm transition-all text-xs ${toneStyles.chipBorder}`}>
                 <span className="font-mono font-semibold text-slate-800">{r.wo}</span>
-                <span className="text-slate-400">�</span>
+                <span className="text-slate-400">·</span>
                 <span className="text-slate-700 truncate max-w-[120px]">{r.resource}</span>
               </button>
             );
@@ -2230,9 +2230,9 @@ function StatWithIcon({ label, value, accent, icon: Icon, fill }) {
   );
 }
 
-// Progress overlay � green fill showing comp_qty / start_qty
+// Progress overlay — green fill showing comp_qty / start_qty
 function ProgressOverlay({ row }) {
-  // For WIP rows the bar itself is already sized to remaining time � no fill needed
+  // For WIP rows the bar itself is already sized to remaining time — no fill needed
   if (row.status === "wip") return null;
   if (!row.start_qty || row.start_qty <= 0 || !row.comp_qty || row.comp_qty <= 0) return null;
   const fillPct = Math.min(100, (row.comp_qty / row.start_qty) * 100);
@@ -2258,7 +2258,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
     return arr;
   }, [maxHours]);
 
-  // Calendar projection � shared timeline using default 24h coverage (the visual baseline).
+  // Calendar projection — shared timeline using default 24h coverage (the visual baseline).
   // Per-line coverage (e.g. 16h lines) is captured in SHIFT_COVERAGE for use by future
   // features like the #8 escalating warning, but the visible calendar is shared.
   const now = useMemo(() => new Date(), []);
@@ -2266,7 +2266,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
   const calSegs = useMemo(() => calendarSegments(maxHours, now), [maxHours, now]);
 
 
-  // Use the offset passed in from the parent � accounts for header + visible closeout strips.
+  // Use the offset passed in from the parent — accounts for header + visible closeout strips.
   const headerOffset = externalStickyTop;
 
   // Sync horizontal scroll between the sticky header row and the body scroll container
@@ -2306,8 +2306,8 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
       >
         <div className="w-48 md:w-60 shrink-0 border-r border-stone-200 bg-stone-50 h-[68px] px-3 md:px-4 flex flex-col justify-end pb-2">
           <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">Resource / WO</span>
-          <span className="text-[10px] text-slate-400">Production queue � hrs ?</span>
-          <span className="text-[9px] text-slate-400 italic mt-0.5">Mon-Fri � 24h baseline</span>
+          <span className="text-[10px] text-slate-400">Production queue · hrs ?</span>
+          <span className="text-[9px] text-slate-400 italic mt-0.5">Mon-Fri · 24h baseline</span>
         </div>
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={headerScrollRef}>
           <div style={{ width: `${totalWidth}px`, position: "relative" }} className="h-[68px]">
@@ -2324,7 +2324,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     key={`cal-${i}`}
                     className={`absolute top-0 bottom-0 flex items-center justify-center px-1 overflow-hidden border-r border-stone-300 ${isToday ? "bg-rose-50" : isWeekendDay ? "bg-stone-200/60" : ""}`}
                     style={{ left: `${left}px`, width: `${width}px` }}
-                    title={`${label} � ${seg.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`}
+                    title={`${label} · ${seg.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`}
                   >
                     {width > 38 ? (
                       <div className="flex items-baseline gap-1.5 truncate">
@@ -2390,7 +2390,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                 >
                   <span className="text-xs md:text-sm font-semibold text-slate-900 truncate flex-1" title={line.resource}>{line.resource}</span>
                   {downEntry && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " � " + downEntry.notes : ""} (by ${downEntry.by || "�"})`}>DOWN</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " — " + downEntry.notes : ""} (by ${downEntry.by || "—"})`}>DOWN</span>
                   )}
 
                   {!downEntry && hasWip && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-200 text-amber-900">RUN</span>}
@@ -2420,7 +2420,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                       ) : (
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                       )}
-                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "�"}</span>
+                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "—"}</span>
 
                       {r._override && <Pencil className="w-2.5 h-2.5 text-slate-400 shrink-0" />}
                     </div>
@@ -2482,7 +2482,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                              
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${barColor} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
                              style={{ left: `${x}px`, width: `${w}px` }}
-                             title={`${r.wo} � ${r.descr || r.part || ""} � ${fmtHrs(r.run_hrs)} � ${meta.label}${showNotReady ? " � NOT READY" : ""}`}>
+                             title={`${r.wo} · ${r.descr || r.part || ""} · ${fmtHrs(r.run_hrs)} · ${meta.label}${showNotReady ? " · NOT READY" : ""}`}>
                           <ProgressOverlay row={r} />
                           {w > 50 && (
                             <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none gap-1.5 min-w-0">
@@ -2490,7 +2490,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                               <span className={`text-[10px] font-mono font-semibold drop-shadow-sm shrink-0 ${meta.textOnBar}`}>{r.wo}</span>
                               {w > 130 && r.descr && (
                                 <>
-                                  <span className={`text-[10px] opacity-50 shrink-0 ${meta.textOnBar}`}>�</span>
+                                  <span className={`text-[10px] opacity-50 shrink-0 ${meta.textOnBar}`}>·</span>
                                   <span className={`text-[10px] font-medium truncate drop-shadow-sm ${meta.textOnBar}`}>{r.descr}</span>
                                 </>
                               )}
@@ -2531,8 +2531,8 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
 function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose }) {
   const KIND_META = {
-    setups: { label: "SetUps", icon: Wrench, description: "NEXT WOs with tool changeover � sorted by urgency" },
-    tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed � physical staging required" },
+    setups: { label: "SetUps", icon: Wrench, description: "NEXT WOs with tool changeover — sorted by urgency" },
+    tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed — physical staging required" },
     labels: { label: "Labels", icon: Tag,     description: "WOs needing Label verification" },
     kit:    { label: "Kits",   icon: Package, description: "WOs needing Kit verification" },
   };
@@ -2579,12 +2579,12 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
     const toolHeader = kind === "tool" || kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Tool ID</th>" : "";
             const statusHeader = kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Status</th>" : "";
     const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed � ${buLabel}</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed — ${buLabel}</title>
       <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 4px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}</style>
     </head><body>
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-        <div><h2>${meta.label} Needed in Next 36h � ${buLabel}</h2>
-        <p>${entries.length} WOs across ${byResource.length} lines � Generated ${new Date().toLocaleString()}</p></div>
+        <div><h2>${meta.label} Needed in Next 36h — ${buLabel}</h2>
+        <p>${entries.length} WOs across ${byResource.length} lines · Generated ${new Date().toLocaleString()}</p></div>
         <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
       </div>
       <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase">
@@ -2608,7 +2608,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
               <I className="w-5 h-5 text-amber-600" />
               {meta.label} Needed in Next 36h
             </h2>
-            <p className="text-xs text-slate-500">{meta.description} � {buLabel}</p>
+            <p className="text-xs text-slate-500">{meta.description} · {buLabel}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2644,7 +2644,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                                 {formatStartsIn(e.startsInHrs)}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "�"}</div>
+                            <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "—"}</div>
                             <div className="flex flex-wrap gap-2 items-center text-[10px] text-slate-500">
                               {kind === "tool" && toolId && (
                                 <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Tool: {toolId}</span>
@@ -2652,7 +2652,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               {kind === "tool" && !toolId && (
                                 <span className="italic text-slate-400">No tool ID on file</span>
                               )}
-                              <span className="text-stone-400">�</span>
+                              <span className="text-stone-400">·</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
                               {kind === "setups" && (WO_TOOL_MAP[e.row.wo] || e.row.tool_id) && (
                                 <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">{WO_TOOL_MAP[e.row.wo] || e.row.tool_id}</span>
@@ -2662,7 +2662,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                                 const bg = r.toolAuto?"#0ea5e9":r.toolNA?"#64748b":r.toolReady?"#16a34a":"transparent";
                                 const bd = (r.toolReady||r.toolAuto||r.toolNA)?"none":"1px solid #ef4444";
                                 const cl = (r.toolReady||r.toolAuto||r.toolNA)?"white":"#f87171";
-                                const lb = r.toolAuto?"AUTO":r.toolNA?"N/A":r.toolReady?`?${r.toolBy?" � "+r.toolBy:""}`:"Needed";
+                                const lb = r.toolAuto?"AUTO":r.toolNA?"N/A":r.toolReady?`?${r.toolBy?" · "+r.toolBy:""}`:"Needed";
                                 return <span style={{background:bg,border:bd,color:cl,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700,marginLeft:4}}>{lb}</span>;
                               })()}
                             </div>
@@ -2715,7 +2715,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
-            <p className="text-xs text-slate-500">All NEXT slot WOs � click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` � Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
+            <p className="text-xs text-slate-500">All NEXT slot WOs — click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` · Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2723,7 +2723,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
           {nowZeroQtyList && nowZeroQtyList.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">? NOW � Running but 0 qty produced</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">? NOW — Running but 0 qty produced</span>
                 <span className="text-[10px] text-amber-500">{nowZeroQtyList.length} line{nowZeroQtyList.length !== 1 ? "s" : ""}</span>
               </div>
               {nowZeroQtyList.map((r, i) => {
@@ -2759,9 +2759,9 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                             style={{ background: bg, border, borderRadius: 4, padding: "3px 7px", fontSize: 10, fontWeight: 700, color, cursor: "pointer", userSelect: "none" }}
                             className="hover:opacity-80">
                             {c.label}{badge}
-                            {!c.ok && c.extra ? ` � ${c.extra}` : ""}
-                            {c.ok && !c.auto && !c.na && c.extra ? ` � ${c.extra}` : ""}
-                            {c.ok && !c.auto && !c.na && c.by ? ` � ${c.by}` : ""}
+                            {!c.ok && c.extra ? ` · ${c.extra}` : ""}
+                            {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}` : ""}
+                            {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                           </div>
                         );
                       })}
@@ -2818,10 +2818,10 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                         >
                           {c.label}{badge}
                           {/* Not ready: show tool number */}
-                          {!c.ok && c.extra ? ` � ${c.extra}` : ""}
+                          {!c.ok && c.extra ? ` · ${c.extra}` : ""}
                           {/* Manually checked real changeover: show tool number + C/O only if tool changed */}
-                          {c.ok && !c.auto && !c.na && c.extra ? ` � ${c.extra}${c.isChangeover ? " C/O" : ""}` : ""}
-                          {c.ok && !c.auto && !c.na && c.by ? ` � ${c.by}` : ""}
+                          {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}${c.isChangeover ? " C/O" : ""}` : ""}
+                          {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
                         </div>
                       );
                     })}
@@ -2832,7 +2832,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO � Click Tool / Labels / Kit pills to toggle readiness</span>
+          <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness</span>
           <button
             onClick={() => {
               const now = new Date().toLocaleString();
@@ -2863,7 +2863,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 </tr>`;
               }).join("");
               const zeroSection_html = (nowZeroQtyList || []).length > 0
-                ? `<tr><td colspan="4" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">? NOW � Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
+                ? `<tr><td colspan="4" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">? NOW — Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
                 : "";
               const rows_html = sorted.map(r => {
                 const liveRow = getLiveRow(r);
@@ -2886,7 +2886,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                   const border = c.ok ? "none" : "2px solid #ef4444";
                   const color = c.ok ? "#fff" : "#f87171";
                   const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
-                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " � " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " � " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
+                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " · " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
                 }).join("");
                 const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">URGENT</span>' : '';
                 const isToolChangeover = !ready.tool?.auto && !ready.tool?.na && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) && r._nowToolId !== undefined && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) !== r._nowToolId;
@@ -2906,7 +2906,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} *{-webkit-print-color-adjust:exact;print-color-adjust:exact;} @media print{button{display:none}}</style>
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-                  <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker � Printed ${now}${lastLabourUpdate ? ' � Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
+                  <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}${lastLabourUpdate ? ' · Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
                   <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
                 </div>
                 <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">
@@ -2946,7 +2946,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
               <AlertTriangle className="w-5 h-5 text-rose-600" fill="currentColor" />
               Next WOs Not Ready ({rows.length})
             </h2>
-            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness � sorted by urgency</p>
+            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness — sorted by urgency</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2981,7 +2981,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex flex-wrap gap-1 justify-end">
                       {missing.map(m => (
                         <span key={m.label} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                          {m.label}{m.extra && <span className="font-mono"> � {m.extra}</span>}
+                          {m.label}{m.extra && <span className="font-mono"> · {m.extra}</span>}
                         </span>
                       ))}
                     </div>
@@ -2992,7 +2992,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
-          Click a WO to open it and verify readiness � Red border = NOW WO finishing in under 4h
+          Click a WO to open it and verify readiness · Red border = NOW WO finishing in under 4h
         </div>
       </div>
     </div>
@@ -3053,7 +3053,7 @@ function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
               ))}
             </div>
             <div className="text-[10px] text-slate-500 mt-1.5 italic">
-              Marking down: <span className="font-semibold text-slate-700">{dateLabel} � {meta.label}</span>
+              Marking down: <span className="font-semibold text-slate-700">{dateLabel} · {meta.label}</span>
             </div>
           </div>
 
@@ -3085,7 +3085,7 @@ function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
                   className="px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-rose-500 bg-white">
                   {DURATIONS.map(d => <option key={d} value={d}>{d}h</option>)}
                 </select>
-                <span className="text-xs text-slate-500">Default 8h (full shift) � adjust if partial</span>
+                <span className="text-xs text-slate-500">Default 8h (full shift) — adjust if partial</span>
               </div>
             </div>
           )}
@@ -3137,7 +3137,7 @@ function InitialsModal({ current, onSave, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome � who are you?</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome — who are you?</h2>
         <p className="text-sm text-slate-600 mb-4">Enter your initials so we can track who logged what during the shift.</p>
         <input
           type="text"
@@ -3389,8 +3389,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   };
   const copyReport = () => {
     const lines = [];
-    lines.push(`SHIFT REPORT � ${buName(selectedLeader)}`);
-    lines.push(`${dateLabel} � ${meta.label} (${meta.time})`);
+    lines.push(`SHIFT REPORT — ${buName(selectedLeader)}`);
+    lines.push(`${dateLabel} · ${meta.label} (${meta.time})`);
     lines.push("=".repeat(60));
     lines.push("");
     lines.push(`Total units this shift: ${reportData.totalUnits.toLocaleString()}`);
@@ -3406,16 +3406,16 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         lines.push(`--- ${res} ---`);
         for (const { row, entry } of data.entries) {
           const ratio = row.start_qty > 0 ? `${row.comp_qty}/${row.start_qty}` : "";
-          lines.push(`  ${row.wo} � ${row.descr || row.part || ""}`);
-          const effStr  = entry.eff  != null ? ` � Eff ${entry.eff.toFixed(1)}%` : "";
-          const hrsStr  = entry.hrs  > 0 ? ` � ${entry.hrs.toFixed(1)}h worked` : "";
-          const lostStr = entry.lost !== 0 ? ` � ${entry.lost.toFixed(1)}h lost` : "";
-          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} � total ${row.comp_qty}/${row.start_qty} � ${entry.by || "�"}`);
+          lines.push(`  ${row.wo} · ${row.descr || row.part || ""}`);
+          const effStr  = entry.eff  != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
+          const hrsStr  = entry.hrs  > 0 ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
+          const lostStr = entry.lost !== 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
+          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty} · ${entry.by || "—"}`);
           if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
           if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
         }
         for (const r of data.statusOnly) {
-          lines.push(`  ${r.wo} � ${r.descr || r.part || ""} � ${r.status.toUpperCase()} (no entries this shift)`);
+          lines.push(`  ${r.wo} · ${r.descr || r.part || ""} · ${r.status.toUpperCase()} (no entries this shift)`);
         }
         lines.push("");
       }
@@ -3423,7 +3423,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     if (reportData.downLines.length > 0) {
       lines.push("LINES DOWN THIS SHIFT:");
       for (const d of reportData.downLines) {
-        lines.push(`  ${d.resource} � ${d.reason}${d.notes ? " � " + d.notes : ""} (by ${d.by || "�"})`);
+        lines.push(`  ${d.resource} — ${d.reason}${d.notes ? " · " + d.notes : ""} (by ${d.by || "—"})`);
       }
       lines.push("");
     }
@@ -3435,7 +3435,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       alert("Report copied to clipboard. Paste into email or document.");
-    }).catch(() => alert("Copy failed � try again or print instead."));
+    }).catch(() => alert("Copy failed — try again or print instead."));
   };
 
   const saveReport = async () => {
@@ -3479,7 +3479,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     const noteText = woNoteInput.trim();
     const docId = selectedHistoryReport.id;
     try {
-      // Update the wos array � find the matching WO and append the note
+      // Update the wos array — find the matching WO and append the note
       const updatedWos = (selectedHistoryReport.wos || []).map(w => {
         if (w.wo === woKey) {
           const existingNotes = w.notes ? w.notes + " | " : "";
@@ -3496,7 +3496,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   const exportToSheets = async (monthFilter) => {
     setExportState("exporting");
-    setExportMsg(monthFilter ? `Exporting ${monthFilter}�` : "Exporting all reports�");
+    setExportMsg(monthFilter ? `Exporting ${monthFilter}…` : "Exporting all reports…");
     try {
       const token = await getGoogleAccessToken();
       const snap = await shiftReportsRef.get();
@@ -3516,7 +3516,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     } catch(e) {
       console.error("Export failed:", e);
       setExportState("error");
-      setExportMsg("Export failed � " + e.message);
+      setExportMsg("Export failed — " + e.message);
       setTimeout(() => { setExportState("idle"); setExportMsg(""); }, 5000);
     }
   };
@@ -3728,7 +3728,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               title="Export all shift reports to Google Sheets"
               style={{backgroundColor: exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#0f7a3c", border:"none", borderRadius:6, padding:"5px 10px", color:"white", fontSize:11, fontWeight:600, cursor: exportState==="exporting"?"wait":"pointer"}}
             >
-              {exportState==="exporting" ? "? Exporting�" : exportState==="done" ? "? Sheets" : exportState==="error" ? "? Error" : "?? ? Sheets"}
+              {exportState==="exporting" ? "? Exporting…" : exportState==="done" ? "? Sheets" : exportState==="error" ? "? Error" : "?? ? Sheets"}
             </button>
             <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
@@ -3772,7 +3772,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 ))}
               </div>
             </div>
-            {analyticsLoading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics�</div>}
+            {analyticsLoading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
             {!analyticsLoading && !analyticsData && <div className="text-center py-12 text-sm text-slate-400 italic">No data found for this period.</div>}
             {!analyticsLoading && analyticsData && (() => {
               const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted } = analyticsData;
@@ -3781,14 +3781,14 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               const effBg = thisEff == null ? "#f8fafc" : thisEff >= TARGET ? "#f0fdf4" : thisEff >= 76.5 ? "#fffbeb" : "#fff1f2";
               return (
                 <div className="p-4 space-y-5">
-                  {/* Section 1 � At a glance */}
+                  {/* Section 1 — At a glance */}
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">At a glance � {({today:"Today",yesterday:"Yesterday",this_week:"This week",last_week:"Last week",this_month:"This month",last_month:"Last month"})[analyticsRange]}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">At a glance — {({today:"Today",yesterday:"Yesterday",this_week:"This week",last_week:"Last week",this_month:"This month",last_month:"Last month"})[analyticsRange]}</div>
                     <div className="grid grid-cols-4 gap-2 mb-2">
                       {/* Big efficiency number */}
                       <div className="col-span-1 rounded-lg border-2 px-3 py-3 flex flex-col items-center justify-center" style={{backgroundColor: effBg, borderColor: effColor}}>
                         <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color: effColor}}>Efficiency</div>
-                        <div className="text-2xl font-bold tabular-nums" style={{color: effColor}}>{thisEff != null ? thisEff.toFixed(1)+"%" : "�"}</div>
+                        <div className="text-2xl font-bold tabular-nums" style={{color: effColor}}>{thisEff != null ? thisEff.toFixed(1)+"%" : "—"}</div>
                         <div className="text-[10px] font-semibold mt-1" style={{color: effColor}}>target {TARGET}%</div>
                         {trend != null && (
                           <div className={`text-[11px] font-bold mt-1 ${trend >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
@@ -3835,10 +3835,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                     )}
                   </div>
 
-                  {/* Section 2 � Where we struggle */}
+                  {/* Section 2 — Where we struggle */}
                   <div>
                     <div className="flex items-baseline justify-between mb-2">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Where we struggle � by resource</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Where we struggle — by resource</div>
                       {/* Efficiency distribution - #3 */}
                       {(() => {
                         const withEff = resources.filter(r => r.eff != null);
@@ -3873,7 +3873,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                               <tr key={i} style={{backgroundColor: rb}}>
                                 <td className="px-3 py-2 font-semibold text-slate-800 text-xs">{r.resource}</td>
                                 <td className="px-3 py-2 text-right">
-                                  <span className="text-xs font-bold tabular-nums" style={{color: rc}}>{r.eff != null ? r.eff.toFixed(1)+"%" : "�"}</span>
+                                  <span className="text-xs font-bold tabular-nums" style={{color: rc}}>{r.eff != null ? r.eff.toFixed(1)+"%" : "—"}</span>
                                 </td>
                                 <td className="px-3 py-2 text-right">
                                   <span className={`text-xs font-semibold tabular-nums ${r.lost < 0 ? "text-rose-600" : "text-emerald-600"}`}>{r.lost.toFixed(1)}h</span>
@@ -3881,8 +3881,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 <td className="px-3 py-2 text-right text-xs text-slate-600 tabular-nums">{r.units.toLocaleString()}</td>
                                 <td className="px-3 py-2 text-xs text-slate-500">
                                   {r.topReason
-                                    ? <span className="italic">{r.topReason} <span className="text-slate-400 not-italic">({r.topReasonCount}�)</span></span>
-                                    : <span className="text-slate-300">�</span>}
+                                    ? <span className="italic">{r.topReason} <span className="text-slate-400 not-italic">({r.topReasonCount}×)</span></span>
+                                    : <span className="text-slate-300">—</span>}
                                 </td>
                               </tr>
                             );
@@ -3895,7 +3895,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                     )}
                   </div>
 
-                  {/* Section 2b � Downtime by resource */}
+                  {/* Section 2b — Downtime by resource */}
                   {totalDowntimeHrs > 0 && (() => {
                     const withDowntime = resources.filter(r => r.downtimeHrs > 0).sort((a,b) => b.downtimeHrs - a.downtimeHrs);
                     const allDowntimeReasons = {};
@@ -3915,7 +3915,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                     );
                   })()}
 
-                  {/* Section 3 � Shift breakdown */}
+                  {/* Section 3 — Shift breakdown */}
                   <div>
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Shift breakdown</div>
                     <div className="grid grid-cols-3 gap-2">
@@ -3928,7 +3928,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div key={s.id} className="rounded-lg border-2 px-3 py-3" style={{backgroundColor: sb, borderColor: sc}}>
                             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{color: sc}}>{s.label}</div>
                             <div className="text-[9px] text-slate-400 mb-2">{s.time}</div>
-                            <div className="text-xl font-bold tabular-nums mb-1" style={{color: sc}}>{sEff != null ? sEff.toFixed(1)+"%" : "�"}</div>
+                            <div className="text-xl font-bold tabular-nums mb-1" style={{color: sc}}>{sEff != null ? sEff.toFixed(1)+"%" : "—"}</div>
                             <div className="text-[10px] text-slate-500">{sd.units.toLocaleString()} units</div>
                             <div className="text-[10px] text-slate-400">{sd.hrs.toFixed(0)}h worked</div>
                           </div>
@@ -3937,7 +3937,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                     </div>
                   </div>
 
-                  {/* Section 4 � Top underperformance reasons */}
+                  {/* Section 4 — Top underperformance reasons */}
                   {Object.keys(reasonCount).length > 0 && (
                     <div>
                       <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Top underperformance reasons</div>
@@ -3951,14 +3951,14 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                             <div className="flex-1 bg-stone-100 rounded-full h-2 overflow-hidden">
                               <div className="h-full bg-amber-400 rounded-full" style={{width: pct+"%"}} />
                             </div>
-                            <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{data.lost ? data.lost.toFixed(1)+"h" : ""} <span className="text-slate-400">{data.count}�</span></div>
+                            <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{data.lost ? data.lost.toFixed(1)+"h" : ""} <span className="text-slate-400">{data.count}×</span></div>
                           </div>
                           );
                         })}
                       </div>
                     </div>
                   )}
-                  {/* Section 5 � Daily efficiency trend chart */}
+                  {/* Section 5 — Daily efficiency trend chart */}
                   {dailyEffSorted && dailyEffSorted.length > 1 && (() => {
                     const vals = dailyEffSorted.filter(d => d.eff != null);
                     if (vals.length < 2) return null;
@@ -4021,7 +4021,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               <div className="px-4 py-2 border-b border-stone-200 bg-stone-50 flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => setSelectedHistoryReport(null)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">? Back</button>
                 <span className="text-slate-300">|</span>
-                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} � {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} · {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
                 <span className="text-xs text-slate-400">{selectedHistoryReport.shiftTime}</span>
               </div>
               <div className="flex-1 overflow-auto p-4">
@@ -4058,7 +4058,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                     <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">? Lines down ({selectedHistoryReport.linesDown.length})</div>
                     {selectedHistoryReport.linesDown.map((d,i)=>(
                       <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
-                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"�"}</span></div></div>
+                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"—"}</span></div></div>
                         {d.notes && <div className="text-xs text-slate-600 mt-0.5">{d.notes}</div>}
                       </div>
                     ))}
@@ -4103,7 +4103,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                       autoFocus
                                       value={woNoteInput}
                                       onChange={e => setWoNoteInput(e.target.value)}
-                                      placeholder="Add note�"
+                                      placeholder="Add note…"
                                       className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:border-blue-500"
                                       onKeyDown={e => { if (e.key === "Enter" && woNoteInput.trim()) saveWoNote(w.wo); if (e.key === "Escape") { setWoNoteTarget(null); setWoNoteInput(""); } }}
                                     />
@@ -4143,18 +4143,18 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                   <input
                     value={historyNoteInput}
                     onChange={e => setHistoryNoteInput(e.target.value)}
-                    placeholder="Add a note to this report�"
+                    placeholder="Add a note to this report…"
                     className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400"
                     onKeyDown={e => { if (e.key === "Enter" && historyNoteInput.trim()) saveHistoryNote(); }}
                   />
                   <button onClick={saveHistoryNote} disabled={!historyNoteInput.trim() || historyNoteSaving}
                     style={{backgroundColor: historyNoteSaving ? "#60a5fa" : "#2563eb"}}
                     className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
-                    {historyNoteSaving ? "�" : "Add"}
+                    {historyNoteSaving ? "…" : "Add"}
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT � ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} � ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; if((r.reportNotes||[]).length>0){lines.push("REPORT NOTES:");for(const n of r.reportNotes)lines.push(`  ${n.by||""}: ${n.text}`);lines.push("");} for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} � ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` � Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` � ${w.hrs.toFixed(1)}h`:""}${w.lost!==0?` � ${w.lost.toFixed(1)}h ${w.lost>0?"earned":"lost"}`:""}`);if(w.notes)lines.push(`    Notes: ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
+                  <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT — ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} · ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; if((r.reportNotes||[]).length>0){lines.push("REPORT NOTES:");for(const n of r.reportNotes)lines.push(`  ${n.by||""}: ${n.text}`);lines.push("");} for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} · ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` · Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` · ${w.hrs.toFixed(1)}h`:""}${w.lost!==0?` · ${w.lost.toFixed(1)}h ${w.lost>0?"earned":"lost"}`:""}`);if(w.notes)lines.push(`    Notes: ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
                   <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 text-slate-800 text-sm font-semibold">Print</button>
                 </div>
               </div>
@@ -4240,10 +4240,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               {/* List */}
               <div className="p-4">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-                <span>Saved reports � {buName(historyBuFilter)}</span>
+                <span>Saved reports — {buName(historyBuFilter)}</span>
                 {exportMsg && <span className={`text-[10px] font-semibold ${exportState==="done"?"text-emerald-600":exportState==="error"?"text-rose-600":"text-blue-500"}`}>{exportMsg}</span>}
               </div>
-              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history�</div>}
+              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>}
               {!historyLoading && historyReports!==null && historyReports.length===0 && <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found.</div>}
               {!historyLoading && historyReports && historyReports.length>0 && (() => {
                 const now = new Date();
@@ -4293,7 +4293,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div className="flex items-center gap-2 shrink-0">
                             {r.totalEff!=null && <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>{r.totalEff.toFixed(1)}%</span>}
                             <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()} u</span>
-                            <span className="text-slate-300 text-xs">�</span>
+                            <span className="text-slate-300 text-xs">›</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -4332,8 +4332,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="flex-1 overflow-auto p-6 print:p-0">
               {/* Print-only header */}
               <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-                <h1 className="text-xl font-bold">Shift Report � {buName(selectedLeader)}</h1>
-                <p className="text-sm">{dateLabel} � {meta.label} ({meta.time})</p>
+                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
+                <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
               </div>
               {/* Summary */}
               <div className="grid grid-cols-4 gap-2 mb-4">
@@ -4379,10 +4379,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div key={i} className="px-3 py-2 text-sm">
                             <div className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold text-slate-900">{d.resource}</span>
-                              <div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "�"}</span></div>
+                              <div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span></div>
                             </div>
                             {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
-                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "�"}</div>
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
                           </div>
                         ))}
                       </div>
@@ -4464,7 +4464,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                             <span className="text-[11px] font-bold text-slate-700">{log.severity}</span>
                             {log.resource && <span className="text-[11px] text-slate-500">{log.resource}</span>}
                           </div>
-                          <span className="text-[10px] text-slate-400">{log.by} � {new Date(log.loggedAt).toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit"})}</span>
+                          <span className="text-[10px] text-slate-400">{log.by} · {new Date(log.loggedAt).toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit"})}</span>
                         </div>
                         <div className="text-[12px] text-slate-700 mt-1.5 leading-snug">{log.description}</div>
                         {log.wo && <div className="text-[10px] text-slate-400 mt-1">WO: {log.wo}</div>}
@@ -4479,7 +4479,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
               {existingSavedAt && (
                 <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
-                  ? Auto-saved from last upload � {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  ? Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </div>
               )}
               {!existingSavedAt && (
@@ -4490,7 +4490,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <button onClick={saveReport} disabled={saveState === "saving"}
                   style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
                   className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
-                  {saveState==="saving"?"Saving�":saveState==="saved"?"? Saved!":saveState==="error"?"Error � retry":existingSavedAt?"Update Report":"Save Report"}
+                  {saveState==="saving"?"Saving…":saveState==="saved"?"? Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
                 </button>
                 <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
@@ -4640,7 +4640,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Resource / Line</label>
                 <select value={resource} onChange={e => setResource(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 bg-white">
-                  <option value="">� Select resource �</option>
+                  <option value="">— Select resource —</option>
                   {resources.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
@@ -4709,12 +4709,12 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-bold px-1.5 py-0.5 rounded text-white" style={{backgroundColor: typeColor(log.type)}}>{typeLabel(log.type)}</span>
                       <span className="text-[11px] font-semibold text-slate-600">{log.severity}</span>
-                      {log.resource && <span className="text-[11px] text-slate-400">� {log.resource}</span>}
-                      {log.wo && <span className="text-[11px] text-slate-400">� {log.wo}</span>}
+                      {log.resource && <span className="text-[11px] text-slate-400">· {log.resource}</span>}
+                      {log.wo && <span className="text-[11px] text-slate-400">· {log.wo}</span>}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-[11px] font-semibold text-slate-700">{log.shiftDate}</div>
-                      <div className="text-[10px] text-slate-400">{shiftLabel(log.shiftId)} � {log.by}</div>
+                      <div className="text-[10px] text-slate-400">{shiftLabel(log.shiftId)} · {log.by}</div>
                     </div>
                   </div>
                   <div className="text-xs text-slate-600">{log.description}</div>
@@ -4759,7 +4759,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
     (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId)
   );
 
-  // Expected shift output = (start_qty / run_hrs) � 8h, with 5% tolerance
+  // Expected shift output = (start_qty / run_hrs) × 8h, with 5% tolerance
   const ratePerHour = row.run_hrs > 0 ? (row.start_qty || 0) / row.run_hrs : 0;
   const expectedShift = Math.round(ratePerHour * 8);
   const tolerance = 0.95;
@@ -4833,7 +4833,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         })}
       </div>
       <div className="text-[10px] text-slate-600 mb-2 italic">
-        Logging for: <span className="font-semibold text-slate-800">{dateLabel} � {meta.label}</span>
+        Logging for: <span className="font-semibold text-slate-800">{dateLabel} · {meta.label}</span>
       </div>
 
       {/* Qty input */}
@@ -4841,7 +4841,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 block mb-1">
           Units this shift
           <span className="text-slate-400 font-normal normal-case tracking-normal ml-1">
-            (adds to total � {remaining} remaining{expectedShift > 0 ? ` � target ~${expectedShift}/shift` : ""})
+            (adds to total · {remaining} remaining{expectedShift > 0 ? ` · target ~${expectedShift}/shift` : ""})
           </span>
         </label>
         <input
@@ -4854,11 +4854,11 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         />
       </div>
 
-      {/* Reason dropdown � shown only when entered qty is below 95% of target */}
+      {/* Reason dropdown — shown only when entered qty is below 95% of target */}
       {(isShort || isOver) && (
         <div className="mb-2.5 p-2.5 rounded-md bg-amber-50 border-2 border-amber-300">
           <label className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block mb-1.5">
-            {isOver ? "? Above target � pick a reason" : "? Below target � pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
+            {isOver ? "? Above target — pick a reason" : "? Below target — pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {REASONS.map(r => (
@@ -4923,7 +4923,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                     className="px-3 py-1.5 text-sm border border-rose-300 rounded-md bg-white focus:outline-none focus:border-rose-500">
                     {DURATIONS.map(d => <option key={d} value={d}>{d}h</option>)}
                   </select>
-                  <span className="text-xs text-rose-700">Default 8h � adjust if partial</span>
+                  <span className="text-xs text-rose-700">Default 8h — adjust if partial</span>
                 </div>
               </div>
             )}
@@ -4939,7 +4939,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
       </button>
 
-      {/* Shift History � always visible */}
+      {/* Shift History — always visible */}
       <div className="mt-3 pt-3 border-t border-sky-200">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
           <span>Shift History</span>
@@ -4970,7 +4970,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                     </span>
                   )}
                 </div>
-                {/* Efficiency + Hours � shown for labour imports */}
+                {/* Efficiency + Hours — shown for labour imports */}
                 {isLabour && (entry.eff != null || entry.hrs > 0 || entry.lost > 0) && (
                   <div className="flex items-center gap-3 mt-1.5">
                     {entry.eff != null && (
@@ -5009,7 +5009,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
                   {isLabour
-                    ? <span className="text-slate-400">?? Labour tickets � {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    ? <span className="text-slate-400">?? Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     : entry.by
                       ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
                       : null
@@ -5109,19 +5109,19 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                 className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Finalize WO � Archive
+                Finalize WO · Archive
               </button>
-              <div className="text-[10px] text-slate-500 text-center italic">After BR review � WO disappears from queue</div>
+              <div className="text-[10px] text-slate-500 text-center italic">After BR review — WO disappears from queue</div>
             </div>
           )}
 
           <div>
             <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Part</div>
-            <div className="text-sm text-slate-900">{row.descr || "�"}</div>
-            <div className="text-xs text-slate-500 mt-0.5 font-mono">{row.part || "�"}</div>
+            <div className="text-sm text-slate-900">{row.descr || "—"}</div>
+            <div className="text-xs text-slate-500 mt-0.5 font-mono">{row.part || "—"}</div>
           </div>
 
-          {/* Readiness checklist � shown only for queued WOs */}
+          {/* Readiness checklist — shown only for queued WOs */}
           {showReadiness && (
             <div className={`rounded-md border-2 p-3 ${ready ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300"}`}>
               <div className="flex items-center justify-between mb-2.5">
@@ -5154,7 +5154,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                     <button
                       key={k}
                       onClick={() => setReadinessCheck(row, k, !ok)}
-                      title={isNA ? "No tool required for this WO � auto-checked." : isAuto ? "Auto-checked: same tool is already running on this line. Click to override." : undefined}
+                      title={isNA ? "No tool required for this WO — auto-checked." : isAuto ? "Auto-checked: same tool is already running on this line. Click to override." : undefined}
                       className={`relative px-1 py-2.5 rounded-md border-2 transition-all flex flex-col items-center gap-0.5 ${
                         isNA
                           ? "bg-slate-400 border-slate-500 text-white shadow-sm hover:bg-slate-500"
@@ -5179,7 +5179,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                       )}
                       {k === "tool" && (
                         <span className={`text-[10px] font-mono leading-tight ${ok ? (isNA ? "text-slate-100" : isAuto ? "text-sky-50" : "text-emerald-50") : "text-rose-600"}`}>
-                          {toolId || (isNA ? "none" : "�")}
+                          {toolId || (isNA ? "none" : "—")}
                         </span>
                       )}
                     </button>
@@ -5191,7 +5191,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
               )}
               {(row.readiness?.tool?.na === true) && (
                 <div className="text-[10px] text-slate-500 mt-2 italic">
-                  ? No tool required for this WO � Tool check auto-cleared.
+                  ? No tool required for this WO — Tool check auto-cleared.
                 </div>
               )}
               {(row.readiness?.tool?.auto === true && !row.readiness?.tool?.na) && (
@@ -5203,7 +5203,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
           )}
 
 
-                    {/* Shift entry � only for production-active WOs (todo & wip) */}
+                    {/* Shift entry — only for production-active WOs (todo & wip) */}
           {(row.status === "todo" || row.status === "wip") && (
             <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} />
           )}
@@ -5264,7 +5264,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
             <Field label="Run Hrs" value={fmtNum(row.run_hrs)} />
             <Field label="Labor Hrs" value={fmtNum(row.labr_hrs)} />
             <Field label="Crew Size" value={fmtNum(row.crew)} />
-            <Field label="QA / P-V-D" value={[row.qa, row.pvd].filter(Boolean).join(" / ") || "�"} />
+            <Field label="QA / P-V-D" value={[row.qa, row.pvd].filter(Boolean).join(" / ") || "—"} />
           </div>
 
           <div>
@@ -5309,3 +5309,4 @@ function Field({ label, value }) {
   </script>
 </body>
 </html>
+  
