@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SMI Daily Manpower</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; }
+  .input-num { width: 64px; text-align: center; background: #1e293b; border: 1px solid #334155; color: #f1f5f9; border-radius: 6px; padding: 4px 2px; font-size: 1rem; }
+  .input-num:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+  .input-comment { width: 100%; background: #1e293b; border: 1px solid #334155; color: #f1f5f9; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; }
+  .input-comment:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+  .status-green { background: #14532d; color: #86efac; }
+  .status-yellow { background: #713f12; color: #fde68a; }
+  .status-red { background: #7f1d1d; color: #fca5a5; }
+  .status-zero { background: #1e293b; color: #64748b; }
+  .tab-active { background: #3b82f6; color: white; }
+  .tab-inactive { background: #1e293b; color: #94a3b8; }
+  .tab-inactive:hover { background: #293548; color: #cbd5e1; }
+  .btn-primary { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem; font-weight: 600; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+  .btn-danger { background: #dc2626; color: white; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-secondary { background: #334155; color: #cbd5e1; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-secondary:hover { background: #475569; }
+  .card { background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155; }
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @media (max-width: 640px) {
+    .input-num { width: 54px; font-size: 0.9rem; }
+    .hide-mobile { display: none !important; }
+  }
+  .tv-line-row { display: grid; grid-template-columns: 1fr 56px 56px 56px; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; }
+  .tv-line-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─── Firebase ─────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyExample-ReplaceWithYourKey",
+  authDomain: "smi-production-report.firebaseapp.com",
+  projectId: "smi-production-report",
+  storageBucket: "smi-production-report.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:000000000000000000000000"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const SHIFTS = ["Midnight", "Days", "Afternoon"];
+const BUS = ["Respiratory", "Grind/B&F", "Blades", "Verathon", "Molding", "Flex", "DNA"];
+const CONFIG_PASSWORD = "smi1234";
+
+const BU_COLORS = {
+  "Respiratory": "#3b82f6",
+  "Grind/B&F":   "#a855f7",
+  "Blades":      "#ef4444",
+  "Verathon":    "#10b981",
+  "Molding":     "#f59e0b",
+  "Flex":        "#06b6d4",
+  "DNA":         "#f97316",
+};
+
+const DEFAULT_LINES = {
+  "Respiratory": ["Cap","Oxy Cell","L1","L2","L3","Sub Assy","Resp Mold","Flex Cover"],
+  "Grind/B&F":   ["Grinder","B&F"],
+  "Blades":      ["Blade inspect","Blue","Ivers","Mini Staker","Orange","Orange Pack","Persona Pack","SPSS/CABO","PPSS/Orange"],
+  "Verathon":    ["ASB-231 - LP S4","ASB-170 - QC S4 + Bio","ASB-258 - QC S3","ASB-073 - LP S3","ASB-179 - HDMI Mix","ASB-075 - QC Mix","ASB-259 - QC Mac S4","ASB-260 - QC Mac S3","Floaters","Print","CNC","BFLEX / ORION","MV1","MV2","MC 42","MC 43","Flex 3","MC 39","MC 30","NG2","Flex Cover"],
+  "Molding":     ["Operator","Mold Man","Tipper / Pack","Extruders"],
+  "Flex":        ["Pack line O/S Rm","Bag Cup","Flex 2","Flex 3","Flex Cover"],
+  "DNA":         ["Cell 3","Cell 2","PK","Cell 5","Flex Cover"],
+};
+
+const DEFAULT_PLAN = {
+  "Respiratory": {
+    "Midnight":  {Cap:0,"Oxy Cell":9,L1:0,L2:8,L3:8,"Sub Assy":2,"Resp Mold":3,"Flex Cover":1},
+    "Days":      {Cap:5,"Oxy Cell":9,L1:8,L2:8,L3:8,"Sub Assy":2,"Resp Mold":3,"Flex Cover":1},
+    "Afternoon": {Cap:0,"Oxy Cell":9,L1:0,L2:8,L3:8,"Sub Assy":2,"Resp Mold":3,"Flex Cover":1},
+  },
+  "Grind/B&F": {
+    "Midnight":  {Grinder:1,"B&F":1},
+    "Days":      {Grinder:1,"B&F":1},
+    "Afternoon": {Grinder:1,"B&F":1},
+  },
+  "Blades": {
+    "Midnight":  {"Blade inspect":1,Blue:0,Ivers:0,"Mini Staker":0,Orange:0,"Orange Pack":0,"Persona Pack":1,"SPSS/CABO":0,"PPSS/Orange":0},
+    "Days":      {"Blade inspect":1,Blue:2,Ivers:2,"Mini Staker":1,Orange:2,"Orange Pack":2,"Persona Pack":1,"SPSS/CABO":2,"PPSS/Orange":1},
+    "Afternoon": {"Blade inspect":1,Blue:0,Ivers:0,"Mini Staker":0,Orange:0,"Orange Pack":0,"Persona Pack":1,"SPSS/CABO":3,"PPSS/Orange":0},
+  },
+  "Verathon": {
+    "Midnight":  {"ASB-231 - LP S4":0,"ASB-170 - QC S4 + Bio":5,"ASB-258 - QC S3":5,"ASB-073 - LP S3":0,"ASB-179 - HDMI Mix":4,"ASB-075 - QC Mix":0,"ASB-259 - QC Mac S4":0,"ASB-260 - QC Mac S3":0,Floaters:2,Print:1,CNC:0,"BFLEX / ORION":0,MV1:2,MV2:4,"MC 42":1,"MC 43":1,"Flex 3":3,"MC 39":4,"MC 30":2,NG2:6,"Flex Cover":3},
+    "Days":      {"ASB-231 - LP S4":5,"ASB-170 - QC S4 + Bio":5,"ASB-258 - QC S3":5,"ASB-073 - LP S3":5,"ASB-179 - HDMI Mix":1,"ASB-075 - QC Mix":4,"ASB-259 - QC Mac S4":5,"ASB-260 - QC Mac S3":1,Floaters:3,Print:1,CNC:1,"BFLEX / ORION":3,MV1:2,MV2:4,"MC 42":1,"MC 43":1,"Flex 3":0,"MC 39":4,"MC 30":2,NG2:6,"Flex Cover":3},
+    "Afternoon": {"ASB-231 - LP S4":0,"ASB-170 - QC S4 + Bio":5,"ASB-258 - QC S3":5,"ASB-073 - LP S3":5,"ASB-179 - HDMI Mix":0,"ASB-075 - QC Mix":1,"ASB-259 - QC Mac S4":1,"ASB-260 - QC Mac S3":5,Floaters:3,Print:1,CNC:1,"BFLEX / ORION":3,MV1:2,MV2:4,"MC 42":1,"MC 43":1,"Flex 3":0,"MC 39":0,"MC 30":0,NG2:0,"Flex Cover":3},
+  },
+  "Molding": {
+    "Midnight":  {Operator:10,"Mold Man":7,"Tipper / Pack":1,Extruders:2},
+    "Days":      {Operator:10,"Mold Man":7,"Tipper / Pack":1,Extruders:2},
+    "Afternoon": {Operator:10,"Mold Man":7,"Tipper / Pack":1,Extruders:2},
+  },
+  "Flex": {
+    "Midnight":  {"Pack line O/S Rm":6,"Bag Cup":5,"Flex 2":0,"Flex 3":0,"Flex Cover":0},
+    "Days":      {"Pack line O/S Rm":6,"Bag Cup":6,"Flex 2":0,"Flex 3":0,"Flex Cover":1},
+    "Afternoon": {"Pack line O/S Rm":0,"Bag Cup":8,"Flex 2":0,"Flex 3":0,"Flex Cover":0},
+  },
+  "DNA": {
+    "Midnight":  {"Cell 3":0,"Cell 2":0,PK:0,"Cell 5":0,"Flex Cover":0},
+    "Days":      {"Cell 3":8,"Cell 2":0,PK:1,"Cell 5":8,"Flex Cover":0},
+    "Afternoon": {"Cell 3":0,"Cell 2":0,PK:0,"Cell 5":0,"Flex Cover":0},
+  },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function detectShift() {
+  const h = new Date().getHours();
+  const m = new Date().getMinutes();
+  const mins = h * 60 + m;
+  // Midnight: 23:00–07:30 (1380–450)
+  if (mins >= 23*60 || mins < 7*60+30) return "Midnight";
+  // Days: 07:00–15:30
+  if (mins >= 7*60 && mins < 15*60+30) return "Days";
+  // Afternoon: 15:00–23:30
+  return "Afternoon";
+}
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function statusClass(plan, actual) {
+  if (plan === 0 && actual === 0) return "status-zero";
+  if (plan === 0) return "status-green";
+  const ratio = actual / plan;
+  if (ratio >= 1) return "status-green";
+  if (ratio >= 0.85) return "status-yellow";
+  return "status-red";
+}
+
+function sumPlan(planObj, lines) {
+  return lines.reduce((s, l) => s + (planObj[l] || 0), 0);
+}
+function sumActual(actualObj, lines) {
+  return lines.reduce((s, l) => s + (Number(actualObj?.[l]) || 0), 0);
+}
+
+function formatTs(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString("en-CA") + " " + d.toLocaleTimeString("en-US", {hour:"2-digit",minute:"2-digit"});
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [view, setView] = React.useState("dashboard"); // dashboard | input | config | history
+  const [config, setConfig] = React.useState(null);
+  const [liveData, setLiveData] = React.useState({}); // { shift: { bu: { lines, absent, savedAt } } }
+  const [history, setHistory] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [lastUpdate, setLastUpdate] = React.useState(null);
+
+  // Load config + live data from Firestore
+  React.useEffect(() => {
+    const unsubConfig = db.collection("manpower").doc("config").onSnapshot(snap => {
+      if (snap.exists) {
+        setConfig(snap.data());
+      } else {
+        // Initialize with defaults
+        const defaults = { plan: DEFAULT_PLAN, lines: DEFAULT_LINES };
+        db.collection("manpower").doc("config").set(defaults);
+        setConfig(defaults);
+      }
+    });
+
+    const unsubLive = db.collection("manpower").doc("live").onSnapshot(snap => {
+      if (snap.exists) {
+        const d = snap.data();
+        setLiveData(d.data || {});
+        setLastUpdate(d.updatedAt || null);
+      }
+      setLoading(false);
+    }, () => setLoading(false));
+
+    return () => { unsubConfig(); unsubLive(); };
+  }, []);
+
+  // Load history once
+  React.useEffect(() => {
+    db.collection("manpower").doc("history").get().then(snap => {
+      if (snap.exists) setHistory(snap.data().entries || []);
+    });
+  }, []);
+
+  const saveActuals = async (shift, bu, lineData, absent) => {
+    const newLive = { ...liveData };
+    if (!newLive[shift]) newLive[shift] = {};
+    newLive[shift][bu] = { lines: lineData, absent: Number(absent) || 0, savedAt: new Date().toISOString(), savedBy: bu };
+    await db.collection("manpower").doc("live").set({ data: newLive, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setLiveData(newLive);
+  };
+
+  const saveToHistory = async (label) => {
+    const snap = { label, data: liveData, savedAt: new Date().toISOString(), date: todayKey() };
+    const newHistory = [snap, ...history].slice(0, 100);
+    await db.collection("manpower").doc("history").set({ entries: newHistory });
+    setHistory(newHistory);
+  };
+
+  const clearLive = async () => {
+    if (!window.confirm("Clear all live actuals for today? This cannot be undone.")) return;
+    await db.collection("manpower").doc("live").set({ data: {}, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setLiveData({});
+  };
+
+  const saveConfig = async (newConfig) => {
+    await db.collection("manpower").doc("config").set(newConfig);
+    setConfig(newConfig);
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="text-4xl mb-4">⚙️</div>
+        <div className="text-slate-400 pulse">Loading manpower data…</div>
+      </div>
+    </div>
+  );
+
+  const cfg = config || { plan: DEFAULT_PLAN, lines: DEFAULT_LINES };
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <header style={{background:"#0f172a",borderBottom:"1px solid #1e293b"}} className="sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3 max-w-screen-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <span className="text-xl font-bold text-white">SMI Manpower</span>
+            {lastUpdate && <span className="text-xs text-slate-500 hide-mobile">Updated {formatTs(lastUpdate)}</span>}
+          </div>
+          <nav className="flex gap-1">
+            {[["dashboard","📊 Dashboard"],["input","✏️ Input"],["history","🗂 History"],["config","⚙️ Config"]].map(([v,label]) => (
+              <button key={v} onClick={() => setView(v)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view===v?"tab-active":"tab-inactive"}`}>
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-screen-2xl mx-auto p-4">
+        {view === "dashboard" && <Dashboard cfg={cfg} liveData={liveData} onSaveSnapshot={saveToHistory} onClear={clearLive} />}
+        {view === "input"     && <InputView cfg={cfg} liveData={liveData} onSave={saveActuals} />}
+        {view === "history"   && <HistoryView history={history} cfg={cfg} />}
+        {view === "config"    && <ConfigView cfg={cfg} onSave={saveConfig} />}
+      </main>
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
+  const [selectedShift, setSelectedShift] = React.useState(detectShift());
+  const [filterBU, setFilterBU] = React.useState("All");
+  const [snapLabel, setSnapLabel] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const shiftData = liveData[selectedShift] || {};
+  const displayBUs = filterBU === "All" ? BUS : [filterBU];
+
+  // Grand totals
+  const grandPlan = BUS.reduce((s, bu) => {
+    const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+    const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[selectedShift] || {};
+    return s + sumPlan(plan, lines);
+  }, 0);
+  const grandActual = BUS.reduce((s, bu) => {
+    const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+    return s + sumActual(shiftData[bu]?.lines, lines);
+  }, 0);
+  const grandAbsent = BUS.reduce((s, bu) => s + (shiftData[bu]?.absent || 0), 0);
+
+  const doSnapshot = async () => {
+    if (!snapLabel.trim()) { alert("Enter a label for this snapshot."); return; }
+    setSaving(true);
+    await onSaveSnapshot(snapLabel.trim());
+    setSnapLabel("");
+    setSaving(false);
+    alert("Snapshot saved to history.");
+  };
+
+  return (
+    <div>
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex gap-1">
+          {SHIFTS.map(s => (
+            <button key={s} onClick={() => setSelectedShift(s)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${selectedShift===s?"tab-active":"tab-inactive"}`}>
+              {s}
+              {s === detectShift() && <span className="ml-1 text-xs opacity-70">●</span>}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {["All",...BUS].map(b => (
+            <button key={b} onClick={() => setFilterBU(b)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filterBU===b?"tab-active":"tab-inactive"}`}
+              style={filterBU===b&&b!=="All"?{background:BU_COLORS[b]}:{}}>
+              {b}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grand totals bar */}
+      <div className="card mb-4 flex flex-wrap gap-6 items-center">
+        <div>
+          <div className="text-xs text-slate-400 mb-1">Total Planned</div>
+          <div className="text-3xl font-bold text-white">{grandPlan}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-400 mb-1">Total Actual</div>
+          <div className={`text-3xl font-bold ${grandActual>=grandPlan?"text-green-400":grandActual>=grandPlan*0.85?"text-yellow-400":"text-red-400"}`}>{grandActual}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-400 mb-1">Absent</div>
+          <div className="text-3xl font-bold text-orange-400">{grandAbsent}</div>
+        </div>
+        <div className="flex-1"/>
+        {/* Efficiency bar */}
+        <div className="flex-1 min-w-48">
+          <div className="flex justify-between text-xs text-slate-400 mb-1">
+            <span>Efficiency</span>
+            <span>{grandPlan>0?Math.round(grandActual/grandPlan*100):0}%</span>
+          </div>
+          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{width:`${grandPlan>0?Math.min(100,Math.round(grandActual/grandPlan*100)):0}%`,
+                background:grandActual>=grandPlan?"#22c55e":grandActual>=grandPlan*0.85?"#eab308":"#ef4444"}}/>
+          </div>
+        </div>
+        {/* Snapshot */}
+        <div className="flex gap-2 items-center">
+          <input value={snapLabel} onChange={e=>setSnapLabel(e.target.value)} placeholder="Snapshot label…"
+            className="input-comment w-40 text-sm" onKeyDown={e=>e.key==="Enter"&&doSnapshot()}/>
+          <button onClick={doSnapshot} disabled={saving} className="btn-primary text-sm py-2">{saving?"Saving…":"💾 Save"}</button>
+          <button onClick={onClear} className="btn-danger text-sm py-2">🗑 Clear</button>
+        </div>
+      </div>
+
+      {/* BU Cards grid */}
+      <div className="grid gap-4" style={{gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))"}}>
+        {displayBUs.map(bu => (
+          <BUCard key={bu} bu={bu} cfg={cfg} shiftData={shiftData[bu]} shift={selectedShift} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BUCard({ bu, cfg, shiftData, shift }) {
+  const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+  const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {};
+  const actual = shiftData?.lines || {};
+  const absent = shiftData?.absent || 0;
+  const savedAt = shiftData?.savedAt;
+
+  const totalPlan = sumPlan(plan, lines);
+  const totalActual = sumActual(actual, lines);
+  const sc = statusClass(totalPlan, totalActual);
+  const color = BU_COLORS[bu];
+
+  return (
+    <div className="card" style={{borderLeft:`4px solid ${color}`}}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="font-bold text-white text-base">{bu}</div>
+          {savedAt && <div className="text-xs text-slate-500">{formatTs({toDate:()=>new Date(savedAt)})}</div>}
+        </div>
+        <div className="flex gap-2 items-center">
+          {absent > 0 && <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded-full">-{absent} absent</span>}
+          <span className={`text-sm font-bold px-3 py-1 rounded-full ${sc}`}>{totalActual} / {totalPlan}</span>
+        </div>
+      </div>
+
+      {/* Header row */}
+      <div className="tv-line-row text-xs text-slate-500 mb-1">
+        <span>Line</span>
+        <span className="text-center">Plan</span>
+        <span className="text-center">Actual</span>
+        <span className="text-center">Δ</span>
+      </div>
+
+      <div className="space-y-0.5 max-h-72 overflow-y-auto scrollbar-thin">
+        {lines.map(line => {
+          const p = plan[line] || 0;
+          const a = Number(actual[line]) || 0;
+          const delta = a - p;
+          const rowClass = p===0&&a===0?"":"";
+          return (
+            <div key={line} className={`tv-line-row text-sm ${p===0&&a===0?"opacity-40":""}`}>
+              <span className="text-slate-300 truncate">{line}</span>
+              <span className="text-center text-slate-400">{p||"—"}</span>
+              <span className={`text-center font-semibold ${a>0?"text-white":"text-slate-500"}`}>{a||"—"}</span>
+              <span className={`text-center text-xs ${delta>0?"text-green-400":delta<0?"text-red-400":"text-slate-500"}`}>
+                {delta>0?`+${delta}`:delta<0?delta:""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Input View ───────────────────────────────────────────────────────────────
+function InputView({ cfg, liveData, onSave }) {
+  const [shift, setShift] = React.useState(detectShift());
+  const [bu, setBU] = React.useState(null);
+  const [absent, setAbsent] = React.useState("");
+  const [actuals, setActuals] = React.useState({});
+  const [comments, setComments] = React.useState({});
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  // When shift+bu changes, pre-load existing data
+  React.useEffect(() => {
+    if (!bu) return;
+    const existing = liveData[shift]?.[bu];
+    if (existing) {
+      setActuals(existing.lines || {});
+      setComments(existing.comments || {});
+      setAbsent(existing.absent || "");
+    } else {
+      // Pre-fill actuals with plan numbers
+      const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+      const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {};
+      const prefilled = {};
+      lines.forEach(l => { if ((plan[l]||0) > 0) prefilled[l] = plan[l]; });
+      setActuals(prefilled);
+      setComments({});
+      setAbsent("");
+    }
+    setSaved(false);
+  }, [shift, bu]);
+
+  const lines = bu ? (cfg.lines[bu] || DEFAULT_LINES[bu]) : [];
+  const plan = bu ? ((cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {}) : {};
+  const totalPlan = sumPlan(plan, lines);
+  const totalActual = lines.reduce((s,l) => s + (Number(actuals[l])||0), 0);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(shift, bu, actuals, absent);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  return (
+    <div className="max-w-lg mx-auto">
+      {/* Step 1: Shift */}
+      <div className="card mb-4">
+        <div className="text-sm font-semibold text-slate-400 mb-2">1 · Select Shift</div>
+        <div className="flex gap-2">
+          {SHIFTS.map(s => (
+            <button key={s} onClick={() => { setShift(s); setBU(null); }}
+              className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${shift===s?"tab-active":"tab-inactive"}`}>
+              {s}
+              {s === detectShift() && <span className="block text-xs font-normal opacity-70">current</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 2: BU */}
+      <div className="card mb-4">
+        <div className="text-sm font-semibold text-slate-400 mb-2">2 · Select Your BU</div>
+        <div className="grid grid-cols-2 gap-2">
+          {BUS.map(b => {
+            const isSubmitted = !!liveData[shift]?.[b];
+            return (
+              <button key={b} onClick={() => setBU(b)}
+                className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all text-left flex items-center justify-between ${bu===b?"tab-active":"tab-inactive"}`}
+                style={bu===b?{background:BU_COLORS[b]}:{}}>
+                <span>{b}</span>
+                {isSubmitted && <span className="text-green-400 text-xs">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {bu && (
+        <>
+          {/* Step 3: Absent */}
+          <div className="card mb-4">
+            <div className="text-sm font-semibold text-slate-400 mb-2">3 · Absent Associates</div>
+            <div className="flex items-center gap-4">
+              <input type="number" min="0" max="99" value={absent} onChange={e=>setAbsent(e.target.value)}
+                className="input-num text-xl" placeholder="0"/>
+              <span className="text-slate-400 text-sm">people absent this shift (vacation / call-in)</span>
+            </div>
+          </div>
+
+          {/* Step 4: Actuals */}
+          <div className="card mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold text-slate-400">4 · Enter Actuals — <span style={{color:BU_COLORS[bu]}}>{bu}</span></div>
+              <span className={`text-sm font-bold px-3 py-1 rounded-full ${statusClass(totalPlan,totalActual)}`}>{totalActual} / {totalPlan}</span>
+            </div>
+
+            {/* Column headers */}
+            <div className="grid text-xs text-slate-500 mb-2 px-1" style={{gridTemplateColumns:"1fr 52px 72px"}}>
+              <span>Line</span><span className="text-center">Plan</span><span className="text-center">Actual</span>
+            </div>
+
+            <div className="space-y-2">
+              {lines.map(line => {
+                const p = plan[line] || 0;
+                const a = Number(actuals[line]) || 0;
+                const delta = a - p;
+                return (
+                  <div key={line}>
+                    <div className="grid items-center gap-2 px-1" style={{gridTemplateColumns:"1fr 52px 72px"}}>
+                      <span className="text-sm text-slate-200">{line}</span>
+                      <span className="text-center text-slate-400 text-sm">{p||"—"}</span>
+                      <div className="flex items-center gap-1">
+                        <input type="number" min="0" max="99"
+                          value={actuals[line] ?? ""}
+                          onChange={e => setActuals(prev => ({...prev, [line]: e.target.value === "" ? "" : Number(e.target.value)}))}
+                          className="input-num"/>
+                        {delta !== 0 && (
+                          <span className={`text-xs w-6 ${delta>0?"text-green-400":"text-red-400"}`}>
+                            {delta>0?`+${delta}`:delta}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <input value={comments[line]||""} onChange={e=>setComments(prev=>({...prev,[line]:e.target.value}))}
+                      placeholder="Comment (optional)…" className="input-comment mt-1 text-xs"/>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button onClick={handleSave} disabled={saving}
+            className={`w-full py-4 rounded-xl text-lg font-bold transition-all mb-8 ${saved?"bg-green-600 text-white":"btn-primary"}`}>
+            {saving ? "Saving…" : saved ? "✓ Saved!" : "Submit Manpower"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── History View ─────────────────────────────────────────────────────────────
+function HistoryView({ history, cfg }) {
+  const [selected, setSelected] = React.useState(null);
+  const [filterShift, setFilterShift] = React.useState("All");
+
+  const filtered = history.filter(h => {
+    if (filterShift === "All") return true;
+    return Object.keys(h.data || {}).includes(filterShift);
+  });
+
+  const exportToExcel = (entry) => {
+    const rows = [["Shift","BU","Line","Plan","Actual","Delta","Comment"]];
+    SHIFTS.forEach(shift => {
+      BUS.forEach(bu => {
+        const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+        const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {};
+        const lineData = entry.data?.[shift]?.[bu]?.lines || {};
+        const absent = entry.data?.[shift]?.[bu]?.absent || 0;
+        if (absent > 0) rows.push([shift, bu, "ABSENT", "", absent, "", ""]);
+        lines.forEach(l => {
+          const p = plan[l] || 0;
+          const a = Number(lineData[l]) || 0;
+          rows.push([shift, bu, l, p, a, a-p, ""]);
+        });
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Manpower");
+    XLSX.writeFile(wb, `manpower_${entry.date}_${entry.label}.xlsx`);
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <h2 className="text-lg font-bold text-white">Shift History</h2>
+        <div className="flex gap-1">
+          {["All",...SHIFTS].map(s => (
+            <button key={s} onClick={() => setFilterShift(s)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium ${filterShift===s?"tab-active":"tab-inactive"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <span className="text-slate-500 text-sm">{filtered.length} entries (max 100)</span>
+      </div>
+
+      <div className="grid gap-3" style={{gridTemplateColumns:"300px 1fr"}}>
+        {/* List */}
+        <div className="space-y-2 max-h-screen overflow-y-auto scrollbar-thin pr-1">
+          {filtered.length === 0 && <div className="card text-slate-500 text-sm">No history yet.</div>}
+          {filtered.map((entry, i) => (
+            <div key={i} onClick={() => setSelected(entry)}
+              className={`card cursor-pointer transition-all hover:border-blue-500 ${selected===entry?"border-blue-500":""}`}>
+              <div className="font-semibold text-white text-sm">{entry.label}</div>
+              <div className="text-slate-400 text-xs">{entry.date} · {formatTs({toDate:()=>new Date(entry.savedAt)})}</div>
+              <div className="flex gap-2 mt-1 flex-wrap">
+                {SHIFTS.filter(s => entry.data?.[s]).map(s => (
+                  <span key={s} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{s}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Detail */}
+        <div>
+          {!selected ? (
+            <div className="card text-slate-500 text-center py-12">Select an entry to view details</div>
+          ) : (
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-lg font-bold text-white">{selected.label}</div>
+                  <div className="text-slate-400 text-sm">{selected.date}</div>
+                </div>
+                <button onClick={() => exportToExcel(selected)} className="btn-secondary text-sm">⬇ Export Excel</button>
+              </div>
+              {SHIFTS.map(shift => {
+                const shiftData = selected.data?.[shift];
+                if (!shiftData || Object.keys(shiftData).length === 0) return null;
+                return (
+                  <div key={shift} className="mb-4">
+                    <div className="text-blue-400 font-semibold text-sm mb-2 border-b border-slate-700 pb-1">{shift}</div>
+                    {BUS.filter(bu => shiftData[bu]).map(bu => {
+                      const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
+                      const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {};
+                      const lineData = shiftData[bu]?.lines || {};
+                      const absent = shiftData[bu]?.absent || 0;
+                      const tp = sumPlan(plan, lines);
+                      const ta = sumActual(lineData, lines);
+                      return (
+                        <div key={bu} className="mb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold" style={{color:BU_COLORS[bu]}}>{bu}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${statusClass(tp,ta)}`}>{ta}/{tp}</span>
+                            {absent>0 && <span className="text-xs text-orange-400">-{absent} absent</span>}
+                          </div>
+                          <div className="grid gap-1 pl-2">
+                            {lines.filter(l => (plan[l]||0)>0 || (Number(lineData[l])||0)>0).map(l => {
+                              const p = plan[l]||0, a = Number(lineData[l])||0;
+                              return (
+                                <div key={l} className="flex items-center gap-3 text-xs text-slate-400">
+                                  <span className="w-40 truncate">{l}</span>
+                                  <span className="w-8 text-right text-slate-500">{p}</span>
+                                  <span className="w-8 text-right text-white font-medium">{a}</span>
+                                  <span className={`w-8 text-right ${a-p>0?"text-green-400":a-p<0?"text-red-400":""}`}>{a-p!==0?(a-p>0?`+${a-p}`:a-p):""}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Config View ──────────────────────────────────────────────────────────────
+function ConfigView({ cfg, onSave }) {
+  const [authed, setAuthed] = React.useState(false);
+  const [pw, setPw] = React.useState("");
+  const [editBU, setEditBU] = React.useState(BUS[0]);
+  const [editShift, setEditShift] = React.useState("Days");
+  const [localCfg, setLocalCfg] = React.useState(null);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => { setLocalCfg(JSON.parse(JSON.stringify(cfg))); }, [cfg]);
+
+  if (!authed) return (
+    <div className="max-w-sm mx-auto mt-20">
+      <div className="card text-center">
+        <div className="text-4xl mb-4">🔒</div>
+        <div className="text-lg font-bold text-white mb-4">Configuration</div>
+        <input type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password"
+          onKeyDown={e=>e.key==="Enter"&&(pw===CONFIG_PASSWORD?setAuthed(true):alert("Wrong password"))}
+          className="input-comment mb-3 text-center text-lg"/>
+        <button onClick={() => pw===CONFIG_PASSWORD?setAuthed(true):alert("Wrong password")} className="btn-primary w-full">Unlock</button>
+      </div>
+    </div>
+  );
+
+  if (!localCfg) return <div className="text-slate-400">Loading…</div>;
+
+  const lines = localCfg.lines[editBU] || DEFAULT_LINES[editBU];
+  const plan = (localCfg.plan[editBU] || DEFAULT_PLAN[editBU])[editShift] || {};
+
+  const setPlanVal = (line, val) => {
+    const newCfg = JSON.parse(JSON.stringify(localCfg));
+    if (!newCfg.plan[editBU]) newCfg.plan[editBU] = {};
+    if (!newCfg.plan[editBU][editShift]) newCfg.plan[editBU][editShift] = {};
+    newCfg.plan[editBU][editShift][line] = Number(val) || 0;
+    setLocalCfg(newCfg);
+    setSaved(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(localCfg);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const totalPlan = lines.reduce((s,l) => s + (plan[l]||0), 0);
+
+  return (
+    <div className="max-w-2xl">
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-lg font-bold text-white">Configuration</h2>
+        <button onClick={() => setAuthed(false)} className="btn-secondary text-xs py-1 px-3">🔒 Lock</button>
+      </div>
+
+      {/* BU + Shift pickers */}
+      <div className="card mb-4">
+        <div className="text-sm text-slate-400 mb-2">Business Unit</div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {BUS.map(b => (
+            <button key={b} onClick={() => setEditBU(b)}
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${editBU===b?"tab-active":"tab-inactive"}`}
+              style={editBU===b?{background:BU_COLORS[b]}:{}}>
+              {b}
+            </button>
+          ))}
+        </div>
+        <div className="text-sm text-slate-400 mb-2">Shift</div>
+        <div className="flex gap-2">
+          {SHIFTS.map(s => (
+            <button key={s} onClick={() => setEditShift(s)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${editShift===s?"tab-active":"tab-inactive"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Plan numbers */}
+      <div className="card mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-semibold text-slate-400">
+            Plan Numbers — <span style={{color:BU_COLORS[editBU]}}>{editBU}</span> / {editShift}
+          </div>
+          <span className="text-sm text-slate-400">Total: <strong className="text-white">{totalPlan}</strong></span>
+        </div>
+        <div className="space-y-2">
+          {lines.map(line => (
+            <div key={line} className="flex items-center gap-4">
+              <span className="text-sm text-slate-200 flex-1">{line}</span>
+              <input type="number" min="0" max="99"
+                value={plan[line] ?? 0}
+                onChange={e => setPlanVal(line, e.target.value)}
+                className="input-num"/>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving}
+        className={`btn-primary w-full py-3 text-base ${saved?"bg-green-600":""}`}>
+        {saving ? "Saving…" : saved ? "✓ Saved!" : "💾 Save Configuration"}
+      </button>
+
+      <div className="card mt-6">
+        <div className="text-sm font-semibold text-slate-400 mb-2">⚠️ Danger Zone</div>
+        <p className="text-xs text-slate-500 mb-3">Reset all plan numbers back to the original defaults loaded from the whiteboard.</p>
+        <button onClick={() => {
+          if (!window.confirm("Reset ALL plan numbers to defaults? This cannot be undone.")) return;
+          const newCfg = JSON.parse(JSON.stringify(localCfg));
+          newCfg.plan = JSON.parse(JSON.stringify(DEFAULT_PLAN));
+          setLocalCfg(newCfg);
+          setSaved(false);
+        }} className="btn-danger text-sm">Reset Plan Numbers to Defaults</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mount ────────────────────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
