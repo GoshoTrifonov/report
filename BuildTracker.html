@@ -788,7 +788,7 @@ function BuildTracker() {
         const rows = parseBuildPlan(wb);
         if (!rows) { setUploadStatus({ type: "build", msg: "No rows found — check sheet name 'Database Query'", ok: false }); return; }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
-        setUploadStatus({ type: "build", msg: `? Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
+        setUploadStatus({ type: "build", msg: `✅ Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "build", msg: "Error: " + err.message, ok: false });
       }
@@ -1102,7 +1102,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `? Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
+        setUploadStatus({ type: "labour", msg: `✅ Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -1909,10 +1909,10 @@ function BuildTracker() {
               <div className="text-sm font-semibold text-slate-900">Build Plan Tracker</div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
                 <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours · {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
-                {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ? Connecting…</span>}
-                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-                {fbStatus === "error" && <span className="text-rose-600 font-medium">· ? Offline</span>}
-                {buildPlanRows && <span className="text-blue-600 font-medium">· ?? Custom build plan</span>}
+                {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ⏳ Connecting…</span>}
+                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· 🟢 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+                {fbStatus === "error" && <span className="text-rose-600 font-medium">· 🔴 Offline</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">· 📋 Custom build plan</span>}
                 {!buildPlanRows && <span className="text-slate-400 font-medium">· using baked-in build plan</span>}
               </div>
             </div>
@@ -2306,7 +2306,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
       >
         <div className="w-48 md:w-60 shrink-0 border-r border-stone-200 bg-stone-50 h-[68px] px-3 md:px-4 flex flex-col justify-end pb-2">
           <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">Resource / WO</span>
-          <span className="text-[10px] text-slate-400">Production queue · hrs ?</span>
+          <span className="text-[10px] text-slate-400">Production queue · hrs →</span>
           <span className="text-[9px] text-slate-400 italic mt-0.5">Mon-Fri · 24h baseline</span>
         </div>
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={headerScrollRef}>
@@ -5009,7 +5009,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
                   {isLabour
-                    ? <span className="text-slate-400">?? Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    📋 <span className="text-slate-400">📋 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     : entry.by
                       ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
                       : null
@@ -5309,4 +5309,3 @@ function Field({ label, value }) {
   </script>
 </body>
 </html>
-  
