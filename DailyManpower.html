@@ -323,21 +323,29 @@ function App() {
     <div className="min-h-screen">
       {/* Header */}
       <header style={{background:"var(--bg2)",borderBottom:"1px solid var(--border)"}} className="sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 py-3 max-w-screen-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <span className="text-xl font-bold" style={{color:"var(--text)"}}>SMI Manpower</span>
-            {lastUpdate && <span className="text-xs hide-mobile" style={{color:"var(--text4)"}}>Updated {formatTs(lastUpdate)}</span>}
-          </div>
-          <div className="flex items-center gap-2">
-            <nav className="flex gap-1">
-              {[["dashboard","📊 Dashboard"],["input","✏️ Input"],["history","🗂 History"],["config","⚙️ Config"]].map(([v,label]) => (
-                <button key={v} onClick={() => setView(v)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view===v?"tab-active":"tab-inactive"}`}>
-                  {label}
-                </button>
-              ))}
-            </nav>
-            <button onClick={toggleTheme} className="theme-btn" title={theme==="dark"?"Switch to light mode":"Switch to dark mode"}>
+        <div className="flex items-center justify-between px-3 py-2 max-w-screen-2xl mx-auto">
+          {/* Title — shorter on mobile */}
+          <span className="font-bold" style={{color:"var(--text)",fontSize:"clamp(0.95rem,3vw,1.2rem)",whiteSpace:"nowrap"}}>
+            <span className="hide-mobile">SMI </span>Manpower
+          </span>
+
+          {/* Nav + theme — all icons on mobile, icons+labels on desktop */}
+          <div className="flex items-center gap-1">
+            {[
+              ["dashboard","📊","Dashboard"],
+              ["input","✏️","Input"],
+              ["history","🗂","History"],
+              ["config","⚙️","Config"],
+            ].map(([v, icon, label]) => (
+              <button key={v} onClick={() => setView(v)}
+                className={`rounded-md font-medium transition-all ${view===v?"tab-active":"tab-inactive"}`}
+                style={{padding:"6px 8px",fontSize:"0.8rem",display:"flex",alignItems:"center",gap:"4px"}}>
+                <span>{icon}</span>
+                <span className="hide-mobile">{label}</span>
+              </button>
+            ))}
+            <button onClick={toggleTheme} className="theme-btn" style={{padding:"6px 8px",fontSize:"1rem"}}
+              title={theme==="dark"?"Light mode":"Dark mode"}>
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
           </div>
