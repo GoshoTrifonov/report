@@ -13,37 +13,105 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; }
-  .input-num { width: 64px; text-align: center; background: #1e293b; border: 1px solid #334155; color: #f1f5f9; border-radius: 6px; padding: 4px 2px; font-size: 1rem; }
+
+  /* ── Dark theme (default) ── */
+  :root {
+    --bg:        #0f172a;
+    --bg2:       #1e293b;
+    --bg3:       #293548;
+    --border:    #334155;
+    --text:      #f1f5f9;
+    --text2:     #cbd5e1;
+    --text3:     #94a3b8;
+    --text4:     #64748b;
+    --card-bg:   #1e293b;
+    --input-bg:  #1e293b;
+    --tab-off:   #1e293b;
+    --tab-hover: #293548;
+    --btn-sec-bg:#334155;
+    --btn-sec-fg:#cbd5e1;
+    --btn-sec-hov:#475569;
+    --btn-dis-bg:#334155;
+    --btn-dis-fg:#64748b;
+    --row-even:  rgba(255,255,255,0.02);
+    --scrollbar: #334155;
+    --st-green-bg:#14532d; --st-green-fg:#86efac;
+    --st-yellow-bg:#713f12; --st-yellow-fg:#fde68a;
+    --st-red-bg:#7f1d1d;   --st-red-fg:#fca5a5;
+    --st-zero-bg:#1e293b;  --st-zero-fg:#64748b;
+  }
+
+  /* ── Light theme ── */
+  body.light {
+    --bg:        #f1f5f9;
+    --bg2:       #ffffff;
+    --bg3:       #e2e8f0;
+    --border:    #cbd5e1;
+    --text:      #0f172a;
+    --text2:     #1e293b;
+    --text3:     #475569;
+    --text4:     #94a3b8;
+    --card-bg:   #ffffff;
+    --input-bg:  #f8fafc;
+    --tab-off:   #e2e8f0;
+    --tab-hover: #cbd5e1;
+    --btn-sec-bg:#e2e8f0;
+    --btn-sec-fg:#334155;
+    --btn-sec-hov:#cbd5e1;
+    --btn-dis-bg:#e2e8f0;
+    --btn-dis-fg:#94a3b8;
+    --row-even:  rgba(0,0,0,0.025);
+    --scrollbar: #cbd5e1;
+    --st-green-bg:#dcfce7; --st-green-fg:#166534;
+    --st-yellow-bg:#fef9c3; --st-yellow-fg:#854d0e;
+    --st-red-bg:#fee2e2;   --st-red-fg:#991b1b;
+    --st-zero-bg:#f1f5f9;  --st-zero-fg:#94a3b8;
+  }
+
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); transition: background 0.2s, color 0.2s; }
+
+  .input-num { width: 64px; text-align: center; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 2px; font-size: 1rem; }
   .input-num:focus { outline: 2px solid #3b82f6; border-color: transparent; }
-  .input-comment { width: 100%; background: #1e293b; border: 1px solid #334155; color: #f1f5f9; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; }
+  .input-comment { width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; }
   .input-comment:focus { outline: 2px solid #3b82f6; border-color: transparent; }
-  .status-green { background: #14532d; color: #86efac; }
-  .status-yellow { background: #713f12; color: #fde68a; }
-  .status-red { background: #7f1d1d; color: #fca5a5; }
-  .status-zero { background: #1e293b; color: #64748b; }
-  .tab-active { background: #3b82f6; color: white; }
-  .tab-inactive { background: #1e293b; color: #94a3b8; }
-  .tab-inactive:hover { background: #293548; color: #cbd5e1; }
+
+  .status-green  { background: var(--st-green-bg);  color: var(--st-green-fg); }
+  .status-yellow { background: var(--st-yellow-bg); color: var(--st-yellow-fg); }
+  .status-red    { background: var(--st-red-bg);    color: var(--st-red-fg); }
+  .status-zero   { background: var(--st-zero-bg);   color: var(--st-zero-fg); }
+
+  .tab-active   { background: #3b82f6; color: white; }
+  .tab-inactive { background: var(--tab-off); color: var(--text3); }
+  .tab-inactive:hover { background: var(--tab-hover); color: var(--text2); }
+
   .btn-primary { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 1rem; font-weight: 600; }
   .btn-primary:hover { background: #2563eb; }
-  .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-  .btn-danger { background: #dc2626; color: white; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-primary:disabled { background: var(--btn-dis-bg); color: var(--btn-dis-fg); cursor: not-allowed; }
+  .btn-danger   { background: #dc2626; color: white; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
   .btn-danger:hover { background: #b91c1c; }
-  .btn-secondary { background: #334155; color: #cbd5e1; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
-  .btn-secondary:hover { background: #475569; }
-  .card { background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155; }
+  .btn-secondary { background: var(--btn-sec-bg); color: var(--btn-sec-fg); padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-secondary:hover { background: var(--btn-sec-hov); }
+
+  .card { background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
+
   .pulse { animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
   @media (max-width: 640px) {
     .input-num { width: 54px; font-size: 0.9rem; }
     .hide-mobile { display: none !important; }
   }
+
   .tv-line-row { display: grid; grid-template-columns: 1fr 56px 56px 56px; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px; }
-  .tv-line-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .tv-line-row:nth-child(even) { background: var(--row-even); }
+
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+  /* theme toggle button */
+  .theme-btn { background: var(--tab-off); border: 1px solid var(--border); color: var(--text3); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 1rem; line-height: 1; transition: background 0.15s; }
+  .theme-btn:hover { background: var(--tab-hover); }
 </style>
 </head>
 <body>
@@ -52,7 +120,7 @@
 
 // ─── Firebase ─────────────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
+  apiKey: "AIzaSyExample-ReplaceWithYourKey",
   authDomain: "smi-production-report.firebaseapp.com",
   projectId: "smi-production-report",
   storageBucket: "smi-production-report.appspot.com",
@@ -173,6 +241,14 @@ function App() {
   const [history, setHistory] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [lastUpdate, setLastUpdate] = React.useState(null);
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("smi-mp-theme") || "dark");
+
+  React.useEffect(() => {
+    document.body.classList.toggle("light", theme === "light");
+    localStorage.setItem("smi-mp-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
   // Load config + live data from Firestore
   React.useEffect(() => {
@@ -236,7 +312,7 @@ function App() {
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <div className="text-4xl mb-4">⚙️</div>
-        <div className="text-slate-400 pulse">Loading manpower data…</div>
+        <div className="pulse" style={{color:"var(--text3)"}}>Loading manpower data…</div>
       </div>
     </div>
   );
@@ -246,20 +322,25 @@ function App() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header style={{background:"#0f172a",borderBottom:"1px solid #1e293b"}} className="sticky top-0 z-50">
+      <header style={{background:"var(--bg2)",borderBottom:"1px solid var(--border)"}} className="sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3 max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-white">SMI Manpower</span>
-            {lastUpdate && <span className="text-xs text-slate-500 hide-mobile">Updated {formatTs(lastUpdate)}</span>}
+            <span className="text-xl font-bold" style={{color:"var(--text)"}}>SMI Manpower</span>
+            {lastUpdate && <span className="text-xs hide-mobile" style={{color:"var(--text4)"}}>Updated {formatTs(lastUpdate)}</span>}
           </div>
-          <nav className="flex gap-1">
-            {[["dashboard","📊 Dashboard"],["input","✏️ Input"],["history","🗂 History"],["config","⚙️ Config"]].map(([v,label]) => (
-              <button key={v} onClick={() => setView(v)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view===v?"tab-active":"tab-inactive"}`}>
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center gap-2">
+            <nav className="flex gap-1">
+              {[["dashboard","📊 Dashboard"],["input","✏️ Input"],["history","🗂 History"],["config","⚙️ Config"]].map(([v,label]) => (
+                <button key={v} onClick={() => setView(v)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view===v?"tab-active":"tab-inactive"}`}>
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <button onClick={toggleTheme} className="theme-btn" title={theme==="dark"?"Switch to light mode":"Switch to dark mode"}>
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -331,25 +412,25 @@ function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
       {/* Grand totals bar */}
       <div className="card mb-4 flex flex-wrap gap-6 items-center">
         <div>
-          <div className="text-xs text-slate-400 mb-1">Total Planned</div>
-          <div className="text-3xl font-bold text-white">{grandPlan}</div>
+          <div className="text-xs mb-1" style={{color:"var(--text3)"}}>Total Planned</div>
+          <div className="text-3xl font-bold" style={{color:"var(--text)"}}>{grandPlan}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Total Actual</div>
+          <div className="text-xs mb-1" style={{color:"var(--text3)"}}>Total Actual</div>
           <div className={`text-3xl font-bold ${grandActual>=grandPlan?"text-green-400":grandActual>=grandPlan*0.85?"text-yellow-400":"text-red-400"}`}>{grandActual}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-400 mb-1">Absent</div>
+          <div className="text-xs mb-1" style={{color:"var(--text3)"}}>Absent</div>
           <div className="text-3xl font-bold text-orange-400">{grandAbsent}</div>
         </div>
         <div className="flex-1"/>
         {/* Efficiency bar */}
         <div className="flex-1 min-w-48">
-          <div className="flex justify-between text-xs text-slate-400 mb-1">
+          <div className="flex justify-between text-xs mb-1" style={{color:"var(--text3)"}}>
             <span>Efficiency</span>
             <span>{grandPlan>0?Math.round(grandActual/grandPlan*100):0}%</span>
           </div>
-          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-3 rounded-full overflow-hidden" style={{background:"var(--bg3)"}}>
             <div className="h-full rounded-full transition-all duration-500"
               style={{width:`${grandPlan>0?Math.min(100,Math.round(grandActual/grandPlan*100)):0}%`,
                 background:grandActual>=grandPlan?"#22c55e":grandActual>=grandPlan*0.85?"#eab308":"#ef4444"}}/>
@@ -390,17 +471,17 @@ function BUCard({ bu, cfg, shiftData, shift }) {
     <div className="card" style={{borderLeft:`4px solid ${color}`}}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="font-bold text-white text-base">{bu}</div>
-          {savedAt && <div className="text-xs text-slate-500">{formatTs({toDate:()=>new Date(savedAt)})}</div>}
+          <div className="font-bold text-base" style={{color:"var(--text)"}}>{bu}</div>
+          {savedAt && <div className="text-xs" style={{color:"var(--text4)"}}>{formatTs({toDate:()=>new Date(savedAt)})}</div>}
         </div>
         <div className="flex gap-2 items-center">
-          {absent > 0 && <span className="text-xs bg-orange-900 text-orange-300 px-2 py-0.5 rounded-full">-{absent} absent</span>}
+          {absent > 0 && <span className="text-xs px-2 py-0.5 rounded-full" style={{background:"rgba(194,65,12,0.25)",color:"#fb923c"}}>-{absent} absent</span>}
           <span className={`text-sm font-bold px-3 py-1 rounded-full ${sc}`}>{totalActual} / {totalPlan}</span>
         </div>
       </div>
 
       {/* Header row */}
-      <div className="tv-line-row text-xs text-slate-500 mb-1">
+      <div className="tv-line-row text-xs mb-1" style={{color:"var(--text4)"}}>
         <span>Line</span>
         <span className="text-center">Plan</span>
         <span className="text-center">Actual</span>
@@ -415,8 +496,8 @@ function BUCard({ bu, cfg, shiftData, shift }) {
           const rowClass = p===0&&a===0?"":"";
           return (
             <div key={line} className={`tv-line-row text-sm ${p===0&&a===0?"opacity-40":""}`}>
-              <span className="text-slate-300 truncate">{line}</span>
-              <span className="text-center text-slate-400">{p||"—"}</span>
+              <span className="truncate" style={{color:"var(--text2)"}}>{line}</span>
+              <span className="text-center" style={{color:"var(--text3)"}}>{p||"—"}</span>
               <span className={`text-center font-semibold ${a>0?"text-white":"text-slate-500"}`}>{a||"—"}</span>
               <span className={`text-center text-xs ${delta>0?"text-green-400":delta<0?"text-red-400":"text-slate-500"}`}>
                 {delta>0?`+${delta}`:delta<0?delta:""}
@@ -477,7 +558,7 @@ function InputView({ cfg, liveData, onSave }) {
     <div className="max-w-lg mx-auto">
       {/* Step 1: Shift */}
       <div className="card mb-4">
-        <div className="text-sm font-semibold text-slate-400 mb-2">1 · Select Shift</div>
+        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>1 · Select Shift</div>
         <div className="flex gap-2">
           {SHIFTS.map(s => (
             <button key={s} onClick={() => { setShift(s); setBU(null); }}
@@ -491,7 +572,7 @@ function InputView({ cfg, liveData, onSave }) {
 
       {/* Step 2: BU */}
       <div className="card mb-4">
-        <div className="text-sm font-semibold text-slate-400 mb-2">2 · Select Your BU</div>
+        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>2 · Select Your BU</div>
         <div className="grid grid-cols-2 gap-2">
           {BUS.map(b => {
             const isSubmitted = !!liveData[shift]?.[b];
@@ -511,23 +592,23 @@ function InputView({ cfg, liveData, onSave }) {
         <>
           {/* Step 3: Absent */}
           <div className="card mb-4">
-            <div className="text-sm font-semibold text-slate-400 mb-2">3 · Absent Associates</div>
+            <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>3 · Absent Associates</div>
             <div className="flex items-center gap-4">
               <input type="number" min="0" max="99" value={absent} onChange={e=>setAbsent(e.target.value)}
                 className="input-num text-xl" placeholder="0"/>
-              <span className="text-slate-400 text-sm">people absent this shift (vacation / call-in)</span>
+              <span className="text-sm" style={{color:"var(--text3)"}}>people absent this shift (vacation / call-in)</span>
             </div>
           </div>
 
           {/* Step 4: Actuals */}
           <div className="card mb-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold text-slate-400">4 · Enter Actuals — <span style={{color:BU_COLORS[bu]}}>{bu}</span></div>
+              <div className="text-sm font-semibold" style={{color:"var(--text3)"}}>4 · Enter Actuals — <span style={{color:BU_COLORS[bu]}}>{bu}</span></div>
               <span className={`text-sm font-bold px-3 py-1 rounded-full ${statusClass(totalPlan,totalActual)}`}>{totalActual} / {totalPlan}</span>
             </div>
 
             {/* Column headers */}
-            <div className="grid text-xs text-slate-500 mb-2 px-1" style={{gridTemplateColumns:"1fr 52px 72px"}}>
+            <div className="grid text-xs mb-2 px-1" style={{color:"var(--text4)"}} style={{gridTemplateColumns:"1fr 52px 72px"}}>
               <span>Line</span><span className="text-center">Plan</span><span className="text-center">Actual</span>
             </div>
 
@@ -539,8 +620,8 @@ function InputView({ cfg, liveData, onSave }) {
                 return (
                   <div key={line}>
                     <div className="grid items-center gap-2 px-1" style={{gridTemplateColumns:"1fr 52px 72px"}}>
-                      <span className="text-sm text-slate-200">{line}</span>
-                      <span className="text-center text-slate-400 text-sm">{p||"—"}</span>
+                      <span className="text-sm" style={{color:"var(--text)"}}>{line}</span>
+                      <span className="text-center text-sm" style={{color:"var(--text3)"}}>{p||"—"}</span>
                       <div className="flex items-center gap-1">
                         <input type="number" min="0" max="99"
                           value={actuals[line] ?? ""}
@@ -607,7 +688,7 @@ function HistoryView({ history, cfg }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-white">Shift History</h2>
+        <h2 className="text-lg font-bold" style={{color:"var(--text)"}}>Shift History</h2>
         <div className="flex gap-1">
           {["All",...SHIFTS].map(s => (
             <button key={s} onClick={() => setFilterShift(s)}
@@ -616,7 +697,7 @@ function HistoryView({ history, cfg }) {
             </button>
           ))}
         </div>
-        <span className="text-slate-500 text-sm">{filtered.length} entries (max 100)</span>
+        <span className="text-sm" style={{color:"var(--text4)"}}>{filtered.length} entries (max 100)</span>
       </div>
 
       <div className="grid gap-3" style={{gridTemplateColumns:"300px 1fr"}}>
@@ -626,11 +707,11 @@ function HistoryView({ history, cfg }) {
           {filtered.map((entry, i) => (
             <div key={i} onClick={() => setSelected(entry)}
               className={`card cursor-pointer transition-all hover:border-blue-500 ${selected===entry?"border-blue-500":""}`}>
-              <div className="font-semibold text-white text-sm">{entry.label}</div>
-              <div className="text-slate-400 text-xs">{entry.date} · {formatTs({toDate:()=>new Date(entry.savedAt)})}</div>
+              <div className="font-semibold text-sm" style={{color:"var(--text)"}}>{entry.label}</div>
+              <div className="text-xs" style={{color:"var(--text3)"}}>{entry.date} · {formatTs({toDate:()=>new Date(entry.savedAt)})}</div>
               <div className="flex gap-2 mt-1 flex-wrap">
                 {SHIFTS.filter(s => entry.data?.[s]).map(s => (
-                  <span key={s} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{s}</span>
+                  <span key={s} className="text-xs px-2 py-0.5 rounded" style={{background:"var(--bg3)",color:"var(--text2)"}}>{s}</span>
                 ))}
               </div>
             </div>
@@ -640,13 +721,13 @@ function HistoryView({ history, cfg }) {
         {/* Detail */}
         <div>
           {!selected ? (
-            <div className="card text-slate-500 text-center py-12">Select an entry to view details</div>
+            <div className="card text-center py-12" style={{color:"var(--text4)"}}>Select an entry to view details</div>
           ) : (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-lg font-bold text-white">{selected.label}</div>
-                  <div className="text-slate-400 text-sm">{selected.date}</div>
+                  <div className="text-lg font-bold" style={{color:"var(--text)"}}>{selected.label}</div>
+                  <div className="text-sm" style={{color:"var(--text3)"}}>{selected.date}</div>
                 </div>
                 <button onClick={() => exportToExcel(selected)} className="btn-secondary text-sm">⬇ Export Excel</button>
               </div>
@@ -655,7 +736,7 @@ function HistoryView({ history, cfg }) {
                 if (!shiftData || Object.keys(shiftData).length === 0) return null;
                 return (
                   <div key={shift} className="mb-4">
-                    <div className="text-blue-400 font-semibold text-sm mb-2 border-b border-slate-700 pb-1">{shift}</div>
+                    <div className="font-semibold text-sm mb-2 border-b pb-1" style={{color:"#60a5fa",borderColor:"var(--border)"}}>{shift}</div>
                     {BUS.filter(bu => shiftData[bu]).map(bu => {
                       const lines = cfg.lines[bu] || DEFAULT_LINES[bu];
                       const plan = (cfg.plan[bu] || DEFAULT_PLAN[bu])[shift] || {};
@@ -668,16 +749,16 @@ function HistoryView({ history, cfg }) {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-semibold" style={{color:BU_COLORS[bu]}}>{bu}</span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${statusClass(tp,ta)}`}>{ta}/{tp}</span>
-                            {absent>0 && <span className="text-xs text-orange-400">-{absent} absent</span>}
+                            {absent>0 && <span className="text-xs" style={{color:"#fb923c"}}>-{absent} absent</span>}
                           </div>
                           <div className="grid gap-1 pl-2">
                             {lines.filter(l => (plan[l]||0)>0 || (Number(lineData[l])||0)>0).map(l => {
                               const p = plan[l]||0, a = Number(lineData[l])||0;
                               return (
-                                <div key={l} className="flex items-center gap-3 text-xs text-slate-400">
+                                <div key={l} className="flex items-center gap-3 text-xs" style={{color:"var(--text3)"}}>
                                   <span className="w-40 truncate">{l}</span>
-                                  <span className="w-8 text-right text-slate-500">{p}</span>
-                                  <span className="w-8 text-right text-white font-medium">{a}</span>
+                                  <span className="w-8 text-right" style={{color:"var(--text4)"}}>{p}</span>
+                                  <span className="w-8 text-right font-medium" style={{color:"var(--text)"}}>{a}</span>
                                   <span className={`w-8 text-right ${a-p>0?"text-green-400":a-p<0?"text-red-400":""}`}>{a-p!==0?(a-p>0?`+${a-p}`:a-p):""}</span>
                                 </div>
                               );
@@ -713,7 +794,7 @@ function ConfigView({ cfg, onSave }) {
     <div className="max-w-sm mx-auto mt-20">
       <div className="card text-center">
         <div className="text-4xl mb-4">🔒</div>
-        <div className="text-lg font-bold text-white mb-4">Configuration</div>
+        <div className="text-lg font-bold mb-4" style={{color:"var(--text)"}}>Configuration</div>
         <input type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password"
           onKeyDown={e=>e.key==="Enter"&&(pw===CONFIG_PASSWORD?setAuthed(true):alert("Wrong password"))}
           className="input-comment mb-3 text-center text-lg"/>
@@ -722,7 +803,7 @@ function ConfigView({ cfg, onSave }) {
     </div>
   );
 
-  if (!localCfg) return <div className="text-slate-400">Loading…</div>;
+  if (!localCfg) return <div className="" style={{color:"var(--text3)"}}>Loading…</div>;
 
   const lines = localCfg.lines[editBU] || DEFAULT_LINES[editBU];
   const plan = (localCfg.plan[editBU] || DEFAULT_PLAN[editBU])[editShift] || {};
@@ -749,13 +830,13 @@ function ConfigView({ cfg, onSave }) {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-white">Configuration</h2>
+        <h2 className="text-lg font-bold" style={{color:"var(--text)"}}>Configuration</h2>
         <button onClick={() => setAuthed(false)} className="btn-secondary text-xs py-1 px-3">🔒 Lock</button>
       </div>
 
       {/* BU + Shift pickers */}
       <div className="card mb-4">
-        <div className="text-sm text-slate-400 mb-2">Business Unit</div>
+        <div className="text-sm mb-2" style={{color:"var(--text3)"}}>Business Unit</div>
         <div className="flex flex-wrap gap-2 mb-4">
           {BUS.map(b => (
             <button key={b} onClick={() => setEditBU(b)}
@@ -765,7 +846,7 @@ function ConfigView({ cfg, onSave }) {
             </button>
           ))}
         </div>
-        <div className="text-sm text-slate-400 mb-2">Shift</div>
+        <div className="text-sm mb-2" style={{color:"var(--text3)"}}>Shift</div>
         <div className="flex gap-2">
           {SHIFTS.map(s => (
             <button key={s} onClick={() => setEditShift(s)}
@@ -779,15 +860,15 @@ function ConfigView({ cfg, onSave }) {
       {/* Plan numbers */}
       <div className="card mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-400">
+          <div className="text-sm font-semibold" style={{color:"var(--text3)"}}>
             Plan Numbers — <span style={{color:BU_COLORS[editBU]}}>{editBU}</span> / {editShift}
           </div>
-          <span className="text-sm text-slate-400">Total: <strong className="text-white">{totalPlan}</strong></span>
+          <span className="text-sm" style={{color:"var(--text3)"}}>Total: <strong style={{color:"var(--text)"}}>{totalPlan}</strong></span>
         </div>
         <div className="space-y-2">
           {lines.map(line => (
             <div key={line} className="flex items-center gap-4">
-              <span className="text-sm text-slate-200 flex-1">{line}</span>
+              <span className="text-sm flex-1" style={{color:"var(--text)"}}>{line}</span>
               <input type="number" min="0" max="99"
                 value={plan[line] ?? 0}
                 onChange={e => setPlanVal(line, e.target.value)}
@@ -803,8 +884,8 @@ function ConfigView({ cfg, onSave }) {
       </button>
 
       <div className="card mt-6">
-        <div className="text-sm font-semibold text-slate-400 mb-2">⚠️ Danger Zone</div>
-        <p className="text-xs text-slate-500 mb-3">Reset all plan numbers back to the original defaults loaded from the whiteboard.</p>
+        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>⚠️ Danger Zone</div>
+        <p className="text-xs mb-3" style={{color:"var(--text4)"}}>Reset all plan numbers back to the original defaults loaded from the whiteboard.</p>
         <button onClick={() => {
           if (!window.confirm("Reset ALL plan numbers to defaults? This cannot be undone.")) return;
           const newCfg = JSON.parse(JSON.stringify(localCfg));
