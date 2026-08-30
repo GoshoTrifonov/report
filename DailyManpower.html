@@ -489,22 +489,28 @@ function BUCard({ bu, cfg, shiftData, shift }) {
       </div>
 
       <div className="space-y-0.5 max-h-72 overflow-y-auto scrollbar-thin">
-        {lines.map(line => {
-          const p = plan[line] || 0;
-          const a = Number(actual[line]) || 0;
-          const delta = a - p;
-          const rowClass = p===0&&a===0?"":"";
-          return (
-            <div key={line} className={`tv-line-row text-sm ${p===0&&a===0?"opacity-40":""}`}>
-              <span className="truncate" style={{color:"var(--text2)"}}>{line}</span>
-              <span className="text-center" style={{color:"var(--text3)"}}>{p||"—"}</span>
-              <span className={`text-center font-semibold ${a>0?"text-white":"text-slate-500"}`}>{a||"—"}</span>
-              <span className={`text-center text-xs ${delta>0?"text-green-400":delta<0?"text-red-400":"text-slate-500"}`}>
-                {delta>0?`+${delta}`:delta<0?delta:""}
-              </span>
-            </div>
-          );
-        })}
+        {/* Union: cfg lines + any saved keys not in cfg (key mismatch safety net) */}
+        {(() => {
+          const cfgSet = new Set(lines);
+          const extraKeys = Object.keys(actual).filter(k => !cfgSet.has(k) && Number(actual[k]) > 0);
+          const allLines = [...lines, ...extraKeys];
+          return allLines.map(line => {
+            const p = plan[line] || 0;
+            const a = Number(actual[line]) || 0;
+            const delta = a - p;
+            const isExtra = !cfgSet.has(line);
+            return (
+              <div key={line} className={`tv-line-row text-sm ${p===0&&a===0&&!isExtra?"opacity-40":""}`}>
+                <span className="truncate" style={{color: isExtra ? "#f59e0b" : "var(--text2)"}} title={isExtra?"Key not in config — check Config tab":line}>{line}{isExtra?" ⚠️":""}</span>
+                <span className="text-center" style={{color:"var(--text3)"}}>{p||"—"}</span>
+                <span className="text-center font-semibold" style={{color: a>0 ? "var(--text)" : "var(--text4)"}}>{a||"—"}</span>
+                <span className={`text-center text-xs ${delta>0?"text-green-400":delta<0?"text-red-400":""}`} style={delta===0?{color:"var(--text4)"}:{}}>
+                  {delta>0?`+${delta}`:delta<0?delta:""}
+                </span>
+              </div>
+            );
+          });
+        })()}
       </div>
     </div>
   );
