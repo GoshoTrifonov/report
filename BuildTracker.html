@@ -3245,8 +3245,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   const [shiftLogs, setShiftLogs] = useState([]);
   const [saveState, setSaveState] = useState("idle");
   const [existingSavedAt, setExistingSavedAt] = useState(null);
-  const [exportState, setExportState] = useState("idle");
-  const [exportMsg, setExportMsg] = useState("");
+
   const [activeTab, setActiveTab] = useState("current"); // "current"|"history"|"analytics"
 
   // Check Firestore if this shift already has a saved report
@@ -3441,32 +3440,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   };
 
 
-  const exportToSheets = async (monthFilter) => {
-    setExportState("exporting");
-    setExportMsg(monthFilter ? `Exporting ${monthFilter}…` : "Exporting all reports…");
-    try {
-      const token = await getGoogleAccessToken();
-      const snap = await shiftReportsRef.get();
-      let docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (monthFilter) {
-        docs = docs.filter(d => {
-          if (!d.date) return false;
-          const dt = new Date(d.date + "T12:00:00");
-          const tab = dt.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-          return tab === monthFilter;
-        });
-      }
-      const tabCount = await exportReportsToSheet(docs, token);
-      setExportState("done");
-      setExportMsg(`✓ Exported ${docs.length} reports across ${tabCount} month tab${tabCount !== 1 ? "s" : ""}`);
-      setTimeout(() => { setExportState("idle"); setExportMsg(""); }, 5000);
-    } catch(e) {
-      console.error("Export failed:", e);
-      setExportState("error");
-      setExportMsg("Export failed — " + e.message);
-      setTimeout(() => { setExportState("idle"); setExportMsg(""); }, 5000);
-    }
-  };
+
 
 
 
@@ -3485,14 +3459,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
               <a href="https://goshotrifonov.github.io/report/ShiftReport.html" target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border-l border-stone-200" style={{color:"#334155", textDecoration:"none", display:"inline-flex", alignItems:"center", gap:"4px"}}>History &#x2197;</a>
             </div>
-            <button
-              onClick={() => exportToSheets()}
-              disabled={exportState === "exporting"}
-              title="Export all shift reports to Google Sheets"
-              style={{backgroundColor: exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#0f7a3c", border:"none", borderRadius:6, padding:"5px 10px", color:"white", fontSize:11, fontWeight:600, cursor: exportState==="exporting"?"wait":"pointer"}}
-            >
-              {exportState==="exporting" ? "⏳ Exporting…" : exportState==="done" ? "✓ Sheets" : exportState==="error" ? "⚠ Error" : "📊 → Sheets"}
-            </button>
+            
             <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
           </div>
         </div>
