@@ -132,7 +132,7 @@ const db = firebase.firestore();
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SHIFTS = ["Midnight", "Days", "Afternoon"];
-const BUS = ["Respiratory", "Grind/B&F", "Blades", "Verathon", "Molding", "Flex", "DNA"];
+const BUS = ["Respiratory", "Grind/B&F", "Blades", "Verathon", "Molding", "Flex", "DNA", "Continental"];
 const CONFIG_PASSWORD = "smi1234";
 
 const BU_COLORS = {
@@ -143,6 +143,7 @@ const BU_COLORS = {
   "Molding":     "#f59e0b",
   "Flex":        "#06b6d4",
   "DNA":         "#f97316",
+  "Continental": "#64748b",
 };
 
 const DEFAULT_LINES = {
@@ -153,6 +154,7 @@ const DEFAULT_LINES = {
   "Molding":     ["Operator","Mold Man","Tipper / Pack","Extruders"],
   "Flex":        ["Pack line O/S Rm","Bag Cup","Flex 2","Flex 3","Flex Cover"],
   "DNA":         ["Cell 3","Cell 2","PK","Cell 5","Flex Cover"],
+  "Continental": ["NG2","M39","M30","Elastic tipper"],
 };
 
 const DEFAULT_PLAN = {
@@ -191,6 +193,11 @@ const DEFAULT_PLAN = {
     "Days":      {"Cell 3":8,"Cell 2":0,PK:1,"Cell 5":8,"Flex Cover":0},
     "Afternoon": {"Cell 3":0,"Cell 2":0,PK:0,"Cell 5":0,"Flex Cover":0},
   },
+  "Continental": {
+    "Midnight":  {"NG2":0,"M39":0,"M30":0,"Elastic tipper":0},
+    "Days":      {"NG2":0,"M39":0,"M30":0,"Elastic tipper":0},
+    "Afternoon": {"NG2":0,"M39":0,"M30":0,"Elastic tipper":0},
+  },
 };
 
 // Default assigned headcount per BU per shift (configured in Config, changes rarely)
@@ -202,6 +209,7 @@ const DEFAULT_ASSIGNED = {
   "Molding":     { "Midnight": 22, "Days": 22, "Afternoon": 22 },
   "Flex":        { "Midnight": 12, "Days": 14, "Afternoon": 10 },
   "DNA":         { "Midnight": 0,  "Days": 18, "Afternoon": 0  },
+  "Continental": { "Midnight": 0,  "Days": 0,  "Afternoon": 0  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
