@@ -193,6 +193,17 @@ const DEFAULT_PLAN = {
   },
 };
 
+// Default assigned headcount per BU per shift (configured in Config, changes rarely)
+const DEFAULT_ASSIGNED = {
+  "Respiratory": { "Midnight": 35, "Days": 48, "Afternoon": 35 },
+  "Grind/B&F":   { "Midnight": 2,  "Days": 2,  "Afternoon": 2  },
+  "Blades":      { "Midnight": 2,  "Days": 16, "Afternoon": 6  },
+  "Verathon":    { "Midnight": 45, "Days": 65, "Afternoon": 43 },
+  "Molding":     { "Midnight": 22, "Days": 22, "Afternoon": 22 },
+  "Flex":        { "Midnight": 12, "Days": 14, "Afternoon": 10 },
+  "DNA":         { "Midnight": 0,  "Days": 18, "Afternoon": 0  },
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function detectShift() {
   const h = new Date().getHours();
@@ -391,8 +402,13 @@ function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
     return s + sumActual(shiftData[bu]?.lines, lines);
   }, 0);
   const grandAbsent = BUS.reduce((s, bu) => s + (shiftData[bu]?.absent || 0), 0);
+  const grandAssigned = BUS.reduce((s, bu) => {
+    const a = (cfg.assigned || DEFAULT_ASSIGNED)[bu] || DEFAULT_ASSIGNED[bu] || {};
+    return s + (a[selectedShift] || 0);
+  }, 0);
   const efficiency = grandPlan > 0 ? Math.round(grandActual / grandPlan * 100) : 0;
   const effColor = grandActual >= grandPlan ? "#22c55e" : grandActual >= grandPlan * 0.85 ? "#eab308" : "#ef4444";
+  const assignedSurplus = grandAssigned - grandPlan; // positive = extra people vs plan
 
   const doSnapshot = async () => {
     if (!snapLabel.trim()) { alert("Enter a label for this snapshot."); return; }
@@ -453,6 +469,15 @@ function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
         {/* Totals */}
         <div className="flex gap-5 items-end flex-wrap">
           <div>
+            <div className="text-xs mb-0.5" style={{color:"var(--text3)"}}>Assigned</div>
+            <div className="text-3xl font-bold" style={{color:"var(--text)"}}>{grandAssigned}</div>
+            {assignedSurplus !== 0 && (
+              <div className="text-xs font-semibold mt-0.5" style={{color: assignedSurplus > 0 ? "#22c55e" : "#ef4444"}}>
+                {assignedSurplus > 0 ? `+${assignedSurplus} extra` : `${assignedSurplus} short`}
+              </div>
+            )}
+          </div>
+          <div>
             <div className="text-xs mb-0.5" style={{color:"var(--text3)"}}>Planned</div>
             <div className="text-3xl font-bold" style={{color:"var(--text)"}}>{grandPlan}</div>
           </div>
@@ -497,35 +522,45 @@ function BUCard({ bu, cfg, shiftData, shift }) {
   const actual = shiftData?.lines || {};
   const absent = shiftData?.absent || 0;
   const savedAt = shiftData?.savedAt;
+  const assigned = ((cfg.assigned || DEFAULT_ASSIGNED)[bu] || DEFAULT_ASSIGNED[bu] || {})[shift] || 0;
 
   const totalPlan = sumPlan(plan, lines);
   const totalActual = sumActual(actual, lines);
   const sc = statusClass(totalPlan, totalActual);
   const color = BU_COLORS[bu];
+  const surplus = assigned - totalPlan; // positive = extra vs plan
+
+  // 5-col grid: line | assigned | plan | actual | delta
+  const ROW = "1fr 46px 46px 46px 42px";
 
   return (
     <div className="card" style={{borderLeft:`4px solid ${color}`}}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <div className="font-bold text-base" style={{color:"var(--text)"}}>{bu}</div>
           {savedAt && <div className="text-xs" style={{color:"var(--text4)"}}>{formatTs({toDate:()=>new Date(savedAt)})}</div>}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap justify-end">
           {absent > 0 && <span className="text-xs px-2 py-0.5 rounded-full" style={{background:"rgba(194,65,12,0.25)",color:"#fb923c"}}>-{absent} absent</span>}
+          {assigned > 0 && <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{background: surplus > 0 ? "rgba(34,197,94,0.15)" : surplus < 0 ? "rgba(239,68,68,0.15)" : "var(--bg3)",
+                    color: surplus > 0 ? "#22c55e" : surplus < 0 ? "#ef4444" : "var(--text3)"}}>
+            {assigned} asgn {surplus > 0 ? `+${surplus}` : surplus < 0 ? surplus : ""}
+          </span>}
           <span className={`text-sm font-bold px-3 py-1 rounded-full ${sc}`}>{totalActual} / {totalPlan}</span>
         </div>
       </div>
 
       {/* Header row */}
-      <div className="tv-line-row text-xs mb-1" style={{color:"var(--text4)"}}>
+      <div className="text-xs mb-1 px-1" style={{display:"grid", gridTemplateColumns:ROW, color:"var(--text4)"}}>
         <span>Line</span>
+        <span className="text-center">Asgn</span>
         <span className="text-center">Plan</span>
         <span className="text-center">Actual</span>
         <span className="text-center">Δ</span>
       </div>
 
       <div className="space-y-0.5 max-h-72 overflow-y-auto scrollbar-thin">
-        {/* Union: cfg lines + any saved keys not in cfg (key mismatch safety net) */}
         {(() => {
           const cfgSet = new Set(lines);
           const extraKeys = Object.keys(actual).filter(k => !cfgSet.has(k) && Number(actual[k]) > 0);
@@ -536,11 +571,15 @@ function BUCard({ bu, cfg, shiftData, shift }) {
             const delta = a - p;
             const isExtra = !cfgSet.has(line);
             return (
-              <div key={line} className={`tv-line-row text-sm ${p===0&&a===0&&!isExtra?"opacity-40":""}`}>
-                <span className="truncate" style={{color: isExtra ? "#f59e0b" : "var(--text2)"}} title={isExtra?"Key not in config — check Config tab":line}>{line}{isExtra?" ⚠️":""}</span>
+              <div key={line} className={`text-sm px-1 py-0.5 rounded ${p===0&&a===0&&!isExtra?"opacity-40":""}`}
+                style={{display:"grid", gridTemplateColumns:ROW, alignItems:"center",
+                        background: isExtra ? "rgba(245,158,11,0.08)" : ""}}>
+                <span className="truncate" style={{color: isExtra ? "#f59e0b" : "var(--text2)"}}
+                  title={isExtra?"Key not in config":line}>{line}{isExtra?" ⚠️":""}</span>
+                <span className="text-center" style={{color:"var(--text4)"}}>—</span>
                 <span className="text-center" style={{color:"var(--text3)"}}>{p||"—"}</span>
                 <span className="text-center font-semibold" style={{color: a>0 ? "var(--text)" : "var(--text4)"}}>{a||"—"}</span>
-                <span className={`text-center text-xs ${delta>0?"text-green-400":delta<0?"text-red-400":""}`} style={delta===0?{color:"var(--text4)"}:{}}>
+                <span className="text-center text-xs" style={{color: delta>0?"#22c55e":delta<0?"#ef4444":"var(--text4)"}}>
                   {delta>0?`+${delta}`:delta<0?delta:""}
                 </span>
               </div>
@@ -1034,6 +1073,41 @@ function ConfigView({ cfg, onSave }) {
         </p>
       </div>
 
+      {/* Assigned headcount per shift */}
+      <div className="card mb-4">
+        <div className="text-sm font-semibold mb-1" style={{color:"var(--text3)"}}>
+          Assigned Headcount — <span style={{color:BU_COLORS[editBU]}}>{editBU}</span>
+        </div>
+        <p className="text-xs mb-3" style={{color:"var(--text4)"}}>
+          Total people assigned to this BU per shift. If everyone shows up, surplus = Assigned − Plan.
+        </p>
+        <div className="flex gap-6 flex-wrap">
+          {SHIFTS.map(s => {
+            const val = (localCfg.assigned?.[editBU] || DEFAULT_ASSIGNED[editBU] || {})[s] || 0;
+            const planTotal = lines.reduce((sum, l) => sum + ((localCfg.plan[editBU]?.[s]?.[l]) || (DEFAULT_PLAN[editBU]?.[s]?.[l]) || 0), 0);
+            const surplus = val - planTotal;
+            return (
+              <div key={s} className="flex flex-col items-center gap-1">
+                <div className="text-xs font-semibold" style={{color:"var(--text3)"}}>{s}</div>
+                <input type="number" min="0" max="999"
+                  value={val}
+                  onChange={e => {
+                    const c = cloneCfg();
+                    if (!c.assigned) c.assigned = JSON.parse(JSON.stringify(DEFAULT_ASSIGNED));
+                    if (!c.assigned[editBU]) c.assigned[editBU] = {};
+                    c.assigned[editBU][s] = Number(e.target.value) || 0;
+                    setLocalCfg(c); setSaved(false);
+                  }}
+                  className="input-num" style={{width:"72px", fontSize:"1.1rem"}}/>
+                <div className="text-xs" style={{color: surplus > 0 ? "#22c55e" : surplus < 0 ? "#ef4444" : "var(--text4)"}}>
+                  {planTotal > 0 ? (surplus > 0 ? `+${surplus} extra` : surplus < 0 ? `${surplus} short` : "exact") : ""}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <button onClick={handleSave} disabled={saving}
         className="btn-primary w-full py-3 text-base"
         style={saved?{background:"#16a34a"}:{}}>
@@ -1048,6 +1122,7 @@ function ConfigView({ cfg, onSave }) {
           const c = cloneCfg();
           c.plan = JSON.parse(JSON.stringify(DEFAULT_PLAN));
           c.lines = JSON.parse(JSON.stringify(DEFAULT_LINES));
+          c.assigned = JSON.parse(JSON.stringify(DEFAULT_ASSIGNED));
           setLocalCfg(c); setSaved(false);
         }} className="btn-danger text-sm">Reset Everything to Defaults</button>
       </div>
