@@ -604,13 +604,12 @@ const CAMERA_COLORS = {'HDMI':'#2563eb','QC':'#059669','QC Green':'#16a34a','Mil
 
 function CameraView({ rows, weeks, allWeeks }) {
   const [showAll, setShowAll] = useState(false);
-  const displayWeeks = showAll ? allWeeks : weeks;
+  const displayWeeks = showAll ? allWeeks : weeks.slice(0, 7);
+  const showAvg = !showAll;
 
-  // Build camera type → week → total qty
   const cameraData = useMemo(() => {
     const map = {};
     CAMERA_ORDER.forEach(c => { map[c] = { weekTotals: {}, parts: new Set() }; });
-
     rows.forEach(r => {
       const cam = CAMERA_MAP[r.part_id];
       if (!cam) return;
@@ -620,7 +619,6 @@ function CameraView({ rows, weeks, allWeeks }) {
         map[cam].weekTotals[w] = (map[cam].weekTotals[w] || 0) + qty;
       });
     });
-
     return CAMERA_ORDER.map(cam => ({
       camera: cam,
       weekTotals: map[cam] ? map[cam].weekTotals : {},
@@ -628,7 +626,6 @@ function CameraView({ rows, weeks, allWeeks }) {
     })).filter(d => d.partCount > 0);
   }, [rows]);
 
-  // Grand total per week
   const grandTotals = useMemo(() => {
     const gt = {};
     cameraData.forEach(({ weekTotals }) => {
@@ -637,30 +634,36 @@ function CameraView({ rows, weeks, allWeeks }) {
     return gt;
   }, [cameraData]);
 
+  const weekAvg = (weekTotals) => {
+    const sum = displayWeeks.reduce((s, w) => s + (weekTotals[w] || 0), 0);
+    return displayWeeks.length > 0 ? Math.round(sum / displayWeeks.length) : 0;
+  };
+
   if (cameraData.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No camera-mapped parts in current selection.</div>;
 
   return (
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
         <div style={{color:'#64748b',fontSize:13}}>
-          Weekly build plan by camera type · <span style={{color:'#0f172a',fontWeight:600}}>{displayWeeks.length}</span> weeks shown
+          Weekly build plan by camera type · <span style={{color:'#0f172a',fontWeight:600}}>{displayWeeks.length}</span> weeks{showAvg && <span style={{color:'#94a3b8'}}> + avg</span>}
         </div>
         <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#2563eb',background:'transparent',border:'1px solid #cbd5e1',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
-          {showAll ? 'Show near-term only' : `Show all ${allWeeks.length} weeks`}
+          {showAll ? 'Show near-term + avg' : `Show all ${allWeeks.length} weeks`}
         </button>
       </div>
-
       <div style={{overflowX:'auto',borderRadius:10,border:'1px solid #e2e8f0'}}>
         <table style={{minWidth:'100%',borderCollapse:'collapse',fontSize:13}}>
           <thead>
             <tr style={{background:'#f1f5f9',fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'#64748b'}}>
               <th style={{position:'sticky',left:0,zIndex:10,background:'#f1f5f9',padding:'10px 16px',textAlign:'left',borderBottom:'1px solid #e2e8f0',borderRight:'1px solid #e2e8f0',minWidth:160,whiteSpace:'nowrap'}}>Camera Type</th>
               {displayWeeks.map(w => <th key={w} style={{padding:'10px 10px',textAlign:'center',borderBottom:'1px solid #e2e8f0',minWidth:76,whiteSpace:'nowrap'}}>{fmtWeek(w)}</th>)}
+              {showAvg && <th style={{padding:'10px 10px',textAlign:'center',borderBottom:'1px solid #e2e8f0',borderLeft:'2px solid #cbd5e1',minWidth:80,whiteSpace:'nowrap',color:'#1e40af',background:'#eff6ff'}}>Avg / Wk</th>}
             </tr>
           </thead>
           <tbody>
             {cameraData.map(({ camera, weekTotals, partCount }) => {
               const color = CAMERA_COLORS[camera] || '#64748b';
+              const wa = weekAvg(weekTotals);
               return (
                 <tr key={camera} style={{borderBottom:'1px solid #e2e8f0'}}>
                   <td style={{position:'sticky',left:0,zIndex:5,background:'#ffffff',padding:'11px 16px',borderRight:'1px solid #e2e8f0'}}>
@@ -676,17 +679,18 @@ function CameraView({ rows, weeks, allWeeks }) {
                     const qty = weekTotals[w] || 0;
                     return (
                       <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',background: qty > 0 ? color+'0d' : '#ffffff'}}>
-                        {qty > 0
-                          ? <span style={{color,fontWeight:700}}>{fmtQty(qty)}</span>
-                          : <span style={{color:'#cbd5e1'}}>—</span>}
+                        {qty > 0 ? <span style={{color,fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       </td>
                     );
                   })}
+                  {showAvg && (
+                    <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
+                      {wa > 0 ? <span style={{color:'#1e40af',fontWeight:800}}>{fmtQty(wa)}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
+                    </td>
+                  )}
                 </tr>
               );
             })}
-
-            {/* Grand total row */}
             <tr style={{background:'#f8fafc',borderTop:'2px solid #e2e8f0'}}>
               <td style={{position:'sticky',left:0,zIndex:5,background:'#f8fafc',padding:'11px 16px',borderRight:'1px solid #e2e8f0'}}>
                 <div style={{color:'#0f172a',fontWeight:700,fontSize:13}}>Total</div>
@@ -696,18 +700,21 @@ function CameraView({ rows, weeks, allWeeks }) {
                 const qty = grandTotals[w] || 0;
                 return (
                   <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                    {qty > 0
-                      ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty)}</span>
-                      : <span style={{color:'#cbd5e1'}}>—</span>}
+                    {qty > 0 ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                   </td>
                 );
               })}
+              {showAvg && (
+                <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
+                  <span style={{color:'#1e40af',fontWeight:800}}>
+                    {fmtQty(Math.round(displayWeeks.reduce((s,w)=>s+(grandTotals[w]||0),0)/(displayWeeks.length||1)))}
+                  </span>
+                </td>
+              )}
             </tr>
           </tbody>
         </table>
       </div>
-
-      {/* Note about unmapped parts */}
       {rows.some(r => !CAMERA_MAP[r.part_id]) && (
         <div style={{marginTop:12,fontSize:12,color:'#94a3b8'}}>
           ⚠ Some parts in the current view have no camera type assigned and are excluded from this summary.
