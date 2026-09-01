@@ -147,11 +147,11 @@ const ALL_LEADERS = Object.keys(LEADER_TO_BU);
 const buName = (leader) => LEADER_TO_BU[leader] || leader;
 
 const SHIFTS = [
-  { id:1, label:"Shift 1", time:"11pm–7am" },
-  { id:2, label:"Shift 2", time:"7am–3pm"  },
-  { id:3, label:"Shift 3", time:"3pm–11pm" },
+  { id:1, label:"Shift 1", time:"11pm\u20137am" },
+  { id:2, label:"Shift 2", time:"7am\u20133pm"  },
+  { id:3, label:"Shift 3", time:"3pm\u201311pm" },
 ];
-const fmtNum = (n) => n==null ? "–" : Number(n).toLocaleString(undefined,{maximumFractionDigits:1});
+const fmtNum = (n) => n==null ? "\u2013" : Number(n).toLocaleString(undefined,{maximumFractionDigits:1});
 
 // - Date helpers -
 const ymd = (d) => d.toISOString().slice(0,10);
@@ -281,7 +281,7 @@ function DowntimeCard({ r }) {
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
           <span className="text-xs font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</span>
-          <span className="text-rose-400 text-[10px]">{open?"▲":"▼"}</span>
+          <span className="text-rose-400 text-[10px]">{open?"\u25B2":"\u25BC"}</span>
         </div>
       </button>
       {open && (
@@ -369,9 +369,9 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
 
   const copyReport = (r) => {
     const lines = [];
-    lines.push(`SHIFT REPORT — ${r.bu||buName(r.leader)}`);
+    lines.push(`SHIFT REPORT \u2014 ${r.bu||buName(r.leader)}`);
     const dt = new Date(r.date+"T12:00:00");
-    lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" — "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
+    lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" \u2014 "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
     lines.push("=".repeat(60));
     lines.push(`Total units: ${(r.totalUnits||0).toLocaleString()}`);
     if (r.totalEff!=null) lines.push(`Efficiency: ${r.totalEff.toFixed(1)}%`);
@@ -382,7 +382,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
     for (const [res,items] of Object.entries(byRes)) {
       lines.push(`--- ${res} ---`);
       for (const w of items) {
-        lines.push(`  ${w.wo} — ${w.descr||""}: +${w.qty} units${w.eff!=null?" Eff "+w.eff.toFixed(1)+"%" : ""}`);
+        lines.push(`  ${w.wo} \u2014 ${w.descr||""}: +${w.qty} units${w.eff!=null?" Eff "+w.eff.toFixed(1)+"%" : ""}`);
         if (w.notes) lines.push(`    ${w.notes}`);
       }
     }
@@ -511,7 +511,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                       {woNoteTarget===w.wo ? (
                         <div className="flex gap-1.5 mt-2 print:hidden">
                           <input autoFocus value={woNoteInput} onChange={e=>setWoNoteInput(e.target.value)}
-                            placeholder="Add note…"
+                            placeholder="Add note\u2026"
                             className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
                             onKeyDown={e=>{ if(e.key==="Enter"&&woNoteInput.trim()) saveWoNote(w.wo); if(e.key==="Escape"){setWoNoteTarget(null);setWoNoteInput("");} }}
                           />
@@ -551,14 +551,14 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
           )}
           <div className="flex gap-2 mb-2">
             <input value={noteInput} onChange={e=>setNoteInput(e.target.value)}
-              placeholder="Add a note to this report…"
+              placeholder="Add a note to this report\u2026"
               className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
               onKeyDown={e=>{ if(e.key==="Enter"&&noteInput.trim()) saveHistoryNote(); }}
             />
             <button onClick={saveHistoryNote} disabled={!noteInput.trim()||noteSaving}
               style={{backgroundColor:noteSaving?"#60a5fa":"#2563eb"}}
               className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
-              {noteSaving?"…":"Add"}
+              {noteSaving?"\u2026":"Add"}
             </button>
           </div>
           <div className="flex gap-2">
@@ -777,11 +777,11 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                   <div className="col-span-1 rounded-lg border-2 px-3 py-3 flex flex-col items-center justify-center" style={{backgroundColor:effBg,borderColor:effColor}}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color:effColor}}>Efficiency</div>
-                    <div className="text-2xl font-bold tabular-nums" style={{color:effColor}}>{thisEff!=null?thisEff.toFixed(1)+"%":"—"}</div>
+                    <div className="text-2xl font-bold tabular-nums" style={{color:effColor}}>{thisEff!=null?thisEff.toFixed(1)+"%":"\u2014"}</div>
                     <div className="text-[10px] font-semibold mt-1" style={{color:effColor}}>target {TARGET}%</div>
                     {trend!=null && (
                       <div className={`text-[11px] font-bold mt-1 ${trend>=0?"text-emerald-600":"text-rose-600"}`}>
-                        {trend>=0?"↑":"↓"} {Math.abs(trend).toFixed(1)}% vs prev
+                        {trend>=0?"\u2191":"\u2193"} {Math.abs(trend).toFixed(1)}% vs prev
                       </div>
                     )}
                   </div>
@@ -861,7 +861,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <tr key={i} style={{backgroundColor:rb}}>
                             <td className="px-3 py-2 font-semibold text-slate-800 text-xs">{r.resource}</td>
                             <td className="px-3 py-2 text-right">
-                              <span className="text-xs font-bold tabular-nums" style={{color:rc}}>{r.eff!=null?r.eff.toFixed(1)+"%":"—"}</span>
+                              <span className="text-xs font-bold tabular-nums" style={{color:rc}}>{r.eff!=null?r.eff.toFixed(1)+"%":"\u2014"}</span>
                             </td>
                             <td className="px-3 py-2 text-right">
                               <span className={`text-xs font-semibold tabular-nums ${r.lost<0?"text-rose-600":"text-emerald-600"}`}>{r.lost.toFixed(1)}h</span>
@@ -910,7 +910,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                       <div key={s.id} className="rounded-lg border-2 px-3 py-3" style={{backgroundColor:sb,borderColor:sc}}>
                         <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{color:sc}}>{s.label}</div>
                         <div className="text-[9px] text-slate-400 mb-2">{s.time}</div>
-                        <div className="text-xl font-bold tabular-nums mb-1" style={{color:sc}}>{sEff!=null?sEff.toFixed(1)+"%":"—"}</div>
+                        <div className="text-xl font-bold tabular-nums mb-1" style={{color:sc}}>{sEff!=null?sEff.toFixed(1)+"%":"\u2014"}</div>
                         <div className="text-[10px] text-slate-500">{sd.units.toLocaleString()} units</div>
                         <div className="text-[10px] text-slate-400">{sd.hrs.toFixed(0)}h worked</div>
                       </div>
@@ -1074,7 +1074,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
     prompt += `2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)`;
     prompt += `3. BRIGHT SPOTS (bullet points: what went well, resources above target)`;
     prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)`;
-    prompt += `Be specific — use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
+    prompt += `Be specific \u2014 use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
     return prompt;
   };
 
@@ -1110,7 +1110,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
     if (!summary) return;
     const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
     const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
-    const header = `SMI Production Summary — ${buLabel} — ${rangeLabel}\n${"=".repeat(50)}\n\n`;
+    const header = `SMI Production Summary \u2014 ${buLabel} \u2014 ${rangeLabel}\n${"=".repeat(50)}\n\n`;
     navigator.clipboard.writeText(header + summary).then(()=>{
       setCopied(true);
       setTimeout(()=>setCopied(false), 2500);
@@ -1133,13 +1133,13 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
             <button onClick={copy}
               className="px-3 py-1.5 rounded text-[11px] font-semibold text-white border border-blue-400 hover:bg-blue-700"
               style={{backgroundColor: copied?"#16a34a":"transparent"}}>
-              {copied ? "✓ Copied!" : "Copy"}
+              {copied ? "\u2713 Copied!" : "Copy"}
             </button>
           )}
           <button onClick={generate} disabled={status==="loading"||!data}
             className="px-4 py-1.5 rounded text-[11px] font-bold text-blue-900 disabled:opacity-50"
             style={{backgroundColor: status==="loading"?"#93c5fd":"#f0f9ff"}}>
-            {status==="loading" ? "⏳ Analyzing…" : status==="done" ? "↻ Regenerate" : "✦ Generate Summary"}
+            {status==="loading" ? "\u23F3 Analyzing\u2026" : status==="done" ? "\u21BB Regenerate" : "\u2726 Generate Summary"}
           </button>
         </div>
       </div>
@@ -1201,7 +1201,7 @@ function ShiftReportApp() {
 
   const exportToSheets = async (monthFilter) => {
     setExportState("exporting");
-    setExportMsg(monthFilter?`Exporting ${monthFilter}…`:"Exporting all reports…");
+    setExportMsg(monthFilter?`Exporting ${monthFilter}\u2026`:"Exporting all reports\u2026");
     try {
       const token = await getGoogleAccessToken();
       let docs = allDocs||[];
@@ -1215,12 +1215,12 @@ function ShiftReportApp() {
       }
       const tabCount = await exportReportsToSheet(docs, token);
       setExportState("done");
-      setExportMsg(`✓ Exported ${docs.length} reports across ${tabCount} tab${tabCount!==1?"s":""}`);
+      setExportMsg(`\u2713 Exported ${docs.length} reports across ${tabCount} tab${tabCount!==1?"s":""}`);
       setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
     } catch(e) {
       console.error(e);
       setExportState("error");
-      setExportMsg("Export failed — "+e.message);
+      setExportMsg("Export failed \u2014 "+e.message);
       setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
     }
   };
@@ -1265,7 +1265,7 @@ function ShiftReportApp() {
             style={{backgroundColor:exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#1e4d8c"}}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-[11px] font-semibold border border-blue-700">
             <Sheet className="w-3.5 h-3.5"/>
-            {exportState==="exporting"?"Exporting…":exportState==="done"?"✓ Done":exportState==="error"?"Error":"Sheets"}
+            {exportState==="exporting"?"Exporting\u2026":exportState==="done"?"\u2713 Done":exportState==="error"?"Error":"Sheets"}
           </button>
           {/* Back to BuildTracker */}
           <a href={BT_URL}
