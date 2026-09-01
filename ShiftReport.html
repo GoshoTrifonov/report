@@ -995,12 +995,10 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
               })()}
             </div>
 
-              {/* AI Monthly Summary */}
-              <AISummaryPanel data={data} rangeF={rangeF} buFilter={buFilter} />
-
             </div>
           );
         })()}
+        {data && <AISummaryPanel data={data} rangeF={rangeF} buFilter={buFilter} />}
       </div>
     </div>
   );
