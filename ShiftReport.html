@@ -1044,8 +1044,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
     if (ncCount>0) prompt += `- NC incidents: ${ncCount}
 `;
 
-    prompt += `
-SHIFT BREAKDOWN
+    prompt += `\nSHIFT BREAKDOWN\n`;
 `;
     [1,2,3].forEach(id => {
       const s = byShift[id]||{earned:0,hrs:0,units:0};
@@ -1058,8 +1057,7 @@ SHIFT BREAKDOWN
     // Top struggling resources (below 90%)
     const struggling = resources.filter(r=>r.eff!=null&&r.eff<90).sort((a,b)=>a.lost-b.lost).slice(0,10);
     if (struggling.length>0) {
-      prompt += `
-RESOURCES BELOW TARGET (90%)
+      prompt += `\nRESOURCES BELOW TARGET (90%)\n`;
 `;
       for (const r of struggling) {
         prompt += `- ${r.resource}: ${r.eff.toFixed(1)}% eff, ${r.lost.toFixed(1)}h lost`;
@@ -1070,15 +1068,12 @@ RESOURCES BELOW TARGET (90%)
           const noteTexts = r.allNotes.slice(0,3).map(n=>`"${n.note}"`).join("; ");
           prompt += `, notes: ${noteTexts}`;
         }
-        prompt += "
-";
       }
     }
 
     // Downtime reasons summary
     if (Object.keys(reasonCount).length>0) {
-      prompt += `
-TOP UNDERPERFORMANCE REASONS
+      prompt += `\nTOP UNDERPERFORMANCE REASONS\n`;
 `;
       Object.entries(reasonCount).sort((a,b)=>(b[1].lost||0)-(a[1].lost||0)).slice(0,5).forEach(([r,d])=>{
         prompt += `- ${r}: ${d.count} occurrences, ${d.lost.toFixed(1)}h lost
@@ -1086,8 +1081,7 @@ TOP UNDERPERFORMANCE REASONS
       });
     }
 
-    prompt += `
-Please provide a concise management summary with:
+    prompt += `\nPlease provide a concise management summary with:\n`;
 `;
     prompt += `1. HEADLINE (1 sentence: overall performance assessment)
 `;
