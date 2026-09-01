@@ -22,9 +22,48 @@ const db=firebase.firestore();
   ::-webkit-scrollbar-track{background:#e2e8f0}
   ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
 </style>
+<style>
+  #pw-overlay{position:fixed;inset:0;background:#f8fafc;display:flex;align-items:center;justify-content:center;z-index:9999;}
+  #pw-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:40px 32px;width:320px;max-width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.08);text-align:center;}
+  #pw-box h2{margin:0 0 6px;font-size:20px;font-weight:800;color:#0f172a;}
+  #pw-box p{margin:0 0 24px;font-size:13px;color:#94a3b8;}
+  #pw-input{width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;}
+  #pw-input:focus{border-color:#1e40af;}
+  #pw-btn{width:100%;padding:11px;background:#1e40af;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+  #pw-btn:hover{background:#1d3d9f;}
+  #pw-error{color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;}
+</style>
 </head>
 <body>
-<div id="root"></div>
+<div id="pw-overlay">
+  <div id="pw-box">
+    <h2>VER Weekly Plan</h2>
+    <p>Enter password to continue</p>
+    <input id="pw-input" type="password" placeholder="Password" autofocus />
+    <button id="pw-btn">Unlock</button>
+    <div id="pw-error"></div>
+  </div>
+</div>
+<div id="root" style="display:none"></div>
+<script>
+(function(){
+  var KEY = 'ver_plan_auth';
+  var PWD = '?!App4smi27';
+  function unlock(){
+    document.getElementById('pw-overlay').style.display='none';
+    document.getElementById('root').style.display='';
+    sessionStorage.setItem(KEY,'1');
+  }
+  if(sessionStorage.getItem(KEY)==='1'){unlock();return;}
+  document.getElementById('pw-btn').onclick=check;
+  document.getElementById('pw-input').addEventListener('keydown',function(e){if(e.key==='Enter')check();});
+  function check(){
+    var val=document.getElementById('pw-input').value;
+    if(val===PWD){unlock();}
+    else{document.getElementById('pw-error').textContent='Incorrect password.';document.getElementById('pw-input').value='';document.getElementById('pw-input').focus();}
+  }
+})();
+</script>
 <script type="text/babel">
 const { useState, useMemo, useCallback, useEffect } = React;
 
