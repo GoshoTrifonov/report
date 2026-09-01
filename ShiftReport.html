@@ -1018,64 +1018,59 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
     const { thisEff, prevEff, thisUnits, thisLost, thisHrs, resources, byShift, reasonCount, safetyCount, ncCount, totalDowntimeHrs } = data;
     const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
     const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
-
-    let prompt = `You are analyzing production shift report data for SMI (Southmedic), a medical device manufacturer.
-
-`;
-    prompt += `Period: ${rangeLabel} | BU: ${buLabel}`;
-    prompt += `OVERALL PERFORMANCE`;
-    prompt += `- Efficiency: ${thisEff!=null?thisEff.toFixed(1)+"% (target 90%)":"no data"}`;
-    if (prevEff!=null) prompt += `- vs previous period: ${prevEff.toFixed(1)}% (${thisEff>=prevEff?"+":""}${(thisEff-prevEff).toFixed(1)}%)`;
-    prompt += `- Total units: ${thisUnits.toLocaleString()}`;
-    prompt += `- Hours worked: ${thisHrs.toFixed(0)}h`;
-    prompt += `- Lost/earned hours: ${thisLost.toFixed(1)}h`;
-    if (totalDowntimeHrs>0) prompt += `- Total downtime: ${totalDowntimeHrs.toFixed(1)}h`;
-    if (safetyCount>0) prompt += `- Safety incidents: ${safetyCount}`;
-    if (ncCount>0) prompt += `- NC incidents: ${ncCount}`;
-
-    prompt += `\nSHIFT BREAKDOWN\n`;
-`;
-    [1,2,3].forEach(id => {
+    const parts = [];
+    parts.push("You are analyzing production shift report data for SMI (Southmedic), a medical device manufacturer.");
+    parts.push("Period: " + rangeLabel + " | BU: " + buLabel);
+    parts.push("");
+    parts.push("OVERALL PERFORMANCE");
+    parts.push("- Efficiency: " + (thisEff!=null ? thisEff.toFixed(1)+"% (target 90%)" : "no data"));
+    if (prevEff!=null) parts.push("- vs previous period: " + prevEff.toFixed(1) + "% (" + (thisEff>=prevEff?"+":"") + (thisEff-prevEff).toFixed(1) + "%)");
+    parts.push("- Total units: " + thisUnits.toLocaleString());
+    parts.push("- Hours worked: " + thisHrs.toFixed(0) + "h");
+    parts.push("- Lost/earned hours: " + thisLost.toFixed(1) + "h");
+    if (totalDowntimeHrs>0) parts.push("- Total downtime: " + totalDowntimeHrs.toFixed(1) + "h");
+    if (safetyCount>0) parts.push("- Safety incidents: " + safetyCount);
+    if (ncCount>0) parts.push("- NC incidents: " + ncCount);
+    parts.push("");
+    parts.push("SHIFT BREAKDOWN");
+    [1,2,3].forEach(function(id) {
       const s = byShift[id]||{earned:0,hrs:0,units:0};
       const sEff = s.hrs>0 ? (s.earned/s.hrs*100).toFixed(1) : null;
-      const label = ["","Midnight (11pm-7am)","Days (7am-3pm)","Afternoon (3pm-11pm)"][id];
-      prompt += `- ${label}: ${sEff!=null?sEff+"%":"no data"}, ${s.units.toLocaleString()} units, ${s.hrs.toFixed(0)}h`;
+      const labels = ["","Midnight (11pm-7am)","Days (7am-3pm)","Afternoon (3pm-11pm)"];
+      parts.push("- " + labels[id] + ": " + (sEff!=null?sEff+"%":"no data") + ", " + s.units.toLocaleString() + " units, " + s.hrs.toFixed(0) + "h");
     });
-
-    // Top struggling resources (below 90%)
-    const struggling = resources.filter(r=>r.eff!=null&&r.eff<90).sort((a,b)=>a.lost-b.lost).slice(0,10);
+    const struggling = resources.filter(function(r){return r.eff!=null&&r.eff<90;}).sort(function(a,b){return a.lost-b.lost;}).slice(0,10);
     if (struggling.length>0) {
-      prompt += `\nRESOURCES BELOW TARGET (90%)\n`;
-`;
-      for (const r of struggling) {
-        prompt += `- ${r.resource}: ${r.eff.toFixed(1)}% eff, ${r.lost.toFixed(1)}h lost`;
-        const dtTop = Object.entries(r.downtimeReasons||{}).sort((a,b)=>b[1]-a[1])[0];
-        if (dtTop) prompt += `, top downtime: ${dtTop[0]} (${dtTop[1].toFixed(0)}h)`;
-        else if (r.topReason) prompt += `, top reason: ${r.topReason}`;
+      parts.push("");
+      parts.push("RESOURCES BELOW TARGET (90%)");
+      for (let ri=0; ri<struggling.length; ri++) {
+        const r = struggling[ri];
+        let line = "- " + r.resource + ": " + r.eff.toFixed(1) + "% eff, " + r.lost.toFixed(1) + "h lost";
+        const dtTop = Object.entries(r.downtimeReasons||{}).sort(function(a,b){return b[1]-a[1];})[0];
+        if (dtTop) line += ", top downtime: " + dtTop[0] + " (" + dtTop[1].toFixed(0) + "h)";
+        else if (r.topReason) line += ", top reason: " + r.topReason;
         if (r.allNotes&&r.allNotes.length>0) {
-          const noteTexts = r.allNotes.slice(0,3).map(n=>`"${n.note}"`).join("; ");
-          prompt += `, notes: ${noteTexts}`;
+          const noteTexts = r.allNotes.slice(0,3).map(function(n){return n.note;}).join("; ");
+          line += ", notes: " + noteTexts;
         }
+        parts.push(line);
       }
     }
-
-    // Downtime reasons summary
     if (Object.keys(reasonCount).length>0) {
-      prompt += `\nTOP UNDERPERFORMANCE REASONS\n`;
-`;
-      Object.entries(reasonCount).sort((a,b)=>(b[1].lost||0)-(a[1].lost||0)).slice(0,5).forEach(([r,d])=>{
-        prompt += `- ${r}: ${d.count} occurrences, ${d.lost.toFixed(1)}h lost`;
+      parts.push("");
+      parts.push("TOP UNDERPERFORMANCE REASONS");
+      Object.entries(reasonCount).sort(function(a,b){return (b[1].lost||0)-(a[1].lost||0);}).slice(0,5).forEach(function(entry){
+        parts.push("- " + entry[0] + ": " + entry[1].count + " occurrences, " + entry[1].lost.toFixed(1) + "h lost");
       });
     }
-
-    prompt += `\nPlease provide a concise management summary with:\n`;
-`;
-    prompt += `1. HEADLINE (1 sentence: overall performance assessment)`;
-    prompt += `2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)`;
-    prompt += `3. BRIGHT SPOTS (bullet points: what went well, resources above target)`;
-    prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)`;
-    prompt += `Be specific \u2014 use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
-    return prompt;
+    parts.push("");
+    parts.push("Please provide a concise management summary with:");
+    parts.push("1. HEADLINE (1 sentence: overall performance assessment)");
+    parts.push("2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)");
+    parts.push("3. BRIGHT SPOTS (bullet points: what went well, resources above target)");
+    parts.push("4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)");
+    parts.push("Be specific - use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.");
+    return parts.join("\n");
   };
 
   const generate = async () => {
