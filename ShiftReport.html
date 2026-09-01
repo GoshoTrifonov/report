@@ -995,7 +995,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
               })()}
             </div>
 
-              {/* ── AI Monthly Summary ── */}
+              {/* AI Monthly Summary */}
               <AISummaryPanel data={data} rangeF={rangeF} buFilter={buFilter} />
 
             </div>
@@ -1006,7 +1006,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
   );
 }
 
-// ── AI Summary Panel ────────────────────────────────────────────────────────
+// AI Summary Panel──────────────
 function AISummaryPanel({ data, rangeF, buFilter }) {
   const [status,   setStatus]   = useState("idle"); // idle|loading|done|error
   const [summary,  setSummary]  = useState(null);
