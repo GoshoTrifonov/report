@@ -686,6 +686,11 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
           r.downtimeHrs+=w.downtimeDuration; r.downtimeReasons[w.downtimeReason]=(r.downtimeReasons[w.downtimeReason]||0)+w.downtimeDuration;
           if (w.notes) r.downtimeNotes.push({wo:w.wo,note:w.notes,reason:w.downtimeReason});
         }
+        // Collect all WO notes for AI summary
+        if (w.notes) {
+          if (!r.allNotes) r.allNotes=[];
+          r.allNotes.push({wo:w.wo,note:w.notes,reason:w.reason||'',lost:w.lost||0});
+        }
         s.earned+=w.earned||0; s.hrs+=w.hrs||0; s.units+=w.qty||0; s.count++;
         thisEarned+=w.earned||0; thisHrs+=w.hrs||0; thisUnits+=w.qty||0; thisLost+=w.lost||0;
         if (!dailyEff[doc.date]) dailyEff[doc.date]={earned:0,hrs:0};
@@ -712,7 +717,12 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
     const resources = Object.values(byResource).map(r=>({
       ...r,
       eff: r.hrs>0 ? Math.round(r.earned/r.hrs*1000)/10 : null,
-      topReason: Object.entries(r.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||"",
+      topReason: (() => {
+        // Prefer downtime reason (most hours), fall back to underperf reason (most occurrences)
+        const dtTop = Object.entries(r.downtimeReasons||{}).sort((a,b)=>b[1]-a[1])[0];
+        if (dtTop) return dtTop[0] + ' (' + dtTop[1].toFixed(0) + 'h)';
+        return Object.entries(r.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+      })(),
     })).sort((a,b)=>(a.lost||0)-(b.lost||0));
     const dailyEffSorted = Object.entries(dailyEff).sort(([a],[b])=>a.localeCompare(b)).map(([date,d])=>({ date, eff:d.hrs>0?Math.round(d.earned/d.hrs*1000)/10:null }));
 
@@ -984,9 +994,207 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                 );
               })()}
             </div>
+
+              {/* ── AI Monthly Summary ── */}
+              <AISummaryPanel data={data} rangeF={rangeF} buFilter={buFilter} />
+
+            </div>
           );
         })()}
       </div>
+    </div>
+  );
+}
+
+// ── AI Summary Panel ────────────────────────────────────────────────────────
+function AISummaryPanel({ data, rangeF, buFilter }) {
+  const [status,   setStatus]   = useState("idle"); // idle|loading|done|error
+  const [summary,  setSummary]  = useState(null);
+  const [copied,   setCopied]   = useState(false);
+
+  const RANGE_LABELS = {
+    today:"Today", yesterday:"Yesterday", this_week:"This week",
+    last_week:"Last week", this_month:"This month", last_month:"Last month"
+  };
+
+  const buildPrompt = () => {
+    if (!data) return "";
+    const { thisEff, prevEff, thisUnits, thisLost, thisHrs, resources, byShift, reasonCount, safetyCount, ncCount, totalDowntimeHrs } = data;
+    const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
+    const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
+
+    let prompt = `You are analyzing production shift report data for SMI (Southmedic), a medical device manufacturer.
+
+`;
+    prompt += `Period: ${rangeLabel} | BU: ${buLabel}
+
+`;
+    prompt += `OVERALL PERFORMANCE
+`;
+    prompt += `- Efficiency: ${thisEff!=null?thisEff.toFixed(1)+"% (target 90%)":"no data"}
+`;
+    if (prevEff!=null) prompt += `- vs previous period: ${prevEff.toFixed(1)}% (${thisEff>=prevEff?"+":""}${(thisEff-prevEff).toFixed(1)}%)
+`;
+    prompt += `- Total units: ${thisUnits.toLocaleString()}
+`;
+    prompt += `- Hours worked: ${thisHrs.toFixed(0)}h
+`;
+    prompt += `- Lost/earned hours: ${thisLost.toFixed(1)}h
+`;
+    if (totalDowntimeHrs>0) prompt += `- Total downtime: ${totalDowntimeHrs.toFixed(1)}h
+`;
+    if (safetyCount>0) prompt += `- Safety incidents: ${safetyCount}
+`;
+    if (ncCount>0) prompt += `- NC incidents: ${ncCount}
+`;
+
+    prompt += `
+SHIFT BREAKDOWN
+`;
+    [1,2,3].forEach(id => {
+      const s = byShift[id]||{earned:0,hrs:0,units:0};
+      const sEff = s.hrs>0 ? (s.earned/s.hrs*100).toFixed(1) : null;
+      const label = ["","Midnight (11pm-7am)","Days (7am-3pm)","Afternoon (3pm-11pm)"][id];
+      prompt += `- ${label}: ${sEff!=null?sEff+"%":"no data"}, ${s.units.toLocaleString()} units, ${s.hrs.toFixed(0)}h
+`;
+    });
+
+    // Top struggling resources (below 90%)
+    const struggling = resources.filter(r=>r.eff!=null&&r.eff<90).sort((a,b)=>a.lost-b.lost).slice(0,10);
+    if (struggling.length>0) {
+      prompt += `
+RESOURCES BELOW TARGET (90%)
+`;
+      for (const r of struggling) {
+        prompt += `- ${r.resource}: ${r.eff.toFixed(1)}% eff, ${r.lost.toFixed(1)}h lost`;
+        const dtTop = Object.entries(r.downtimeReasons||{}).sort((a,b)=>b[1]-a[1])[0];
+        if (dtTop) prompt += `, top downtime: ${dtTop[0]} (${dtTop[1].toFixed(0)}h)`;
+        else if (r.topReason) prompt += `, top reason: ${r.topReason}`;
+        if (r.allNotes&&r.allNotes.length>0) {
+          const noteTexts = r.allNotes.slice(0,3).map(n=>`"${n.note}"`).join("; ");
+          prompt += `, notes: ${noteTexts}`;
+        }
+        prompt += "
+";
+      }
+    }
+
+    // Downtime reasons summary
+    if (Object.keys(reasonCount).length>0) {
+      prompt += `
+TOP UNDERPERFORMANCE REASONS
+`;
+      Object.entries(reasonCount).sort((a,b)=>(b[1].lost||0)-(a[1].lost||0)).slice(0,5).forEach(([r,d])=>{
+        prompt += `- ${r}: ${d.count} occurrences, ${d.lost.toFixed(1)}h lost
+`;
+      });
+    }
+
+    prompt += `
+Please provide a concise management summary with:
+`;
+    prompt += `1. HEADLINE (1 sentence: overall performance assessment)
+`;
+    prompt += `2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)
+`;
+    prompt += `3. BRIGHT SPOTS (bullet points: what went well, resources above target)
+`;
+    prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)
+
+`;
+    prompt += `Be specific — use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
+    return prompt;
+  };
+
+  const generate = async () => {
+    setStatus("loading");
+    setSummary(null);
+    try {
+      const prompt = buildPrompt();
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const result = await resp.json();
+      if (result.content?.[0]?.text) {
+        setSummary(result.content[0].text);
+        setStatus("done");
+      } else {
+        throw new Error(result.error?.message||"No response");
+      }
+    } catch(e) {
+      console.error(e);
+      setStatus("error");
+      setSummary("Error: " + e.message);
+    }
+  };
+
+  const copy = () => {
+    if (!summary) return;
+    const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
+    const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
+    const header = `SMI Production Summary — ${buLabel} — ${rangeLabel}\n${"=".repeat(50)}\n\n`;
+    navigator.clipboard.writeText(header + summary).then(()=>{
+      setCopied(true);
+      setTimeout(()=>setCopied(false), 2500);
+    });
+  };
+
+  const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
+  const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
+
+  return (
+    <div className="border-2 border-blue-200 rounded-xl bg-blue-50 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-700">
+        <div>
+          <div className="text-white font-bold text-sm">AI Production Summary</div>
+          <div className="text-blue-200 text-[10px]">{buLabel} · {rangeLabel}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          {summary && (
+            <button onClick={copy}
+              className="px-3 py-1.5 rounded text-[11px] font-semibold text-white border border-blue-400 hover:bg-blue-700"
+              style={{backgroundColor: copied?"#16a34a":"transparent"}}>
+              {copied ? "✓ Copied!" : "Copy"}
+            </button>
+          )}
+          <button onClick={generate} disabled={status==="loading"||!data}
+            className="px-4 py-1.5 rounded text-[11px] font-bold text-blue-900 disabled:opacity-50"
+            style={{backgroundColor: status==="loading"?"#93c5fd":"#f0f9ff"}}>
+            {status==="loading" ? "⏳ Analyzing…" : status==="done" ? "↻ Regenerate" : "✦ Generate Summary"}
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      {status==="idle" && (
+        <div className="px-4 py-6 text-center text-slate-500 text-sm">
+          <div className="text-2xl mb-2">✦</div>
+          <div className="font-semibold text-slate-700 mb-1">AI-powered management summary</div>
+          <div className="text-[12px] text-slate-400">Analyzes efficiency, downtime, WO notes and trends for the selected period and generates a concise report ready to copy and share.</div>
+        </div>
+      )}
+
+      {status==="loading" && (
+        <div className="px-4 py-8 text-center">
+          <div className="inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <div className="text-sm text-slate-500">Analyzing {buLabel} data for {rangeLabel}…</div>
+        </div>
+      )}
+
+      {(status==="done"||status==="error") && summary && (
+        <div className="px-4 py-4">
+          <div className="bg-white rounded-lg border border-blue-100 p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-mono text-[12px]">
+            {summary}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
