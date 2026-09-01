@@ -119,7 +119,7 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo, useRef } = React;
 
-// ── Icons ──────────────────────────────────────────────────────────────────
+// \u2500\u2500 Icons \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const Icon = ({ children, className="w-4 h-4", strokeWidth=2, fill="none", ...rest }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={fill} stroke="currentColor"
        strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} {...rest}>
@@ -135,7 +135,7 @@ const BarChart2  = p => <Icon {...p}><line x1="18" y1="20" x2="18" y2="10"/><lin
 const Clock      = p => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
 const ExternalLink = p => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Icon>;
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// \u2500\u2500 Constants \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const LEADER_TO_BU = {
   "George":    "BU Verathon",
   "Andrew B.": "BU Molding",
@@ -147,13 +147,13 @@ const ALL_LEADERS = Object.keys(LEADER_TO_BU);
 const buName = (leader) => LEADER_TO_BU[leader] || leader;
 
 const SHIFTS = [
-  { id:1, label:"Shift 1", time:"11pm–7am" },
-  { id:2, label:"Shift 2", time:"7am–3pm"  },
-  { id:3, label:"Shift 3", time:"3pm–11pm" },
+  { id:1, label:"Shift 1", time:"11pm\u20137am" },
+  { id:2, label:"Shift 2", time:"7am\u20133pm"  },
+  { id:3, label:"Shift 3", time:"3pm\u201311pm" },
 ];
-const fmtNum = (n) => n==null ? "–" : Number(n).toLocaleString(undefined,{maximumFractionDigits:1});
+const fmtNum = (n) => n==null ? "\u2013" : Number(n).toLocaleString(undefined,{maximumFractionDigits:1});
 
-// ── Date helpers ───────────────────────────────────────────────────────────
+// \u2500\u2500 Date helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const ymd = (d) => d.toISOString().slice(0,10);
 const sow = (d) => { const r=new Date(d); r.setDate(r.getDate()-r.getDay()); r.setHours(0,0,0,0); return r; };
 const som = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
@@ -197,7 +197,7 @@ function rangeISO(key, now) {
   return { fromISO, toISO, prevFrom, prevTo };
 }
 
-// ── Small UI bits ──────────────────────────────────────────────────────────
+// \u2500\u2500 Small UI bits \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function RangePicker({ value, onChange }) {
   const opts = [
     {key:"today",label:"Today"},{key:"yesterday",label:"Yesterday"},
@@ -262,7 +262,7 @@ function StatCard({ label, value, accent="slate", big=false }) {
 }
 
 function EffBadge({ eff, size="md" }) {
-  if (eff==null) return <span className="text-slate-400 text-xs">—</span>;
+  if (eff==null) return <span className="text-slate-400 text-xs">\u2014</span>;
   const color = eff>=90?"text-emerald-700":eff>=76.5?"text-amber-700":"text-rose-700";
   const sz = size==="lg"?"text-2xl font-bold":size==="sm"?"text-[11px] font-semibold":"text-sm font-bold";
   return <span className={`tabular-nums ${color} ${sz}`}>{eff.toFixed(1)}%</span>;
@@ -281,7 +281,7 @@ function DowntimeCard({ r }) {
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
           <span className="text-xs font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</span>
-          <span className="text-rose-400 text-[10px]">{open?"▲":"▼"}</span>
+          <span className="text-rose-400 text-[10px]">{open?"\u25B2":"\u25BC"}</span>
         </div>
       </button>
       {open && (
@@ -303,7 +303,7 @@ function DowntimeCard({ r }) {
   );
 }
 
-// ── History tab ────────────────────────────────────────────────────────────
+// \u2500\u2500 History tab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function HistoryTab({ allDocs, shiftLogsRef }) {
   const [buFilter,   setBuFilter]   = useState("__ALL__");
   const [shiftF,     setShiftF]     = useState(0);
@@ -369,9 +369,9 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
 
   const copyReport = (r) => {
     const lines = [];
-    lines.push(`SHIFT REPORT — ${r.bu||buName(r.leader)}`);
+    lines.push(`SHIFT REPORT \u2014 ${r.bu||buName(r.leader)}`);
     const dt = new Date(r.date+"T12:00:00");
-    lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" — "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
+    lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" \u2014 "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
     lines.push("=".repeat(60));
     lines.push(`Total units: ${(r.totalUnits||0).toLocaleString()}`);
     if (r.totalEff!=null) lines.push(`Efficiency: ${r.totalEff.toFixed(1)}%`);
@@ -382,7 +382,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
     for (const [res,items] of Object.entries(byRes)) {
       lines.push(`--- ${res} ---`);
       for (const w of items) {
-        lines.push(`  ${w.wo} — ${w.descr||""}: +${w.qty} units${w.eff!=null?" Eff "+w.eff.toFixed(1)+"%" : ""}`);
+        lines.push(`  ${w.wo} \u2014 ${w.descr||""}: +${w.qty} units${w.eff!=null?" Eff "+w.eff.toFixed(1)+"%" : ""}`);
         if (w.notes) lines.push(`    ${w.notes}`);
       }
     }
@@ -406,7 +406,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
           </button>
           <span className="text-slate-300">|</span>
           <span className="text-sm font-semibold text-slate-700">{selected.shiftLabel||sMeta.label}</span>
-          <span className="text-slate-300">—</span>
+          <span className="text-slate-300">\u2014</span>
           <span className="text-sm text-slate-600">{dateStr}</span>
           <span className="text-xs text-slate-400">{selected.shiftTime||sMeta.time}</span>
           <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
@@ -418,8 +418,8 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
         <div className="flex-1 overflow-auto p-4">
           {/* Print header */}
           <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-            <h1 className="text-xl font-bold">Shift Report — {selected.bu||buName(selected.leader)}</h1>
-            <p className="text-sm">{dateStr} — {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
+            <h1 className="text-xl font-bold">Shift Report \u2014 {selected.bu||buName(selected.leader)}</h1>
+            <p className="text-sm">{dateStr} \u2014 {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
           </div>
 
           <div className="grid grid-cols-4 gap-2 mb-3">
@@ -454,7 +454,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
           {/* Lines down */}
           {(selected.linesDown||[]).length>0 && (
             <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
-              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selected.linesDown.length})</div>
+              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">\u26A0 Lines down ({selected.linesDown.length})</div>
               {selected.linesDown.map((d,i)=>(
                 <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
                   <div className="flex items-baseline justify-between">
@@ -502,7 +502,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                       {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{w.reason}</div>}
                       {w.downtimeReason && (
                         <div className="mt-1 flex items-center gap-1">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">⏸ {w.downtimeReason}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">\u23F8 {w.downtimeReason}</span>
                           {w.downtimeDuration>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">{w.downtimeDuration}h</span>}
                         </div>
                       )}
@@ -511,7 +511,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                       {woNoteTarget===w.wo ? (
                         <div className="flex gap-1.5 mt-2 print:hidden">
                           <input autoFocus value={woNoteInput} onChange={e=>setWoNoteInput(e.target.value)}
-                            placeholder="Add note…"
+                            placeholder="Add note\u2026"
                             className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
                             onKeyDown={e=>{ if(e.key==="Enter"&&woNoteInput.trim()) saveWoNote(w.wo); if(e.key==="Escape"){setWoNoteTarget(null);setWoNoteInput("");} }}
                           />
@@ -551,14 +551,14 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
           )}
           <div className="flex gap-2 mb-2">
             <input value={noteInput} onChange={e=>setNoteInput(e.target.value)}
-              placeholder="Add a note to this report…"
+              placeholder="Add a note to this report\u2026"
               className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
               onKeyDown={e=>{ if(e.key==="Enter"&&noteInput.trim()) saveHistoryNote(); }}
             />
             <button onClick={saveHistoryNote} disabled={!noteInput.trim()||noteSaving}
               style={{backgroundColor:noteSaving?"#60a5fa":"#2563eb"}}
               className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
-              {noteSaving?"…":"Add"}
+              {noteSaving?"\u2026":"Add"}
             </button>
           </div>
           <div className="flex gap-2">
@@ -614,7 +614,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                       {r.bu||buName(r.leader)}
                     </span>
                     <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
-                    <span className="text-[11px] text-slate-400">{r.shiftLabel||sMeta.label} · {r.shiftTime||sMeta.time}</span>
+                    <span className="text-[11px] text-slate-400">{r.shiftLabel||sMeta.label} \u00B7 {r.shiftTime||sMeta.time}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.totalEff!=null && (
@@ -623,7 +623,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                       </span>
                     )}
                     <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()}</span>
-                    <span className="text-slate-300 text-xs">›</span>
+                    <span className="text-slate-300 text-xs">\u203A</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -631,7 +631,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                   {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
                   {r.totalHrs>0  && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
                   {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost<0?"lost":"earned"}</span>}
-                  {(r.linesDown||[]).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {r.linesDown.length} down</span>}
+                  {(r.linesDown||[]).length>0 && <span className="text-[10px] font-semibold text-rose-600">\u26A0 {r.linesDown.length} down</span>}
                 </div>
               </div>
             );
@@ -642,7 +642,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
   );
 }
 
-// ── Analytics tab ──────────────────────────────────────────────────────────
+// \u2500\u2500 Analytics tab \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function AnalyticsTab({ allDocs, allLogsSnap }) {
   const [buFilter,    setBuFilter]    = useState("__ALL__");
   const [rangeF,      setRangeF]      = useState("this_week");
@@ -761,7 +761,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
+        {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics\u2026</div>}
         {!loading && !data && <div className="text-center py-12 text-sm text-slate-400 italic">No data</div>}
         {!loading && data && (() => {
           const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted } = data;
@@ -777,11 +777,11 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                   <div className="col-span-1 rounded-lg border-2 px-3 py-3 flex flex-col items-center justify-center" style={{backgroundColor:effBg,borderColor:effColor}}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{color:effColor}}>Efficiency</div>
-                    <div className="text-2xl font-bold tabular-nums" style={{color:effColor}}>{thisEff!=null?thisEff.toFixed(1)+"%":"—"}</div>
+                    <div className="text-2xl font-bold tabular-nums" style={{color:effColor}}>{thisEff!=null?thisEff.toFixed(1)+"%":"\u2014"}</div>
                     <div className="text-[10px] font-semibold mt-1" style={{color:effColor}}>target {TARGET}%</div>
                     {trend!=null && (
                       <div className={`text-[11px] font-bold mt-1 ${trend>=0?"text-emerald-600":"text-rose-600"}`}>
-                        {trend>=0?"↑":"↓"} {Math.abs(trend).toFixed(1)}% vs prev
+                        {trend>=0?"\u2191":"\u2193"} {Math.abs(trend).toFixed(1)}% vs prev
                       </div>
                     )}
                   </div>
@@ -835,9 +835,9 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                     const below=withEff.filter(r=>r.eff<76.5).length;
                     return (
                       <div className="flex items-center gap-1.5">
-                        {above>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{above} ✓</span>}
+                        {above>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{above} \u2713</span>}
                         {near >0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{near} ~</span>}
-                        {below>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{below} ✗</span>}
+                        {below>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{below} \u2717</span>}
                       </div>
                     );
                   })()}
@@ -861,14 +861,14 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <tr key={i} style={{backgroundColor:rb}}>
                             <td className="px-3 py-2 font-semibold text-slate-800 text-xs">{r.resource}</td>
                             <td className="px-3 py-2 text-right">
-                              <span className="text-xs font-bold tabular-nums" style={{color:rc}}>{r.eff!=null?r.eff.toFixed(1)+"%":"—"}</span>
+                              <span className="text-xs font-bold tabular-nums" style={{color:rc}}>{r.eff!=null?r.eff.toFixed(1)+"%":"\u2014"}</span>
                             </td>
                             <td className="px-3 py-2 text-right">
                               <span className={`text-xs font-semibold tabular-nums ${r.lost<0?"text-rose-600":"text-emerald-600"}`}>{r.lost.toFixed(1)}h</span>
                             </td>
                             <td className="px-3 py-2 text-right text-xs text-slate-600 tabular-nums">{r.units.toLocaleString()}</td>
                             <td className="px-3 py-2 text-xs text-slate-500">
-                              {r.topReason ? <span className="italic">{r.topReason}</span> : <span className="text-slate-300">—</span>}
+                              {r.topReason ? <span className="italic">{r.topReason}</span> : <span className="text-slate-300">\u2014</span>}
                             </td>
                           </tr>
                         );
@@ -877,7 +877,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                   </table>
                 </div>
                 {resources.filter(r=>r.eff!=null&&r.eff<TARGET).length===0 && (
-                  <div className="text-center text-xs text-emerald-600 font-semibold mt-2">✓ All resources at or above target</div>
+                  <div className="text-center text-xs text-emerald-600 font-semibold mt-2">\u2713 All resources at or above target</div>
                 )}
               </div>
 
@@ -910,7 +910,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                       <div key={s.id} className="rounded-lg border-2 px-3 py-3" style={{backgroundColor:sb,borderColor:sc}}>
                         <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{color:sc}}>{s.label}</div>
                         <div className="text-[9px] text-slate-400 mb-2">{s.time}</div>
-                        <div className="text-xl font-bold tabular-nums mb-1" style={{color:sc}}>{sEff!=null?sEff.toFixed(1)+"%":"—"}</div>
+                        <div className="text-xl font-bold tabular-nums mb-1" style={{color:sc}}>{sEff!=null?sEff.toFixed(1)+"%":"\u2014"}</div>
                         <div className="text-[10px] text-slate-500">{sd.units.toLocaleString()} units</div>
                         <div className="text-[10px] text-slate-400">{sd.hrs.toFixed(0)}h worked</div>
                       </div>
@@ -933,7 +933,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <div className="flex-1 bg-stone-100 rounded-full h-2 overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full" style={{width:pct+"%"}} />
                           </div>
-                          <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{d.lost.toFixed(1)}h · {d.count}x</div>
+                          <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{d.lost.toFixed(1)}h \u00B7 {d.count}x</div>
                         </div>
                       );
                     })}
@@ -1006,7 +1006,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
   );
 }
 
-// AI Summary Panel──────────────
+// AI Summary Panel\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function AISummaryPanel({ data, rangeF, buFilter }) {
   const [status,   setStatus]   = useState("idle"); // idle|loading|done|error
   const [summary,  setSummary]  = useState(null);
@@ -1102,7 +1102,7 @@ Please provide a concise management summary with:
     prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)
 
 `;
-    prompt += `Be specific — use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
+    prompt += `Be specific \u2014 use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
     return prompt;
   };
 
@@ -1138,7 +1138,7 @@ Please provide a concise management summary with:
     if (!summary) return;
     const rangeLabel = RANGE_LABELS[rangeF]||rangeF;
     const buLabel = buFilter==="__ALL__" ? "All BUs" : buFilter;
-    const header = `SMI Production Summary — ${buLabel} — ${rangeLabel}\n${"=".repeat(50)}\n\n`;
+    const header = `SMI Production Summary \u2014 ${buLabel} \u2014 ${rangeLabel}\n${"=".repeat(50)}\n\n`;
     navigator.clipboard.writeText(header + summary).then(()=>{
       setCopied(true);
       setTimeout(()=>setCopied(false), 2500);
@@ -1154,20 +1154,20 @@ Please provide a concise management summary with:
       <div className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-700">
         <div>
           <div className="text-white font-bold text-sm">AI Production Summary</div>
-          <div className="text-blue-200 text-[10px]">{buLabel} · {rangeLabel}</div>
+          <div className="text-blue-200 text-[10px]">{buLabel} \u00B7 {rangeLabel}</div>
         </div>
         <div className="flex items-center gap-2">
           {summary && (
             <button onClick={copy}
               className="px-3 py-1.5 rounded text-[11px] font-semibold text-white border border-blue-400 hover:bg-blue-700"
               style={{backgroundColor: copied?"#16a34a":"transparent"}}>
-              {copied ? "✓ Copied!" : "Copy"}
+              {copied ? "\u2713 Copied!" : "Copy"}
             </button>
           )}
           <button onClick={generate} disabled={status==="loading"||!data}
             className="px-4 py-1.5 rounded text-[11px] font-bold text-blue-900 disabled:opacity-50"
             style={{backgroundColor: status==="loading"?"#93c5fd":"#f0f9ff"}}>
-            {status==="loading" ? "⏳ Analyzing…" : status==="done" ? "↻ Regenerate" : "✦ Generate Summary"}
+            {status==="loading" ? "\u23F3 Analyzing\u2026" : status==="done" ? "\u21BB Regenerate" : "\u2726 Generate Summary"}
           </button>
         </div>
       </div>
@@ -1175,7 +1175,7 @@ Please provide a concise management summary with:
       {/* Body */}
       {status==="idle" && (
         <div className="px-4 py-6 text-center text-slate-500 text-sm">
-          <div className="text-2xl mb-2">✦</div>
+          <div className="text-2xl mb-2">\u2726</div>
           <div className="font-semibold text-slate-700 mb-1">AI-powered management summary</div>
           <div className="text-[12px] text-slate-400">Analyzes efficiency, downtime, WO notes and trends for the selected period and generates a concise report ready to copy and share.</div>
         </div>
@@ -1184,7 +1184,7 @@ Please provide a concise management summary with:
       {status==="loading" && (
         <div className="px-4 py-8 text-center">
           <div className="inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-          <div className="text-sm text-slate-500">Analyzing {buLabel} data for {rangeLabel}…</div>
+          <div className="text-sm text-slate-500">Analyzing {buLabel} data for {rangeLabel}\u2026</div>
         </div>
       )}
 
@@ -1199,7 +1199,7 @@ Please provide a concise management summary with:
   );
 }
 
-// ── Main App ───────────────────────────────────────────────────────────────
+// \u2500\u2500 Main App \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function ShiftReportApp() {
   const [activeTab,    setActiveTab]    = useState("history");  // "history"|"analytics"
   const [allDocs,      setAllDocs]      = useState(null);
@@ -1229,7 +1229,7 @@ function ShiftReportApp() {
 
   const exportToSheets = async (monthFilter) => {
     setExportState("exporting");
-    setExportMsg(monthFilter?`Exporting ${monthFilter}…`:"Exporting all reports…");
+    setExportMsg(monthFilter?`Exporting ${monthFilter}\u2026`:"Exporting all reports\u2026");
     try {
       const token = await getGoogleAccessToken();
       let docs = allDocs||[];
@@ -1243,12 +1243,12 @@ function ShiftReportApp() {
       }
       const tabCount = await exportReportsToSheet(docs, token);
       setExportState("done");
-      setExportMsg(`✓ Exported ${docs.length} reports across ${tabCount} tab${tabCount!==1?"s":""}`);
+      setExportMsg(`\u2713 Exported ${docs.length} reports across ${tabCount} tab${tabCount!==1?"s":""}`);
       setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
     } catch(e) {
       console.error(e);
       setExportState("error");
-      setExportMsg("Export failed — "+e.message);
+      setExportMsg("Export failed \u2014 "+e.message);
       setTimeout(()=>{ setExportState("idle"); setExportMsg(""); }, 5000);
     }
   };
@@ -1279,7 +1279,7 @@ function ShiftReportApp() {
                 value={initials} onChange={e=>setInitials(e.target.value.toUpperCase())}
                 onKeyDown={e=>{ if(e.key==="Enter") saveInitials(initials); if(e.key==="Escape") setShowInitials(false); }}
                 maxLength={4} placeholder="ABC"/>
-              <button onClick={()=>saveInitials(initials)} className="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold">✓</button>
+              <button onClick={()=>saveInitials(initials)} className="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold">\u2713</button>
             </div>
           ) : (
             <button onClick={()=>setShowInitials(true)}
@@ -1293,7 +1293,7 @@ function ShiftReportApp() {
             style={{backgroundColor:exportState==="done"?"#16a34a":exportState==="error"?"#dc2626":exportState==="exporting"?"#60a5fa":"#1e4d8c"}}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-[11px] font-semibold border border-blue-700">
             <Sheet className="w-3.5 h-3.5"/>
-            {exportState==="exporting"?"Exporting…":exportState==="done"?"✓ Done":exportState==="error"?"Error":"Sheets"}
+            {exportState==="exporting"?"Exporting\u2026":exportState==="done"?"\u2713 Done":exportState==="error"?"Error":"Sheets"}
           </button>
           {/* Back to BuildTracker */}
           <a href={BT_URL}
@@ -1327,8 +1327,8 @@ function ShiftReportApp() {
         {loading && (
           <div className="flex items-center justify-center h-full text-slate-400">
             <div className="text-center">
-              <div className="text-2xl mb-2">⏳</div>
-              <div className="text-sm">Loading shift reports…</div>
+              <div className="text-2xl mb-2">\u23F3</div>
+              <div className="text-sm">Loading shift reports\u2026</div>
             </div>
           </div>
         )}
