@@ -1022,27 +1022,16 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
     let prompt = `You are analyzing production shift report data for SMI (Southmedic), a medical device manufacturer.
 
 `;
-    prompt += `Period: ${rangeLabel} | BU: ${buLabel}
-
-`;
-    prompt += `OVERALL PERFORMANCE
-`;
-    prompt += `- Efficiency: ${thisEff!=null?thisEff.toFixed(1)+"% (target 90%)":"no data"}
-`;
-    if (prevEff!=null) prompt += `- vs previous period: ${prevEff.toFixed(1)}% (${thisEff>=prevEff?"+":""}${(thisEff-prevEff).toFixed(1)}%)
-`;
-    prompt += `- Total units: ${thisUnits.toLocaleString()}
-`;
-    prompt += `- Hours worked: ${thisHrs.toFixed(0)}h
-`;
-    prompt += `- Lost/earned hours: ${thisLost.toFixed(1)}h
-`;
-    if (totalDowntimeHrs>0) prompt += `- Total downtime: ${totalDowntimeHrs.toFixed(1)}h
-`;
-    if (safetyCount>0) prompt += `- Safety incidents: ${safetyCount}
-`;
-    if (ncCount>0) prompt += `- NC incidents: ${ncCount}
-`;
+    prompt += `Period: ${rangeLabel} | BU: ${buLabel}`;
+    prompt += `OVERALL PERFORMANCE`;
+    prompt += `- Efficiency: ${thisEff!=null?thisEff.toFixed(1)+"% (target 90%)":"no data"}`;
+    if (prevEff!=null) prompt += `- vs previous period: ${prevEff.toFixed(1)}% (${thisEff>=prevEff?"+":""}${(thisEff-prevEff).toFixed(1)}%)`;
+    prompt += `- Total units: ${thisUnits.toLocaleString()}`;
+    prompt += `- Hours worked: ${thisHrs.toFixed(0)}h`;
+    prompt += `- Lost/earned hours: ${thisLost.toFixed(1)}h`;
+    if (totalDowntimeHrs>0) prompt += `- Total downtime: ${totalDowntimeHrs.toFixed(1)}h`;
+    if (safetyCount>0) prompt += `- Safety incidents: ${safetyCount}`;
+    if (ncCount>0) prompt += `- NC incidents: ${ncCount}`;
 
     prompt += `\nSHIFT BREAKDOWN\n`;
 `;
@@ -1050,8 +1039,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
       const s = byShift[id]||{earned:0,hrs:0,units:0};
       const sEff = s.hrs>0 ? (s.earned/s.hrs*100).toFixed(1) : null;
       const label = ["","Midnight (11pm-7am)","Days (7am-3pm)","Afternoon (3pm-11pm)"][id];
-      prompt += `- ${label}: ${sEff!=null?sEff+"%":"no data"}, ${s.units.toLocaleString()} units, ${s.hrs.toFixed(0)}h
-`;
+      prompt += `- ${label}: ${sEff!=null?sEff+"%":"no data"}, ${s.units.toLocaleString()} units, ${s.hrs.toFixed(0)}h`;
     });
 
     // Top struggling resources (below 90%)
@@ -1076,22 +1064,16 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
       prompt += `\nTOP UNDERPERFORMANCE REASONS\n`;
 `;
       Object.entries(reasonCount).sort((a,b)=>(b[1].lost||0)-(a[1].lost||0)).slice(0,5).forEach(([r,d])=>{
-        prompt += `- ${r}: ${d.count} occurrences, ${d.lost.toFixed(1)}h lost
-`;
+        prompt += `- ${r}: ${d.count} occurrences, ${d.lost.toFixed(1)}h lost`;
       });
     }
 
     prompt += `\nPlease provide a concise management summary with:\n`;
 `;
-    prompt += `1. HEADLINE (1 sentence: overall performance assessment)
-`;
-    prompt += `2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)
-`;
-    prompt += `3. BRIGHT SPOTS (bullet points: what went well, resources above target)
-`;
-    prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)
-
-`;
+    prompt += `1. HEADLINE (1 sentence: overall performance assessment)`;
+    prompt += `2. KEY ISSUES (bullet points: top 3-4 specific problems with resource names and hours)`;
+    prompt += `3. BRIGHT SPOTS (bullet points: what went well, resources above target)`;
+    prompt += `4. RECOMMENDATIONS (bullet points: 2-3 concrete actionable items based on the data)`;
     prompt += `Be specific — use actual resource names, hour figures, and percentages from the data. Keep it under 300 words. Write for a production manager audience.`;
     return prompt;
   };
