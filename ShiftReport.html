@@ -304,7 +304,16 @@ function DowntimeCard({ r }) {
 }
 
 // - History tab -
-function HistoryTab({ allDocs, shiftLogsRef }) {
+function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
+  // Filter linesDown to only those belonging to this report's BU leader
+  const filterLines = function(linesDown, leader) {
+    if (!linesDown || !linesDown.length) return [];
+    if (!leader || !Object.keys(buResourceMap).length) return linesDown;
+    return linesDown.filter(function(d) {
+      return buResourceMap[d.resource] === leader;
+    });
+  };
+
   const [buFilter,   setBuFilter]   = useState("__ALL__");
   const [shiftF,     setShiftF]     = useState(0);
   const [rangeF,     setRangeF]     = useState("this_week");
@@ -426,7 +435,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
             <StatCard label="Total units" value={(selected.totalUnits||0).toLocaleString()} />
             <StatCard label="Entries"     value={selected.entries||0} />
             <StatCard label="Resources"   value={selected.resourceCount||0} />
-            <StatCard label="Lines down"  value={(selected.linesDown||[]).length} />
+            <StatCard label="Lines down"  value={filterLines(selected.linesDown, selected.leader).length} />
           </div>
           {(selected.totalEff!=null||selected.totalHrs>0) && (
             <div className="grid grid-cols-3 gap-2 mb-4">
@@ -452,10 +461,10 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
           )}
 
           {/* Lines down */}
-          {(selected.linesDown||[]).length>0 && (
+          {filterLines(selected.linesDown, selected.leader).length>0 && (
             <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
-              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selected.linesDown.length})</div>
-              {selected.linesDown.map((d,i)=>(
+              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({filterLines(selected.linesDown, selected.leader).length})</div>
+              {filterLines(selected.linesDown, selected.leader).map((d,i)=>(
                 <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
                   <div className="flex items-baseline justify-between">
                     <span className="font-semibold">{d.resource}</span>
@@ -631,7 +640,7 @@ function HistoryTab({ allDocs, shiftLogsRef }) {
                   {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
                   {r.totalHrs>0  && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
                   {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost<0?"lost":"earned"}</span>}
-                  {(r.linesDown||[]).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {r.linesDown.length} down</span>}
+                  {filterLines(r.linesDown, r.leader).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {filterLines(r.linesDown, r.leader).length} down</span>}
                 </div>
               </div>
             );
@@ -1108,6 +1117,7 @@ function ShiftReportApp() {
   const [activeTab,    setActiveTab]    = useState("history");  // "history"|"analytics"
   const [allDocs,      setAllDocs]      = useState(null);
   const [allLogsSnap,  setAllLogsSnap]  = useState(null);
+  const [buResourceMap,setBuResourceMap] = useState({});
   const [loading,      setLoading]      = useState(true);
   const [exportState,  setExportState]  = useState("idle");
   const [exportMsg,    setExportMsg]    = useState("");
@@ -1119,10 +1129,18 @@ function ShiftReportApp() {
     Promise.all([
       SHIFT_REPORTS_REF.get(),
       SHIFT_LOGS_REF.get(),
-    ]).then(([reportsSnap, logsSnap]) => {
+      db.collection("production_data").doc("latest").get(),
+    ]).then(([reportsSnap, logsSnap, buildSnap]) => {
       const docs = reportsSnap.docs.map(d=>({id:d.id,...d.data()}));
       setAllDocs(docs);
       setAllLogsSnap(logsSnap);
+      // Build resource -> leader map from build plan
+      if (buildSnap.exists) {
+        const rows = buildSnap.data().rows || [];
+        const map = {};
+        rows.forEach(function(r) { if (r.resource && r.leader) map[r.resource] = r.leader; });
+        setBuResourceMap(map);
+      }
       setLoading(false);
     }).catch(e => {
       console.error("Load failed:", e);
@@ -1238,7 +1256,7 @@ function ShiftReportApp() {
         )}
         {!loading && allDocs && (
           activeTab==="history"
-            ? <HistoryTab allDocs={allDocs} />
+            ? <HistoryTab allDocs={allDocs} buResourceMap={buResourceMap} />
             : <AnalyticsTab allDocs={allDocs} allLogsSnap={allLogsSnap} />
         )}
       </div>
