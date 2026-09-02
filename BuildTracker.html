@@ -788,14 +788,14 @@ function BuildTracker() {
         const rows = parseBuildPlan(wb);
         if (!rows) { setUploadStatus({ type: "build", msg: "No rows found — check sheet name 'Database Query'", ok: false }); return; }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
-        // Auto-prune stale overrides older than 62 days that are no longer in the build plan
+        // Auto-prune stale overrides older than 62 days no longer in the build plan
         const validKeys = new Set(rows.map(r => rowKey(r)));
-        const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - 62);
+        const cutoffPrune = new Date(); cutoffPrune.setDate(cutoffPrune.getDate() - 62);
         const staleKeys = Object.keys(overrides).filter(k => {
-          if (validKeys.has(k)) return false; // still in build plan - keep
+          if (validKeys.has(k)) return false;
           const updatedAt = overrides[k]._updatedAt;
-          if (!updatedAt) return true; // no date - safe to prune
-          return new Date(updatedAt) < cutoffDate; // older than 62 days - prune
+          if (!updatedAt) return true;
+          return new Date(updatedAt) < cutoffPrune;
         });
         if (staleKeys.length > 0) {
           const pruned = { ...overrides };
@@ -1075,6 +1075,7 @@ function BuildTracker() {
             const COL_EARNED  = col(["EARNED","EARNED_HRS"], 19);
             const COL_LOST    = col(["LOST","LOST_HRS"], 20);
             const COL_LEAD    = col(["BU","UNIT LEAD","UNIT_LEAD"], 46);
+            const COL_PART_ID = col(["PART_ID","PART"], 1);
             const SHIFT_MAP = {
               "ASSEMBLY 1":"Midnights","ASSEMBLY 2":"Days","ASSEMBLY 3":"Afternoons",
               "EXTRUDER 1":"Midnights","EXTRUDER 2":"Days","EXTRUDER 3":"Afternoons",
@@ -1112,6 +1113,9 @@ function BuildTracker() {
                 fileName: file.name,
                 rowCount: prRowsFiltered.length,
               });
+              // Slim doc for VERBuildPlan - only part_id+qty+date, stays under 1MB
+              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: parseFloat(r[COL_QTY])||0 })).filter(r=>r.part_id&&r.date&&r.qty>0);
+              if (slimRows.length > 0) { await db.collection("production_data").doc("ver_actuals").set({ rows: slimRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() }); console.log("[VER] Saved", slimRows.length, "slim rows"); }
             }
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
@@ -1597,6 +1601,7 @@ function BuildTracker() {
   }, [abrList.length, brsList.length, selectedLeader]);
   const totalStickyTop = stickyH.header + stickyH.abr + stickyH.brs;
 
+  const [showShiftReport, setShowShiftReport] = useState(false);
   const [showLogModal, setShowLogModal] = useState(null); // null | "safety" | "nc"
   const [lineDownTarget, setLineDownTarget] = useState(null); // resource name or null
   const [showNextNotReady, setShowNextNotReady] = useState(false);
@@ -1892,8 +1897,8 @@ function BuildTracker() {
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠ {stats.nextNotReady}</button>}
-          <a href="ShiftReport.html" target="_blank" rel="noopener noreferrer"
-            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>📊 Shift Report</a>
+          <button onClick={() => setShowShiftReport(true)}
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <GotoDropdown dark />
           <button onClick={() => setShowLogModal("safety")}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ Safety</button>
@@ -1906,6 +1911,7 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} nowZeroQtyList={stats.nowZeroQtyList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
         {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
       </div>
     );
@@ -2106,10 +2112,12 @@ function BuildTracker() {
         >
           <Package className="w-3 h-3" /> Kits <span className="tabular-nums">{upcomingNotReady.kit.length}</span>
         </button>
-        <a href="ShiftReport.html" target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 font-semibold text-white" style={{textDecoration:"none"}}>
+        <button
+          onClick={() => setShowShiftReport(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 font-semibold"
+        >
           <FileCheck2 className="w-3 h-3" /> Shift Report
-        </a>
+        </button>
         <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">⚠️ Safety</button>
         <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">🔴 NC</button>
         {overrideCount > 0 && (
@@ -2148,6 +2156,17 @@ function BuildTracker() {
           rows={stats.nextNotReadyList}
           onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }}
           onClose={() => setShowNextNotReady(false)}
+        />
+      )}
+      {showShiftReport && (
+        <ShiftReportModal
+          allRows={allRows}
+          selectedLeader={selectedLeader}
+          lineDown={lineDown}
+          shiftReportsRef={BT_SHIFT_REPORTS_REF}
+          shiftLogsRef={BT_SHIFT_LOGS_REF}
+          leaderList={leaderList}
+          onClose={() => setShowShiftReport(false)}
         />
       )}
       {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
@@ -3202,6 +3221,458 @@ function GotoDropdown({ dark }) {
     </div>
   );
 }
+
+function DowntimeCard({ r }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasNotes = r.downtimeNotes && r.downtimeNotes.length > 0;
+  return (
+    <div className="rounded-lg bg-rose-50 border border-rose-200 overflow-hidden">
+      <div className={`flex items-center gap-2 px-3 py-2 ${hasNotes ? "cursor-pointer hover:bg-rose-100" : ""}`}
+        onClick={() => hasNotes && setExpanded(e => !e)}>
+        <div className="flex-1 min-w-0">
+          <div className="text-[12px] font-semibold text-slate-800 truncate">{r.resource}</div>
+          <div className="flex gap-1 flex-wrap mt-0.5">
+            {Object.entries(r.downtimeReasons).sort((a,b)=>b[1]-a[1]).map(([reason, hrs]) => (
+              <span key={reason} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-800 font-semibold">{reason} {hrs}h</span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {hasNotes && <span className="text-[10px] text-rose-400">{expanded ? "▲" : "▼"} notes</span>}
+          <div className="text-base font-bold text-rose-700 tabular-nums">{r.downtimeHrs.toFixed(1)}h</div>
+        </div>
+      </div>
+      {expanded && hasNotes && (
+        <div className="border-t border-rose-200 px-3 py-2 space-y-1 bg-white">
+          {r.downtimeNotes.map((n, i) => (
+            <div key={i} className="text-xs text-slate-600">
+              <span className="font-mono text-[10px] text-slate-400 mr-1">{n.wo}</span>
+              <span className="font-semibold text-rose-600 mr-1">{n.reason}:</span>
+              {n.note}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
+  // Default to "current" shift but let user pick which shift to report on
+  const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
+  const [reportShiftId, setReportShiftId] = useState(nowShiftId);
+  const [reportDate, setReportDate] = useState(nowShiftDate);
+  const [shiftLogs, setShiftLogs] = useState([]);
+  const [saveState, setSaveState] = useState("idle");
+  const [existingSavedAt, setExistingSavedAt] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("current"); // "current"|"history"|"analytics"
+
+  // Check Firestore if this shift already has a saved report
+  const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
+  useEffect(() => {
+    if (!shiftReportsRef) return;
+    setSaveState("idle");
+    setExistingSavedAt(null);
+    shiftReportsRef.doc(reportDocId).get().then(snap => {
+      if (snap.exists) setExistingSavedAt(snap.data().autoSavedAt || snap.data().savedAt || null);
+    }).catch(() => {});
+  }, [reportDocId]);
+
+  // Load safety/NC logs for the selected shift
+  useEffect(() => {
+    if (!shiftLogsRef) return;
+    const dateISO = reportDate.toISOString().slice(0, 10);
+    shiftLogsRef
+      .where("shiftDate", "==", dateISO)
+      .where("shiftId", "==", reportShiftId)
+      .get()
+      .then(snap => setShiftLogs(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => setShiftLogs([]));
+  }, [reportShiftId, reportDate]);
+
+
+  // Find all WOs for the selected leader that had shift entries OR were active on the report shift.
+  const reportData = useMemo(() => {
+    const targetKey = shiftEntryKey(reportDate, reportShiftId);
+    const woEntries = []; // {row, entry}
+    const woStatus = []; // WOs that are currently WIP/abr/brs (status during this shift)
+    // Find resources for this leader
+    const leaderResources = new Set();
+    for (const r of allRows) {
+      if (r.leader === selectedLeader) leaderResources.add(r.resource);
+    }
+    for (const r of allRows) {
+      if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
+      const matchingEntries = (r.shifts || []).filter(s =>
+        shiftEntryKey(new Date(s.shiftDateISO), s.shiftId) === targetKey
+      );
+      if (matchingEntries.length > 0) {
+        // Merge all entries for this WO into one: labour provides qty/eff/hrs, manual provides notes
+        const labourEntry = matchingEntries.find(e => e.source === "labour");
+        const manualEntries = matchingEntries.filter(e => e.source !== "labour");
+        const merged = {
+          qty:    labourEntry ? (labourEntry.qty    || 0) : matchingEntries.reduce((s,e) => s+(e.qty||0), 0),
+          hrs:    labourEntry ? (labourEntry.hrs    || 0) : 0,
+          earned: labourEntry ? (labourEntry.earned || 0) : 0,
+          lost:   labourEntry ? (labourEntry.lost   || 0) : 0,
+          eff:    labourEntry ? (labourEntry.eff    ?? null) : null,
+          source: labourEntry ? "labour" : "manual",
+          by:     manualEntries.length > 0 ? manualEntries.map(e => e.by).filter(Boolean).join(", ") : (labourEntry?.by || ""),
+          notes:  manualEntries.map(e => e.notes).filter(Boolean).join(" | "),
+          reason: manualEntries.map(e => e.reason).filter(Boolean).join(", "),
+        };
+        woEntries.push({ row: r, entry: merged });
+      }
+      // Capture WOs currently in production state (no entry but status changed)
+      if (matchingEntries.length === 0 && (r.status === "wip" || r.status === "abr" || r.status === "brs")) {
+        woStatus.push(r);
+      }
+    }
+    // Find lines marked down for this shift (only for this leader's resources)
+    const downLines = [];
+    for (const [res, entries] of Object.entries(lineDown)) {
+      if (!leaderResources.has(res)) continue;
+      const match = entries.find(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === targetKey);
+      if (match) downLines.push({ resource: res, ...match });
+    }
+    // Group by resource for the report
+    const byResource = new Map();
+    for (const item of woEntries) {
+      const key = item.row.resource;
+      if (!byResource.has(key)) byResource.set(key, { entries: [], statusOnly: [] });
+      byResource.get(key).entries.push(item);
+    }
+    for (const r of woStatus) {
+      const key = r.resource;
+      if (!byResource.has(key)) byResource.set(key, { entries: [], statusOnly: [] });
+      byResource.get(key).statusOnly.push(r);
+    }
+    // Aggregate stats
+    const totalUnits = woEntries.reduce((s, x) => s + (x.entry.qty || 0), 0);
+    const totalEntries = woEntries.length;
+    const totalHrs    = woEntries.reduce((s, x) => s + (x.entry.hrs    || 0), 0);
+    const totalEarned = woEntries.reduce((s, x) => s + (x.entry.earned || 0), 0);
+    const totalLost   = woEntries.reduce((s, x) => s + (x.entry.lost   || 0), 0);
+    const totalEff    = totalHrs > 0 ? Math.round((totalEarned / totalHrs * 100) * 10) / 10 : null;
+    const reasonsCount = {};
+    for (const x of woEntries) {
+      if (x.entry.reason) {
+        reasonsCount[x.entry.reason] = (reasonsCount[x.entry.reason] || 0) + 1;
+      }
+    }
+    for (const d of downLines) {
+      if (d.reason) reasonsCount[d.reason] = (reasonsCount[d.reason] || 0) + 1;
+    }
+    return { byResource, totalUnits, totalEntries, totalHrs, totalEarned, totalLost, totalEff, reasonsCount, downLines };
+  }, [allRows, selectedLeader, reportShiftId, reportDate, lineDown]);
+
+  const meta = SHIFTS.find(s => s.id === reportShiftId);
+  const dateLabel = reportDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+
+  const printReport = () => {
+    window.print();
+  };
+  const copyReport = () => {
+    const lines = [];
+    lines.push(`SHIFT REPORT — ${buName(selectedLeader)}`);
+    lines.push(`${dateLabel} · ${meta.label} (${meta.time})`);
+    lines.push("=".repeat(60));
+    lines.push("");
+    lines.push(`Total units this shift: ${reportData.totalUnits.toLocaleString()}`);
+    lines.push(`Entries logged: ${reportData.totalEntries}`);
+    if (reportData.totalEff !== null) lines.push(`Overall efficiency: ${reportData.totalEff.toFixed(1)}%`);
+    if (reportData.totalHrs > 0)  lines.push(`Hours worked: ${reportData.totalHrs.toFixed(1)}h`);
+    if (reportData.totalLost !== 0) lines.push(`Lost hours: ${reportData.totalLost.toFixed(1)}h`);
+    lines.push("");
+    if (reportData.byResource.size === 0) {
+      lines.push("(No shift entries logged for this shift.)");
+    } else {
+      for (const [res, data] of reportData.byResource.entries()) {
+        lines.push(`--- ${res} ---`);
+        for (const { row, entry } of data.entries) {
+          const ratio = row.start_qty > 0 ? `${row.comp_qty}/${row.start_qty}` : "";
+          lines.push(`  ${row.wo} · ${row.descr || row.part || ""}`);
+          const effStr  = entry.eff  != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
+          const hrsStr  = entry.hrs  > 0 ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
+          const lostStr = entry.lost !== 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
+          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty} · ${entry.by || "—"}`);
+          if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
+          if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
+        }
+        for (const r of data.statusOnly) {
+          lines.push(`  ${r.wo} · ${r.descr || r.part || ""} · ${r.status.toUpperCase()} (no entries this shift)`);
+        }
+        lines.push("");
+      }
+    }
+    if (reportData.downLines.length > 0) {
+      lines.push("LINES DOWN THIS SHIFT:");
+      for (const d of reportData.downLines) {
+        lines.push(`  ${d.resource} — ${d.reason}${d.notes ? " · " + d.notes : ""} (by ${d.by || "—"})`);
+      }
+      lines.push("");
+    }
+    if (Object.keys(reportData.reasonsCount).length > 0) {
+      lines.push("Reasons (entries + down lines):");
+      for (const [reason, count] of Object.entries(reportData.reasonsCount)) {
+        lines.push(`  ${reason}: ${count}`);
+      }
+    }
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      alert("Report copied to clipboard. Paste into email or document.");
+    }).catch(() => alert("Copy failed — try again or print instead."));
+  };
+
+  const saveReport = async () => {
+    if (!shiftReportsRef) return;
+    setSaveState("saving");
+    try {
+      const dateISO = reportDate.toISOString().slice(0, 10);
+      const woList = [];
+      for (const [res, data] of reportData.byResource.entries()) {
+        for (const { row, entry } of data.entries) {
+          woList.push({ resource: res, wo: row.wo, descr: row.descr || row.part || "", qty: entry.qty || 0, compQty: row.comp_qty || 0, startQty: row.start_qty || 0, eff: entry.eff ?? null, hrs: entry.hrs || 0, earned: entry.earned || 0, lost: entry.lost || 0, notes: entry.notes || "", reason: entry.reason || "", by: entry.by || "", source: entry.source || "" });
+        }
+        for (const r of data.statusOnly) {
+          woList.push({ resource: res, wo: r.wo, descr: r.descr || r.part || "", qty: 0, compQty: r.comp_qty || 0, startQty: r.start_qty || 0, eff: null, hrs: 0, earned: 0, lost: 0, notes: "", reason: "", by: "", source: "", statusOnly: true, status: r.status });
+        }
+      }
+      const payload = {
+        bu: buName(selectedLeader), leader: selectedLeader,
+        date: dateISO, shiftId: reportShiftId, shiftLabel: meta.label, shiftTime: meta.time,
+        totalUnits: reportData.totalUnits, totalHrs: reportData.totalHrs,
+        totalEarned: reportData.totalEarned, totalLost: reportData.totalLost, totalEff: reportData.totalEff,
+        entries: reportData.totalEntries, resourceCount: reportData.byResource.size,
+        linesDown: reportData.downLines.map(d => ({ resource: d.resource, reason: d.reason || "", notes: d.notes || "", by: d.by || "", duration: d.duration ?? (d.reason === "Not Scheduled" ? 0 : 8) })),
+        wos: woList,
+        savedAt: new Date().toISOString(),
+      };
+      await shiftReportsRef.doc(reportDocId).set(payload);
+      setExistingSavedAt(payload.savedAt);
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 3000);
+    } catch(e) {
+      console.error("Save report:", e);
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  };
+
+
+
+
+
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 pt-16 overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between print:hidden flex-shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Shift Report</h2>
+            <p className="text-xs text-slate-500">Roll-up of production for the selected shift</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-stone-200 overflow-hidden text-sm font-semibold">
+              <button onClick={() => setActiveTab("current")} style={{backgroundColor: activeTab==="current"?"#1e3a5f":"white", color: activeTab==="current"?"white":"#64748b"}} className="px-3 py-1.5">Current</button>
+              <a href="https://goshotrifonov.github.io/report/ShiftReport.html" target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border-l border-stone-200" style={{color:"#334155", textDecoration:"none", display:"inline-flex", alignItems:"center", gap:"4px"}}>History &#x2197;</a>
+            </div>
+            
+            <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+
+          <React.Fragment> {/* Current shift tab */}
+            {/* Shift selector */}
+            <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden flex-shrink-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {SHIFTS.map(s => (
+                  <button key={s.id} onClick={() => setReportShiftId(s.id)}
+                    className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}>
+                    <div className="text-[11px] font-bold">{s.label}{s.id === nowShiftId && <span className="ml-1 text-[9px] font-semibold uppercase tracking-wider opacity-80">NOW</span>}</div>
+                    <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Report content */}
+            <div className="flex-1 overflow-auto p-6 print:p-0">
+              {/* Print-only header */}
+              <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
+                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
+                <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
+              </div>
+              {/* Summary */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                <ReportStat label="Total units" value={reportData.totalUnits.toLocaleString()} />
+                <ReportStat label="Entries" value={reportData.totalEntries} />
+                <ReportStat label="Resources active" value={reportData.byResource.size} />
+                <ReportStat label="Lines down" value={reportData.downLines.length} />
+              </div>
+              {(reportData.totalHrs > 0 || reportData.totalEff !== null) && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {reportData.totalEff !== null && (
+                    <div className={`rounded-md border px-3 py-2.5 ${reportData.totalEff >= 90 ? "bg-emerald-50 border-emerald-200" : reportData.totalEff >= 76.5 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200"}`}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Efficiency</div>
+                      <div className={`text-xl font-bold tabular-nums ${reportData.totalEff >= 90 ? "text-emerald-700" : reportData.totalEff >= 76.5 ? "text-amber-700" : "text-rose-700"}`}>{reportData.totalEff.toFixed(1)}%</div>
+                    </div>
+                  )}
+                  {reportData.totalHrs > 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Hours worked</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalHrs.toFixed(1)}h</div>
+                    </div>
+                  )}
+                  {reportData.totalLost !== 0 && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{reportData.totalLost > 0 ? "Earned hours" : "Lost hours"}</div>
+                      <div className="text-xl font-bold tabular-nums text-slate-700">{reportData.totalLost.toFixed(1)}h</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {reportData.byResource.size === 0 && reportData.downLines.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500 italic">
+                  No shift entries or down-line markers logged for {meta.label} on {dateLabel}.
+                  <br /><span className="text-xs">Once supervisors log production or mark lines down for this shift, it'll show up here.</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reportData.downLines.length > 0 && (
+                    <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
+                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
+                      <div className="divide-y divide-rose-200">
+                        {reportData.downLines.map((d, i) => (
+                          <div key={i} className="px-3 py-2 text-sm">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span className="font-semibold text-slate-900">{d.resource}</span>
+                              <div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span></div>
+                            </div>
+                            {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {[...reportData.byResource.entries()].map(([res, data]) => (
+                    <div key={res} className="border border-stone-200 rounded-md overflow-hidden">
+                      <div className="bg-stone-100 px-3 py-2 font-semibold text-sm text-slate-900 border-b border-stone-200">{res}</div>
+                      <div className="divide-y divide-stone-100">
+                        {data.entries.map((item, i) => (
+                          <div key={i} className="px-3 py-2.5 text-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <span className="font-mono font-semibold text-slate-900">{item.row.wo}</span>
+                                <span className="text-slate-600 ml-2 text-xs">{item.row.descr || item.row.part}</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-emerald-700 tabular-nums">+{fmtNum(item.entry.qty)}</div>
+                                <div className="text-[10px] text-slate-500 tabular-nums">{fmtNum(item.row.comp_qty)} / {fmtNum(item.row.start_qty)} total</div>
+                              </div>
+                            </div>
+                            {(item.entry.eff != null || item.entry.hrs > 0 || item.entry.lost !== 0) && (
+                              <div className="flex items-center gap-3 mt-1.5">
+                                {item.entry.eff != null && (
+                                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${item.entry.eff >= 90 ? "bg-emerald-100 text-emerald-700" : item.entry.eff >= 76.5 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>
+                                    Eff {item.entry.eff.toFixed(1)}%
+                                  </div>
+                                )}
+                                {item.entry.hrs > 0 && <div className="text-[10px] text-slate-500"><span className="font-semibold text-slate-600">{item.entry.hrs.toFixed(1)}h</span> worked</div>}
+                                {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h {item.entry.lost > 0 ? "earned" : "lost"}</div>}
+                              </div>
+                            )}
+                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
+                            {item.entry.notes && (
+                              <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
+                                {item.entry.by && <span className="font-semibold text-slate-500 text-[10px] mr-1">{item.entry.by}:</span>}
+                                {item.entry.notes}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {data.statusOnly.map((r, i) => (
+                          <div key={`s-${i}`} className="px-3 py-2 text-sm bg-stone-50">
+                            <span className="font-mono text-slate-700">{r.wo}</span>
+                            <span className="text-slate-500 ml-2 text-xs">{r.descr || r.part}</span>
+                            <span className="ml-2 text-[10px] uppercase font-bold text-slate-400">{r.status} (no entries)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {Object.keys(reportData.reasonsCount).length > 0 && (
+                <div className="mt-5 pt-4 border-t border-stone-200">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Underperformance reasons</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(reportData.reasonsCount).map(([reason, count]) => (
+                      <div key={reason} className="px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-xs">
+                        <span className="font-semibold text-amber-900">{reason}</span>
+                        <span className="text-amber-700 ml-1.5">({count})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Safety & NC logs */}
+              {shiftLogs.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-stone-200">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Safety & NC Incidents ({shiftLogs.length})</div>
+                  <div className="space-y-2">
+                    {shiftLogs.map((log, i) => (
+                      <div key={i} className={`rounded-md border px-3 py-2.5 ${log.type === "safety" ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${log.type === "safety" ? "bg-red-600 text-white" : "bg-orange-600 text-white"}`}>
+                              {log.type === "safety" ? "SAFETY" : "NC"}
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-700">{log.severity}</span>
+                            {log.resource && <span className="text-[11px] text-slate-500">{log.resource}</span>}
+                          </div>
+                          <span className="text-[10px] text-slate-400">{log.by} · {new Date(log.loggedAt).toLocaleTimeString(undefined, {hour:"numeric", minute:"2-digit"})}</span>
+                        </div>
+                        <div className="text-[12px] text-slate-700 mt-1.5 leading-snug">{log.description}</div>
+                        {log.wo && <div className="text-[10px] text-slate-400 mt-1">WO: {log.wo}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions */}
+            <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
+              {existingSavedAt && (
+                <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
+                  ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </div>
+              )}
+              {!existingSavedAt && (
+                <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
+                <button onClick={saveReport} disabled={saveState === "saving"}
+                  style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
+                  className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
+                  {saveState==="saving"?"Saving…":saveState==="saved"?"✓ Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
+                </button>
+                <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
+              </div>
+            </div>
+          </React.Fragment>
+
+      </div>
+    </div>
+  );
+}
+
 
 function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitials, onClose }) {
   const isSafety = type === "safety";
