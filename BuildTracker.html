@@ -756,11 +756,27 @@ function BuildTracker() {
       }
     }, () => {});
 
+    const trimShifts62 = (ovr) => {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 62);
+      const cutISO = cutoff.toISOString().slice(0,10);
+      let changed = false;
+      const out = {};
+      for (const [k, v] of Object.entries(ovr)) {
+        if (v.shifts && v.shifts.some(s => (s.shiftDateISO||"").slice(0,10) < cutISO)) {
+          out[k] = { ...v, shifts: v.shifts.filter(s => (s.shiftDateISO||"").slice(0,10) >= cutISO) };
+          changed = true;
+        } else { out[k] = v; }
+      }
+      return changed ? out : null;
+    };
     const unsub = BT_OVERRIDES_REF.onSnapshot(snap => {
-      const parsed = fbParse(snap);
-      setOverrides(parsed || {});
+      const parsed = fbParse(snap) || {};
+      setOverrides(parsed);
       setFbStatus("live");
       setLastSync(new Date());
+      // Background: trim old shifts from Firestore if needed
+      const trimmed = trimShifts62(parsed);
+      if (trimmed) fbSave(BT_OVERRIDES_REF, trimmed).catch(() => {});
     }, err => {
       console.error("Overrides listener:", err);
       try { const s = localStorage.getItem(STORAGE_KEY); if (s) setOverrides(JSON.parse(s)); } catch(e) {}
@@ -867,9 +883,11 @@ function BuildTracker() {
               source: "labour",
               loggedAt: uploadedAt,
             }));
-            const mergedShifts = [...manualShifts, ...labourShifts].sort((a, b) =>
-              (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId)
-            );
+            const shiftCutoff62 = new Date(); shiftCutoff62.setDate(shiftCutoff62.getDate() - 62);
+            const shiftCutoff62ISO = shiftCutoff62.toISOString().slice(0,10);
+            const mergedShifts = [...manualShifts, ...labourShifts]
+              .filter(s => (s.shiftDateISO || "").slice(0,10) >= shiftCutoff62ISO) // keep last 62 days only
+              .sort((a, b) => (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId));
             nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, shifts: mergedShifts, _updatedAt: uploadedAt };
             matchCount++;
           }
