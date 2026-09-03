@@ -48,7 +48,7 @@
 </head>
 <body class="bg-stone-50">
   <div id="root">
-    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard…</div>
+    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard�</div>
   </div>
 
   <script type="text/babel" data-presets="react">
@@ -150,8 +150,8 @@ const WO_TOOL_MAP = {"W1021601/1":"07-020","W1026833/1":"5","W1026834/1":"5","W1
 
 const STORAGE_KEY = "build_tracker_overrides";
 
-// ── Firebase helpers ──────────────────────────────────────────────────────────
-// ── Password protection ───────────────────────────────────────────────────────
+// -- Firebase helpers ----------------------------------------------------------
+// -- Password protection -------------------------------------------------------
 const AUTH_KEY = "bt_authed";
 function isAuthed() { return sessionStorage.getItem(AUTH_KEY) === "1"; }
 function checkAuth() {
@@ -169,7 +169,7 @@ function fbParse(snap) {
   try { return JSON.parse(snap.data().data || "null"); } catch(e) { return null; }
 }
 
-// ── Build Plan parser (from Excel upload) ────────────────────────────────────
+// -- Build Plan parser (from Excel upload) ------------------------------------
 function parseBuildPlan(workbook) {
   // Looks for sheet named "Database Query" first, falls back to first sheet
   const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("database")) || workbook.SheetNames[0];
@@ -190,7 +190,7 @@ function parseBuildPlan(workbook) {
   const COL_STARTQTY = col(["START_QTY", "QTY"]) >= 0 ? col(["START_QTY", "QTY"]) : 9;
   const COL_COMPQTY  = col(["COMP_QTY"]) >= 0 ? col(["COMP_QTY"]) : 10;
 
-  // We need leader mapping — load from current BUILD_DATA if available, else blank
+  // We need leader mapping � load from current BUILD_DATA if available, else blank
   const leaderMap = {};
   if (typeof BUILD_DATA !== "undefined") {
     for (const r of BUILD_DATA.rows) leaderMap[r.resource] = r.leader;
@@ -220,7 +220,7 @@ function parseBuildPlan(workbook) {
   return rows.length > 0 ? rows : null;
 }
 
-// ── Labour tickets parser → WO comp_qty map ──────────────────────────────────
+// -- Labour tickets parser ? WO comp_qty map ----------------------------------
 // Sums GOOD_QTY per WO (stripping /1 suffix to match BuildTracker WO keys).
 // Returns { "W1027135": 1500, ... }
 // Returns { totals: { "W123": 500 }, shiftDetail: { "W123": [ {shiftId, shiftDateISO, qty, date} ] } }
@@ -228,8 +228,8 @@ function parseLabourTicketsForWOs(workbook) {
   // SHIFT2 column (MID/DAY/AFT/0) is the cleanest shift identifier.
   // Falls back to ID column (ASSEMBLY 1/2/3, MOLDING 1/2/3, etc.) if SHIFT2 unavailable.
   // Continental shifts group with the regular shift they overlap:
-  //   Continental Days (CONT A/B)   → Afternoons  (shiftId 3)
-  //   Continental Nights (CONT C/D) → Midnights   (shiftId 1)
+  //   Continental Days (CONT A/B)   ? Afternoons  (shiftId 3)
+  //   Continental Nights (CONT C/D) ? Midnights   (shiftId 1)
   // Matches Report app's SHIFT_ORDER grouping exactly.
   const SHIFT2_MAP = { "MID": 1, "DAY": 2, "AFT": 3 };
   const ID_SHIFT_MAP = {
@@ -249,13 +249,13 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_WO     = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
   const COL_QTY    = col(["GOOD_QTY", "QTY", "UNITS"], 7);
   const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
-  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT — preferred
-  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc — fallback
+  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT � preferred
+  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc � fallback
   const COL_HRS    = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
   const COL_EARNED = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
   const COL_LOST   = col(["LOST", "LOST_HRS"], 20);
   const totals = {};
-  // Group by WO + date + shiftId → accumulate qty, hrs, earned, lost
+  // Group by WO + date + shiftId ? accumulate qty, hrs, earned, lost
   const byWoShift = {};
   for (let i = 1; i < raw.length; i++) {
     const r = raw[i];
@@ -276,7 +276,7 @@ function parseLabourTicketsForWOs(workbook) {
     }
     if (!dateISO) continue;
     // Resolve shiftId: prefer SHIFT2 (MID/DAY/AFT), fall back to ID column.
-    // SHIFT2 is "0" or blank for continental rows → use ID column for those.
+    // SHIFT2 is "0" or blank for continental rows ? use ID column for those.
     const idCode = String(r[COL_ID] || "").trim().toUpperCase();
     let shiftId = 2;
     if (COL_SHIFT2 >= 0) {
@@ -297,7 +297,7 @@ function parseLabourTicketsForWOs(workbook) {
     byWoShift[groupKey].earned += earned;
     byWoShift[groupKey].lost   += lost;
   }
-  // Build shiftDetail: WO → array sorted newest first.
+  // Build shiftDetail: WO ? array sorted newest first.
   // Efficiency = earned / hrs_worked * 100  (same formula as Report app)
   const shiftDetail = {};
   for (const entry of Object.values(byWoShift)) {
@@ -320,7 +320,7 @@ function parseLabourTicketsForWOs(workbook) {
   return { totals, shiftDetail };
 }
 const SHIFT_HOURS = 8;
-// Business Unit display names — maps internal leader keys to BU labels shown in the UI.
+// Business Unit display names � maps internal leader keys to BU labels shown in the UI.
 // Internal data still uses leader names (e.g. "George") for filtering; this is display-only.
 const LEADER_TO_BU = {
   "George":    "BU Verathon",
@@ -336,16 +336,16 @@ const STATUS = {
   abr:    { label: "Awaiting BR",   dot: "bg-yellow-400",  bar: "bg-yellow-300",  chip: "bg-yellow-50 text-yellow-800 border-yellow-300",    border: "border-yellow-500",  textOnBar: "text-slate-900" },
   wip:    { label: "In Progress",   dot: "bg-amber-500",   bar: "bg-amber-400",   chip: "bg-amber-50 text-amber-800 border-amber-300",       border: "border-amber-500",   textOnBar: "text-slate-900" },
   todo:   { label: "Queued",        dot: "bg-slate-400",   bar: "bg-slate-300",   chip: "bg-slate-50 text-slate-700 border-slate-300",       border: "border-slate-400",   textOnBar: "text-slate-800" },
-  blue:   { label: "Flag · Blue",   dot: "bg-sky-500",     bar: "bg-sky-400",     chip: "bg-sky-50 text-sky-700 border-sky-200",             border: "border-sky-500",     textOnBar: "text-white" },
-  red:    { label: "Flag · Red",    dot: "bg-rose-500",    bar: "bg-rose-500",    chip: "bg-rose-50 text-rose-700 border-rose-200",          border: "border-rose-500",    textOnBar: "text-white" },
-  orange: { label: "Flag · Orange", dot: "bg-orange-500",  bar: "bg-orange-400",  chip: "bg-orange-50 text-orange-700 border-orange-200",    border: "border-orange-500",  textOnBar: "text-slate-900" },
+  blue:   { label: "Flag � Blue",   dot: "bg-sky-500",     bar: "bg-sky-400",     chip: "bg-sky-50 text-sky-700 border-sky-200",             border: "border-sky-500",     textOnBar: "text-white" },
+  red:    { label: "Flag � Red",    dot: "bg-rose-500",    bar: "bg-rose-500",    chip: "bg-rose-50 text-rose-700 border-rose-200",          border: "border-rose-500",    textOnBar: "text-white" },
+  orange: { label: "Flag � Orange", dot: "bg-orange-500",  bar: "bg-orange-400",  chip: "bg-orange-50 text-orange-700 border-orange-200",    border: "border-orange-500",  textOnBar: "text-slate-900" },
 };
 
 const POS_LABELS = ["NOW", "NEXT", "THEN"];
 const POST_PRODUCTION_STATUSES = new Set(["abr", "brs", "done"]);
 
-const fmtHrs = (n) => n == null || n === 0 ? "—" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
-const fmtNum = (n) => n == null ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
+const fmtHrs = (n) => n == null || n === 0 ? "�" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
+const fmtNum = (n) => n == null ? "�" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}`;
 const isLopro = (name) => /^lopro/i.test(name);
 
@@ -364,15 +364,15 @@ const readyCount = (row) => {
 
 // ============ Shifts ============
 // Shift schedule:
-//   1: 11pm–7am (overnight) — wall-clock window [23, 24) ∪ [0, 7)
-//   2: 7am–3pm (day)
-//   3: 3pm–11pm (evening)
+//   1: 11pm�7am (overnight) � wall-clock window [23, 24) ? [0, 7)
+//   2: 7am�3pm (day)
+//   3: 3pm�11pm (evening)
 // Grace window: 1 hour past end of a shift, the system still defaults to that ended shift
 // (lets supervisors log the shift they just finished).
 const SHIFTS = [
-  { id: 1, label: "Shift 1", time: "11pm–7am" },
-  { id: 2, label: "Shift 2", time: "7am–3pm" },
-  { id: 3, label: "Shift 3", time: "3pm–11pm" },
+  { id: 1, label: "Shift 1", time: "11pm�7am" },
+  { id: 2, label: "Shift 2", time: "7am�3pm" },
+  { id: 3, label: "Shift 3", time: "3pm�11pm" },
 ];
 // Returns { shiftId, shiftDate } where shiftDate is the calendar date that "owns" this shift.
 // (For Shift 1 in early-morning hours, the shift began the previous evening.)
@@ -380,9 +380,9 @@ const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
   // 1-hour grace: shift "just ended" still defaults to that shift
   // Active windows + grace:
-  // Shift 1 active: 23:00–06:59, grace until 07:59
-  // Shift 2 active: 07:00–14:59, grace until 15:59
-  // Shift 3 active: 15:00–22:59, grace until 23:59 (already covers full window)
+  // Shift 1 active: 23:00�06:59, grace until 07:59
+  // Shift 2 active: 07:00�14:59, grace until 15:59
+  // Shift 3 active: 15:00�22:59, grace until 23:59 (already covers full window)
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
   if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 active or just ended
@@ -391,10 +391,10 @@ const getCurrentShift = (date = new Date()) => {
     // Shift 1 (overnight). Owns date = the *evening start* date.
     shiftId = 1;
     if (h < 8) {
-      // Early morning — shift started yesterday evening
+      // Early morning � shift started yesterday evening
       shiftDate.setDate(shiftDate.getDate() - 1);
     }
-    // h >= 23 — shift just started this evening, shiftDate = today (already correct)
+    // h >= 23 � shift just started this evening, shiftDate = today (already correct)
   }
   return { shiftId, shiftDate };
 };
@@ -410,13 +410,13 @@ const shiftLabel = (entry) => {
   const meta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
   const d = new Date(entry.shiftDateISO);
   const dStr = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-  return `${dStr} · ${meta.label} (${meta.time})`;
+  return `${dStr} � ${meta.label} (${meta.time})`;
 };
 
 // ============ Calendar projection ============
 // Production runs Mon-Fri. Each line has its own daily window:
-//   - 24h lines: 00:00 → 24:00 (continuous)
-//   - 16h lines: 07:00 → 23:00 (no overnight)
+//   - 24h lines: 00:00 ? 24:00 (continuous)
+//   - 16h lines: 07:00 ? 23:00 (no overnight)
 // Weekends are always skipped.
 
 // Per-line shift coverage. Default = 24h.
@@ -451,7 +451,7 @@ const skipToProductionTime = (d, cov) => {
   if (hour < cov.startHour) {
     cur.setHours(cov.startHour, 0, 0, 0);
   } else if (hour >= cov.endHour) {
-    // Past today's window — go to tomorrow's start
+    // Past today's window � go to tomorrow's start
     cur.setDate(cur.getDate() + 1);
     cur.setHours(cov.startHour, 0, 0, 0);
     if (isWeekend(cur)) {
@@ -560,7 +560,7 @@ function BuildTracker() {
   const buildPlanInputRef = useRef(null);
   const labourInputRef = useRef(null);
 
-  // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
+  // -- Build resource?leader map from BUILD_DATA (static, never changes) -----
   const resourceLeaderMap = useMemo(() => {
     const map = {};
     for (const r of BUILD_DATA.rows) {
@@ -569,7 +569,7 @@ function BuildTracker() {
     return map;
   }, []);
 
-  // ── Live build plan from Firestore (falls back to BUILD_DATA if none uploaded) ──
+  // -- Live build plan from Firestore (falls back to BUILD_DATA if none uploaded) --
   const [buildPlanRows, setBuildPlanRows] = useState(null); // null = use BUILD_DATA
   useEffect(() => {
     const unsub = BT_BUILDPLAN_REF.onSnapshot(snap => {
@@ -595,7 +595,7 @@ function BuildTracker() {
     return () => unsub();
   }, [resourceLeaderMap]);
 
-  // ── Real-time overrides listener ──────────────────────────────────────────
+  // -- Real-time overrides listener ------------------------------------------
   useEffect(() => {
     // Load meta (last labour upload time) - use onSnapshot so it updates live
     const unsubMeta = BT_META_REF.onSnapshot(snap => {
@@ -623,20 +623,20 @@ function BuildTracker() {
     catch(e) { console.error("Save overrides:", e); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
   }, []);
 
-  // ── Build Plan upload handler ─────────────────────────────────────────────
+  // -- Build Plan upload handler ---------------------------------------------
   const handleBuildPlanUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "build", msg: "Parsing build plan…", ok: null });
+    setUploadStatus({ type: "build", msg: "Parsing build plan�", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
         const rows = parseBuildPlan(wb);
-        if (!rows) { setUploadStatus({ type: "build", msg: "No rows found — check sheet name 'Database Query'", ok: false }); return; }
+        if (!rows) { setUploadStatus({ type: "build", msg: "No rows found � check sheet name 'Database Query'", ok: false }); return; }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
-        setUploadStatus({ type: "build", msg: `✓ Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
+        setUploadStatus({ type: "build", msg: `? Build plan saved � ${rows.length} WOs � reload to apply`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "build", msg: "Error: " + err.message, ok: false });
       }
@@ -645,15 +645,15 @@ function BuildTracker() {
     e.target.value = "";
   };
 
-  // ── Labour tickets upload handler ─────────────────────────────────────────
+  // -- Labour tickets upload handler -----------------------------------------
   // Parses the same Excel file as Production Report Tool.
   // 1. Saves full row data to production_data/latest (shared with Production Report)
-  // 2. Extracts WO totals → updates comp_qty overrides for matched BuildTracker WOs
+  // 2. Extracts WO totals ? updates comp_qty overrides for matched BuildTracker WOs
   const handleLabourUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "labour", msg: "Parsing labour tickets…", ok: null });
+    setUploadStatus({ type: "labour", msg: "Parsing labour tickets�", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -739,11 +739,11 @@ function BuildTracker() {
         });
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
 
-        // ── Auto-save shift reports ────────────────────────────────────────
+        // -- Auto-save shift reports ----------------------------------------
         // For every date+shift combo found in the upload, write a shift_report doc.
-        // Groups WOs by BU leader, then by date+shiftId → one doc per BU per shift per date.
+        // Groups WOs by BU leader, then by date+shiftId ? one doc per BU per shift per date.
         try {
-          // Build a map: "leader||dateISO||shiftId" → { wos, totals }
+          // Build a map: "leader||dateISO||shiftId" ? { wos, totals }
           const reportMap = {};
           sourceRows.forEach(row => {
             const key = rowKey(row);
@@ -770,8 +770,8 @@ function BuildTracker() {
               entry.totalLost   += s.lost   || 0;
             });
           });
-          // Write each report doc — fetch existing first to preserve manually-added WO notes
-          const shiftMetas = { 1: { label: "Shift 1", time: "11pm–7am" }, 2: { label: "Shift 2", time: "7am–3pm" }, 3: { label: "Shift 3", time: "3pm–11pm" } };
+          // Write each report doc � fetch existing first to preserve manually-added WO notes
+          const shiftMetas = { 1: { label: "Shift 1", time: "11pm�7am" }, 2: { label: "Shift 2", time: "7am�3pm" }, 3: { label: "Shift 3", time: "3pm�11pm" } };
           const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
             const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
             const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
@@ -870,7 +870,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
+        setUploadStatus({ type: "labour", msg: `? Labour tickets saved � ${matchCount} WOs updated � shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -888,11 +888,11 @@ function BuildTracker() {
     });
 
     // Auto-tool inheritance: if a todo WO has the same tool_id as any currently-active
-    // (WIP/abr/brs) WO on the same line, the tool is already in the machine — so we
+    // (WIP/abr/brs) WO on the same line, the tool is already in the machine � so we
     // synthetically mark Tool as ready. The "auto: true" flag distinguishes this from
     // a manual check so the UI can render it differently.
     //
-    // Manual overrides always win — if the user has clicked the Tool button (either to
+    // Manual overrides always win � if the user has clicked the Tool button (either to
     // mark ok or not-ok), we leave it alone. Auto only applies when no manual data exists.
     //
     // Build a set of (resource, tool_id) pairs currently in-machine, then loop again
@@ -909,7 +909,7 @@ function BuildTracker() {
       if (r.status !== "todo") return r;
       // Skip if user already has manual tool readiness data
       if (r.readiness && r.readiness.tool !== undefined) return r;
-      // No tool required for this WO — auto-mark as ready (N/A case)
+      // No tool required for this WO � auto-mark as ready (N/A case)
       if (!r.tool_id) {
         return {
           ...r,
@@ -933,7 +933,7 @@ function BuildTracker() {
     });
   }, [overrides, buildPlanRows]);
 
-  // Unit Leader picker state — defaults to Andrew B. for the launch.
+  // Unit Leader picker state � defaults to Andrew B. for the launch.
   // Persists in localStorage so each device remembers its leader.
   const LEADER_STORAGE = "build_tracker_leader";
   const [selectedLeader, setSelectedLeader] = useState("__ALL__");
@@ -966,7 +966,7 @@ function BuildTracker() {
   // Running lines filter
   const [lineFilter, setLineFilter] = useState("all"); // "all" | "running" | "running_down"
 
-  // User initials — soft attribution (not security). Asks once per device,
+  // User initials � soft attribution (not security). Asks once per device,
   // stamps every action so we know who did what for shift reports.
   const INITIALS_STORAGE = "build_tracker_initials";
   const [userInitials, setUserInitials] = useState("");
@@ -986,7 +986,7 @@ function BuildTracker() {
     try { localStorage.setItem(INITIALS_STORAGE, clean); } catch {}
   };
 
-  // Line-down tracking — synced via Firebase so all devices see it live.
+  // Line-down tracking � synced via Firebase so all devices see it live.
   const LINE_DOWN_STORAGE = "build_tracker_line_down";
   const [lineDown, setLineDown] = useState({});
   useEffect(() => {
@@ -1124,7 +1124,7 @@ function BuildTracker() {
     // These are the most urgent because they're the next thing to start once NOW finishes.
     const nextNotReadyList = [];
     for (const l of lines) {
-      const nextRow = l.rows[1]; // POS_LABELS = ['NOW', 'NEXT', 'THEN'] → index 1 = NEXT
+      const nextRow = l.rows[1]; // POS_LABELS = ['NOW', 'NEXT', 'THEN'] ? index 1 = NEXT
       if (nextRow && nextRow.status === "todo" && !isReady(nextRow)) {
         // Attach remaining hours on NOW WO so modal can show urgency
         const nowRow = l.rows[0];
@@ -1169,7 +1169,7 @@ function BuildTracker() {
     };
   }, [lines, abrList, brsList]);
 
-  // Build "materials needed in next 36h" lists — one per readiness category.
+  // Build "materials needed in next 36h" lists � one per readiness category.
   // For each line, walk the FULL active queue (not just top 3) cumulatively to figure out
   // when each WO would start. If a WO starts within 36h and is missing a readiness check,
   // include it in that category's list. Tool list excludes WOs auto-covered by inheritance.
@@ -1202,7 +1202,7 @@ function BuildTracker() {
           if (!readiness.labels?.ok) lists.labels.push(entry);
           if (!readiness.kit?.ok) lists.kit.push(entry);
         }
-        // Update prevToolId from this WO (regardless of status — WIP sets the "current" tool)
+        // Update prevToolId from this WO (regardless of status � WIP sets the "current" tool)
         if (r.tool_id) prevToolId = r.tool_id;
         cursor += r.run_hrs || 0;
         if (cursor > WINDOW_HOURS) break;
@@ -1234,7 +1234,7 @@ function BuildTracker() {
     }
 
     if (changes.comp_qty != null && changes.status == null) {
-            // If qty meets or exceeds start_qty → move to ABR
+            // If qty meets or exceeds start_qty ? move to ABR
       if (startQty > 0 && resultCompQty >= startQty && !POST_PRODUCTION_STATUSES.has(merged.status ?? row.status)) {
         merged.status = "abr";
       } else if (resultCompQty > 0 && (merged.status ?? row.status) === "todo" && isReady(merged_for_ready_check)) {
@@ -1331,7 +1331,7 @@ function BuildTracker() {
   const [showNextNotReady, setShowNextNotReady] = useState(false);
   const [showNextSummary, setShowNextSummary] = useState(false);
 
-  // ── Presentation Mode ─────────────────────────────────────────────────────
+  // -- Presentation Mode -----------------------------------------------------
   const [tvExcluded, setTvExcluded] = useState(() => {
     try { return JSON.parse(localStorage.getItem("bt_tv_excluded") || "[]"); } catch(e) { return []; }
   });
@@ -1365,17 +1365,17 @@ function BuildTracker() {
 
     return (
       <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#0f172a", color: "white", fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif", display: "flex", flexDirection: "column" }}>
-        {/* Exit — invisible until hover */}
+        {/* Exit � invisible until hover */}
         <button onClick={() => setPresentationMode(false)}
           style={{ position: "fixed", top: 8, right: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
           onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
-        >✕ Exit (Esc)</button>
+        >? Exit (Esc)</button>
 
         {/* Config button */}
         <button onClick={() => setShowTvConfig(v => !v)}
           style={{ position: "fixed", top: 8, left: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
           onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
-        >⚙ Lines</button>
+        >? Lines</button>
 
         {/* Line exclusion config panel */}
         {showTvConfig && (
@@ -1401,7 +1401,7 @@ function BuildTracker() {
           </div>
         )}
 
-        {/* Compact header — single row */}
+        {/* Compact header � single row */}
         <div style={{ padding: "6px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontWeight: 800, fontSize: 18 }}>{selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
@@ -1409,14 +1409,14 @@ function BuildTracker() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>{stats.wip} WIP</span>
-            {stats.nextNotReady > 0 && <span style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>⚠ {stats.nextNotReady} Not Ready</span>}
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>? {stats.nextNotReady} Not Ready</span>}
             <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "monospace" }}>{now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}</span>
           </div>
         </div>
 
-        {/* Lines grid — fills remaining height exactly */}
+        {/* Lines grid � fills remaining height exactly */}
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gridTemplateRows: `repeat(${Math.ceil(tvLines.length / colCount)}, 1fr)`, gap: 6, padding: 6, overflow: "hidden" }}>
-        {/* Sort lines by remaining hours on NOW WO — soonest changeover top-left */}
+        {/* Sort lines by remaining hours on NOW WO � soonest changeover top-left */}
         {[...tvLines].sort((a, b) => {
           const getRemain = (line) => {
             const nowRow = line.rows[0];
@@ -1454,7 +1454,7 @@ function BuildTracker() {
                   <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                     {isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>DOWN</span>}
                     {hasWip && !isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#d97706", color: "#1c1917" }}>RUN</span>}
-                    {hasNotReady && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>⚠</span>}
+                    {hasNotReady && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>?</span>}
                   </div>
                 </div>
 
@@ -1523,7 +1523,7 @@ function BuildTracker() {
 
 
 
-  // ── Mobile View ───────────────────────────────────────────────────────────
+  // -- Mobile View -----------------------------------------------------------
   if (isMobile && !presentationMode) {
     const { shiftId: curShift, shiftDate: curShiftDate } = getCurrentShift(new Date());
     const logoSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAh0AAACTCAYAAAAqRatmAAAAAXNSR0IArs4c6QAAAPJlWElmTU0AKgAAAAgABwESAAMAAAABAAEAAAEaAAUAAAABAAAAYgEbAAUAAAABAAAAagEoAAMAAAABAAIAAAExAAIAAAAhAAAAcgEyAAIAAAAUAAAAlIdpAAQAAAABAAAAqAAAAAAAAABIAAAAAQAAAEgAAAABQWRvYmUgUGhvdG9zaG9wIDIzLjUgKE1hY2ludG9zaCkAADIwMjM6MDI6MjQgMDk6Mjg6MjkAAASQBAACAAAAFAAAAN6gAQADAAAAAQABAACgAgAEAAAAAQAAAh2gAwAEAAAAAQAAAJMAAAAAMjAyMzowMjoyNCAwOToyNjowOAD4b/+7AAAACXBIWXMAAAsTAAALEwEAmpwYAAAMsWlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNi4wLjAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iCiAgICAgICAgICAgIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyIKICAgICAgICAgICAgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iCiAgICAgICAgICAgIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyIKICAgICAgICAgICAgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIj4KICAgICAgICAgPGRjOmZvcm1hdD5pbWFnZS9wbmc8L2RjOmZvcm1hdD4KICAgICAgICAgPHhtcDpNb2RpZnlEYXRlPjIwMjMtMDItMjRUMDk6Mjg6MjktMDU6MDA8L3htcDpNb2RpZnlEYXRlPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIFBob3Rvc2hvcCAyMy41IChNYWNpbnRvc2gpPC94bXA6Q3JlYXRvclRvb2w+CiAgICAgICAgIDx4bXA6Q3JlYXRlRGF0ZT4yMDIzLTAyLTI0VDA5OjI2OjA4LTA1OjAwPC94bXA6Q3JlYXRlRGF0ZT4KICAgICAgICAgPHhtcDpNZXRhZGF0YURhdGU+MjAyMy0wMi0yNFQwOToyODoyOS0wNTowMDwveG1wOk1ldGFkYXRhRGF0ZT4KICAgICAgICAgPHhtcE1NOkhpc3Rvcnk+CiAgICAgICAgICAgIDxyZGY6U2VxPgogICAgICAgICAgICAgICA8cmRmOmxpIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OnNvZnR3YXJlQWdlbnQ+QWRvYmUgUGhvdG9zaG9wIDIzLjUgKE1hY2ludG9zaCk8L3N0RXZ0OnNvZnR3YXJlQWdlbnQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDpjaGFuZ2VkPi88L3N0RXZ0OmNoYW5nZWQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDp3aGVuPjIwMjMtMDItMjRUMDk6Mjg6MjktMDU6MDA8L3N0RXZ0OndoZW4+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDppbnN0YW5jZUlEPnhtcC5paWQ6YTk0Y2M3MjYtZDI4NS00NzVlLWFhYTAtNmMyZWRiNmNkNDhmPC9zdEV2dDppbnN0YW5jZUlEPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6YWN0aW9uPnNhdmVkPC9zdEV2dDphY3Rpb24+CiAgICAgICAgICAgICAgIDwvcmRmOmxpPgogICAgICAgICAgICAgICA8cmRmOmxpIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OmFjdGlvbj5jb252ZXJ0ZWQ8L3N0RXZ0OmFjdGlvbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OnBhcmFtZXRlcnM+ZnJvbSBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9zaG9wIHRvIGltYWdlL3BuZzwvc3RFdnQ6cGFyYW1ldGVycz4KICAgICAgICAgICAgICAgPC9yZGY6bGk+CiAgICAgICAgICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6YWN0aW9uPmRlcml2ZWQ8L3N0RXZ0OmFjdGlvbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OnBhcmFtZXRlcnM+Y29udmVydGVkIGZyb20gYXBwbGljYXRpb24vdm5kLmFkb2JlLnBob3Rvc2hvcCB0byBpbWFnZS9wbmc8L3N0RXZ0OnBhcmFtZXRlcnM+CiAgICAgICAgICAgICAgIDwvcmRmOmxpPgogICAgICAgICAgICAgICA8cmRmOmxpIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0OnNvZnR3YXJlQWdlbnQ+QWRvYmUgUGhvdG9zaG9wIDIzLjUgKE1hY2ludG9zaCk8L3N0RXZ0OnNvZnR3YXJlQWdlbnQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDpjaGFuZ2VkPi88L3N0RXZ0OmNoYW5nZWQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDp3aGVuPjIwMjMtMDItMjRUMDk6Mjg6MjktMDU6MDA8L3N0RXZ0OndoZW4+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDppbnN0YW5jZUlEPnhtcC5paWQ6NzY1ZmQ2NjQtMmJmYy00ZGE3LTk3YWUtZTkzNmJmNmM1OWIyPC9zdEV2dDppbnN0YW5jZUlEPgogICAgICAgICAgICAgICAgICA8c3RFdnQ6YWN0aW9uPnNhdmVkPC9zdEV2dDphY3Rpb24+CiAgICAgICAgICAgICAgIDwvcmRmOmxpPgogICAgICAgICAgICA8L3JkZjpTZXE+CiAgICAgICAgIDwveG1wTU06SGlzdG9yeT4KICAgICAgICAgPHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD54bXAuZGlkOmE5NGNjNzI2LWQyODUtNDc1ZS1hYWEwLTZjMmVkYjZjZDQ4ZjwveG1wTU06T3JpZ2luYWxEb2N1bWVudElEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD5hZG9iZTpkb2NpZDpwaG90b3Nob3A6ZWUzZjcwMWEtY2I5NS1iZTQyLWJlNjYtNjkxZDU0MTRkNzQ5PC94bXBNTTpEb2N1bWVudElEPgogICAgICAgICA8eG1wTU06RGVyaXZlZEZyb20gcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICA8c3RSZWY6b3JpZ2luYWxEb2N1bWVudElEPnhtcC5kaWQ6YTk0Y2M3MjYtZDI4NS00NzVlLWFhYTAtNmMyZWRiNmNkNDhmPC9zdFJlZjpvcmlnaW5hbERvY3VtZW50SUQ+CiAgICAgICAgICAgIDxzdFJlZjppbnN0YW5jZUlEPnhtcC5paWQ6YTk0Y2M3MjYtZDI4NS00NzVlLWFhYTAtNmMyZWRiNmNkNDhmPC9zdFJlZjppbnN0YW5jZUlEPgogICAgICAgICAgICA8c3RSZWY6ZG9jdW1lbnRJRD54bXAuZGlkOmE5NGNjNzI2LWQyODUtNDc1ZS1hYWEwLTZjMmVkYjZjZDQ4Zjwvc3RSZWY6ZG9jdW1lbnRJRD4KICAgICAgICAgPC94bXBNTTpEZXJpdmVkRnJvbT4KICAgICAgICAgPHhtcE1NOkluc3RhbmNlSUQ+eG1wLmlpZDo3NjVmZDY2NC0yYmZjLTRkYTctOTdhZS1lOTM2YmY2YzU5YjI8L3htcE1NOkluc3RhbmNlSUQ+CiAgICAgICAgIDx0aWZmOk9yaWVudGF0aW9uPjE8L3RpZmY6T3JpZW50YXRpb24+CiAgICAgICAgIDxwaG90b3Nob3A6Q29sb3JNb2RlPjM8L3Bob3Rvc2hvcDpDb2xvck1vZGU+CiAgICAgIDwvcmRmOkRlc2NyaXB0aW9uPgogICA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgq4hxvIAABAAElEQVR4Ae1dCZwcRdWv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";
@@ -1542,9 +1542,9 @@ function BuildTracker() {
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{lines.length} lines</span>
-            <span>⚡ {stats.wip} WIP</span>
-            {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>⚠ {stats.nextNotReady} not ready</span>}
-            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>🔄 {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+            <span>? {stats.wip} WIP</span>
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>? {stats.nextNotReady} not ready</span>}
+            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>?? {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
           </div>
         </div>
 
@@ -1614,15 +1614,15 @@ function BuildTracker() {
 
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0f172a", padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6, zIndex: 40 }}>
           <button onClick={() => labourInputRef.current?.click()}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📂 Labour</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Labour</button>
           <button onClick={() => setMaterialsModal("setups")}
-            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔧 SetUps {stats.nextSetupsList?.length || 0}</button>
+            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? SetUps {stats.nextSetupsList?.length || 0}</button>
           <button onClick={() => setShowNextSummary(v => !v)}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Next {stats.nextAllList?.length || 0}</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
-            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠ {stats.nextNotReady}</button>}
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>? {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
-            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Shift Report</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -1644,12 +1644,12 @@ function BuildTracker() {
             <div>
               <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">Build Plan Tracker <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500 text-white tracking-wider">DEV</span></div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} · Bars by run hours · {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
-                {fbStatus === "loading" && <span className="text-amber-600 font-medium">· ⏳ Connecting…</span>}
-                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">· 🔄 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-                {fbStatus === "error" && <span className="text-rose-600 font-medium">· ⚠ Offline</span>}
-                {buildPlanRows && <span className="text-blue-600 font-medium">· 📋 Custom build plan</span>}
-                {!buildPlanRows && <span className="text-slate-400 font-medium">· using baked-in build plan</span>}
+                <span>{lines.length} {lines.length === 1 ? "line" : "lines"} � Bars by run hours � {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
+                {fbStatus === "loading" && <span className="text-amber-600 font-medium">� ? Connecting�</span>}
+                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">� ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+                {fbStatus === "error" && <span className="text-rose-600 font-medium">� ? Offline</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">� ?? Custom build plan</span>}
+                {!buildPlanRows && <span className="text-slate-400 font-medium">� using baked-in build plan</span>}
               </div>
             </div>
             {/* Leader picker */}
@@ -1696,7 +1696,7 @@ function BuildTracker() {
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
                   title="Upload new Build Plan Excel (Database Query sheet)"
                 >
-                  📋 Build Plan
+                  ?? Build Plan
                 </button>
                 {lastBuildPlanUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastBuildPlanUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
               </div>
@@ -1704,9 +1704,9 @@ function BuildTracker() {
                 <button
                   onClick={() => labourInputRef.current && labourInputRef.current.click()}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
-                  title="Upload Labour Tickets — updates comp_qty on all matched WOs"
+                  title="Upload Labour Tickets � updates comp_qty on all matched WOs"
                 >
-                  📂 Labour Tickets
+                  ?? Labour Tickets
                 </button>
                 {lastLabourUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastLabourUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
               </div>
@@ -1724,10 +1724,10 @@ function BuildTracker() {
               title="Presentation / TV Mode"
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-slate-900 hover:bg-slate-900 hover:text-white bg-white text-slate-700 text-[11px] font-semibold transition-colors"
             >
-              📺 TV Mode
+              ?? TV Mode
             </button>
 
-            {/* Initials badge — soft attribution */}
+            {/* Initials badge � soft attribution */}
             {userInitials && (
               <button
                 onClick={() => setShowInitialsModal(true)}
@@ -1749,7 +1749,7 @@ function BuildTracker() {
               <div className="flex items-center gap-1">
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Next WOs</span>
               </div>
-              <span className="text-lg font-bold tabular-nums text-slate-700 leading-tight">{stats.nextAllList.length} <span className="text-[10px] font-normal text-slate-400 ml-0.5">▾</span></span>
+              <span className="text-lg font-bold tabular-nums text-slate-700 leading-tight">{stats.nextAllList.length} <span className="text-[10px] font-normal text-slate-400 ml-0.5">?</span></span>
             </button>
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
@@ -1769,7 +1769,7 @@ function BuildTracker() {
           stickyTop={stickyH.header}
           zIndex={39}
           title="Awaiting Batch Record"
-          subtitle="Production complete · BR pending"
+          subtitle="Production complete � BR pending"
           rows={abrList}
           onSelect={setSelectedWo}
           tone="yellow"
@@ -1804,15 +1804,15 @@ function BuildTracker() {
       <div className="sticky bottom-0 z-30 border-t border-slate-300 bg-slate-900 text-white px-4 py-2 flex items-center gap-3 text-xs flex-wrap">
         <a href="https://goshotrifonov.github.io/report/index.html" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          📊 Production Report
+          ?? Production Report
         </a>
         <a href="BetaApp.html" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          👥 Shift Assignment
+          ?? Shift Assignment
         </a>
         <a href="ShiftReadiness.html" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-semibold shrink-0">
-          ✅ Shift Readiness
+          ? Shift Readiness
         </a>
         {overrideCount > 0 ? (
           <>
@@ -1926,7 +1926,7 @@ function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, stripRef, s
           {icon}
           <span className="text-xs uppercase tracking-wider">{title}</span>
           <span className="text-xs tabular-nums">({rows.length})</span>
-          <span className="text-[10px] text-slate-500 normal-case font-normal hidden md:inline">· {subtitle}</span>
+          <span className="text-[10px] text-slate-500 normal-case font-normal hidden md:inline">� {subtitle}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {rows.map(r => {
@@ -1934,7 +1934,7 @@ function ClosoutStrip({ title, subtitle, rows, onSelect, tone, icon, stripRef, s
               <button key={rowKey(r)} onClick={() => onSelect(r)}
                       className={`flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md hover:shadow-sm transition-all text-xs ${toneStyles.chipBorder}`}>
                 <span className="font-mono font-semibold text-slate-800">{r.wo}</span>
-                <span className="text-slate-400">·</span>
+                <span className="text-slate-400">�</span>
                 <span className="text-slate-700 truncate max-w-[120px]">{r.resource}</span>
               </button>
             );
@@ -1970,9 +1970,9 @@ function StatWithIcon({ label, value, accent, icon: Icon, fill }) {
   );
 }
 
-// Progress overlay — green fill showing comp_qty / start_qty
+// Progress overlay � green fill showing comp_qty / start_qty
 function ProgressOverlay({ row }) {
-  // For WIP rows the bar itself is already sized to remaining time — no fill needed
+  // For WIP rows the bar itself is already sized to remaining time � no fill needed
   if (row.status === "wip") return null;
   if (!row.start_qty || row.start_qty <= 0 || !row.comp_qty || row.comp_qty <= 0) return null;
   const fillPct = Math.min(100, (row.comp_qty / row.start_qty) * 100);
@@ -1998,7 +1998,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
     return arr;
   }, [maxHours]);
 
-  // Calendar projection — shared timeline using default 24h coverage (the visual baseline).
+  // Calendar projection � shared timeline using default 24h coverage (the visual baseline).
   // Per-line coverage (e.g. 16h lines) is captured in SHIFT_COVERAGE for use by future
   // features like the #8 escalating warning, but the visible calendar is shared.
   const now = useMemo(() => new Date(), []);
@@ -2006,7 +2006,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
   const calSegs = useMemo(() => calendarSegments(maxHours, now), [maxHours, now]);
 
 
-  // Use the offset passed in from the parent — accounts for header + visible closeout strips.
+  // Use the offset passed in from the parent � accounts for header + visible closeout strips.
   const headerOffset = externalStickyTop;
 
   // Sync horizontal scroll between the sticky header row and the body scroll container
@@ -2046,8 +2046,8 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
       >
         <div className="w-48 md:w-60 shrink-0 border-r border-stone-200 bg-stone-50 h-[68px] px-3 md:px-4 flex flex-col justify-end pb-2">
           <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-500">Resource / WO</span>
-          <span className="text-[10px] text-slate-400">Production queue · hrs →</span>
-          <span className="text-[9px] text-slate-400 italic mt-0.5">Mon-Fri · 24h baseline</span>
+          <span className="text-[10px] text-slate-400">Production queue � hrs ?</span>
+          <span className="text-[9px] text-slate-400 italic mt-0.5">Mon-Fri � 24h baseline</span>
         </div>
         <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={headerScrollRef}>
           <div style={{ width: `${totalWidth}px`, position: "relative" }} className="h-[68px]">
@@ -2064,7 +2064,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                     key={`cal-${i}`}
                     className={`absolute top-0 bottom-0 flex items-center justify-center px-1 overflow-hidden border-r border-stone-300 ${isToday ? "bg-rose-50" : isWeekendDay ? "bg-stone-200/60" : ""}`}
                     style={{ left: `${left}px`, width: `${width}px` }}
-                    title={`${label} · ${seg.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`}
+                    title={`${label} � ${seg.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`}
                   >
                     {width > 38 ? (
                       <div className="flex items-baseline gap-1.5 truncate">
@@ -2130,7 +2130,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                 >
                   <span className="text-xs md:text-sm font-semibold text-slate-900 truncate flex-1" title={line.resource}>{line.resource}</span>
                   {downEntry && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " — " + downEntry.notes : ""} (by ${downEntry.by || "—"})`}>DOWN</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " � " + downEntry.notes : ""} (by ${downEntry.by || "�"})`}>DOWN</span>
                   )}
 
                   {!downEntry && hasWip && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-200 text-amber-900">RUN</span>}
@@ -2160,7 +2160,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                       ) : (
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                       )}
-                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "—"}</span>
+                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "�"}</span>
 
                       {r._override && <Pencil className="w-2.5 h-2.5 text-slate-400 shrink-0" />}
                     </div>
@@ -2203,7 +2203,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
                   <div
                     className={`sticky z-20 ${bgClass}`}
-                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem" }}
+                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem", opacity: 0, pointerEvents: "none" }}
                   >
                     <span className="sr-only">{line.resource}</span>
                   </div>
@@ -2222,7 +2222,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                              
                              className={`absolute top-1 h-5 rounded-sm cursor-pointer ${barColor} hover:brightness-110 transition-all overflow-hidden shadow-sm ${isSelected ? "ring-2 ring-slate-900 ring-offset-1" : ""} ${showNotReady ? "ring-2 ring-rose-500" : ""}`}
                              style={{ left: `${x}px`, width: `${w}px` }}
-                             title={`${r.wo} · ${r.descr || r.part || ""} · ${fmtHrs(r.run_hrs)} · ${meta.label}${showNotReady ? " · NOT READY" : ""}`}>
+                             title={`${r.wo} � ${r.descr || r.part || ""} � ${fmtHrs(r.run_hrs)} � ${meta.label}${showNotReady ? " � NOT READY" : ""}`}>
                           <ProgressOverlay row={r} />
                           {w > 50 && (
                             <div className="absolute inset-0 flex items-center px-1.5 pointer-events-none gap-1.5 min-w-0">
@@ -2230,7 +2230,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                               <span className={`text-[10px] font-mono font-semibold drop-shadow-sm shrink-0 ${meta.textOnBar}`}>{r.wo}</span>
                               {w > 130 && r.descr && (
                                 <>
-                                  <span className={`text-[10px] opacity-50 shrink-0 ${meta.textOnBar}`}>·</span>
+                                  <span className={`text-[10px] opacity-50 shrink-0 ${meta.textOnBar}`}>�</span>
                                   <span className={`text-[10px] font-medium truncate drop-shadow-sm ${meta.textOnBar}`}>{r.descr}</span>
                                 </>
                               )}
@@ -2271,8 +2271,8 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
 function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose }) {
   const KIND_META = {
-    setups: { label: "SetUps", icon: Wrench, description: "NEXT WOs with tool changeover — sorted by urgency" },
-    tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed — physical staging required" },
+    setups: { label: "SetUps", icon: Wrench, description: "NEXT WOs with tool changeover � sorted by urgency" },
+    tool:   { label: "Tools",  icon: Wrench,  description: "Tool changeovers needed � physical staging required" },
     labels: { label: "Labels", icon: Tag,     description: "WOs needing Label verification" },
     kit:    { label: "Kits",   icon: Package, description: "WOs needing Kit verification" },
   };
@@ -2319,13 +2319,13 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
     const toolHeader = kind === "tool" || kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Tool ID</th>" : "";
             const statusHeader = kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Status</th>" : "";
     const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed — ${buLabel}</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed � ${buLabel}</title>
       <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 4px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}</style>
     </head><body>
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-        <div><h2>${meta.label} Needed in Next 36h — ${buLabel}</h2>
-        <p>${entries.length} WOs across ${byResource.length} lines · Generated ${new Date().toLocaleString()}</p></div>
-        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
+        <div><h2>${meta.label} Needed in Next 36h � ${buLabel}</h2>
+        <p>${entries.length} WOs across ${byResource.length} lines � Generated ${new Date().toLocaleString()}</p></div>
+        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
       </div>
       <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase">
         <th style="padding:5px 8px;text-align:left">Resource</th>
@@ -2348,7 +2348,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
               <I className="w-5 h-5 text-amber-600" />
               {meta.label} Needed in Next 36h
             </h2>
-            <p className="text-xs text-slate-500">{meta.description} · {buLabel}</p>
+            <p className="text-xs text-slate-500">{meta.description} � {buLabel}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2356,7 +2356,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
         <div style={{ overflowY: "auto", flex: 1 }}>
           {entries.length === 0 ? (
             <div className="text-center py-8 text-sm text-slate-500 italic px-5">
-              ✓ All {meta.label.toLowerCase()} are ready for WOs starting in the next 36 hours.
+              ? All {meta.label.toLowerCase()} are ready for WOs starting in the next 36 hours.
             </div>
           ) : (
             <div className="p-5">
@@ -2384,7 +2384,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                                 {formatStartsIn(e.startsInHrs)}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "—"}</div>
+                            <div className="text-xs text-slate-700 mb-1">{e.row.descr || e.row.part || "�"}</div>
                             <div className="flex flex-wrap gap-2 items-center text-[10px] text-slate-500">
                               {kind === "tool" && toolId && (
                                 <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Tool: {toolId}</span>
@@ -2392,7 +2392,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                               {kind === "tool" && !toolId && (
                                 <span className="italic text-slate-400">No tool ID on file</span>
                               )}
-                              <span className="text-stone-400">·</span>
+                              <span className="text-stone-400">�</span>
                               <span>~{formatWallClock(e.startsAt)}</span>
                               {kind === "setups" && (WO_TOOL_MAP[e.row.wo] || e.row.tool_id) && (
                                 <span className="font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">{WO_TOOL_MAP[e.row.wo] || e.row.tool_id}</span>
@@ -2402,7 +2402,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
                                 const bg = r.toolAuto?"#0ea5e9":r.toolNA?"#64748b":r.toolReady?"#16a34a":"transparent";
                                 const bd = (r.toolReady||r.toolAuto||r.toolNA)?"none":"1px solid #ef4444";
                                 const cl = (r.toolReady||r.toolAuto||r.toolNA)?"white":"#f87171";
-                                const lb = r.toolAuto?"AUTO":r.toolNA?"N/A":r.toolReady?`✓${r.toolBy?" · "+r.toolBy:""}`:"Needed";
+                                const lb = r.toolAuto?"AUTO":r.toolNA?"N/A":r.toolReady?`?${r.toolBy?" � "+r.toolBy:""}`:"Needed";
                                 return <span style={{background:bg,border:bd,color:cl,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700,marginLeft:4}}>{lb}</span>;
                               })()}
                             </div>
@@ -2421,7 +2421,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
           <span className="text-[10px] text-slate-500 italic flex-1">Click a WO to open its detail panel</span>
           <button onClick={onClose} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Close</button>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">
-            🖨 Print
+            ?? Print
           </button>
         </div>
       </div>
@@ -2455,7 +2455,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
-            <p className="text-xs text-slate-500">All NEXT slot WOs — click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` · Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
+            <p className="text-xs text-slate-500">All NEXT slot WOs � click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` � Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2483,9 +2483,9 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{liveRow.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
+                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">? Ready</span>}
                       {checks.find(c => c.key === "tool")?.isChangeover && !checks.find(c => c.key === "tool")?.auto && !checks.find(c => c.key === "tool")?.na && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-white">SetUp</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>? ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{liveRow.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{liveRow.descr || liveRow.part}</div>
@@ -2506,10 +2506,10 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                         >
                           {c.label}{badge}
                           {/* Not ready: show tool number */}
-                          {!c.ok && c.extra ? ` · ${c.extra}` : ""}
+                          {!c.ok && c.extra ? ` � ${c.extra}` : ""}
                           {/* Manually checked real changeover: show tool number + C/O only if tool changed */}
-                          {c.ok && !c.auto && !c.na && c.extra ? ` · ${c.extra}${c.isChangeover ? " C/O" : ""}` : ""}
-                          {c.ok && !c.auto && !c.na && c.by ? ` · ${c.by}` : ""}
+                          {c.ok && !c.auto && !c.na && c.extra ? ` � ${c.extra}${c.isChangeover ? " C/O" : ""}` : ""}
+                          {c.ok && !c.auto && !c.na && c.by ? ` � ${c.by}` : ""}
                         </div>
                       );
                     })}
@@ -2520,7 +2520,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO · Click Tool / Labels / Kit pills to toggle readiness</span>
+          <span className="text-[10px] text-slate-500 italic flex-1">Click row to open WO � Click Tool / Labels / Kit pills to toggle readiness</span>
           <button
             onClick={() => {
               const now = new Date().toLocaleString();
@@ -2545,14 +2545,14 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                   const border = c.ok ? "none" : "2px solid #ef4444";
                   const color = c.ok ? "#fff" : "#f87171";
                   const badge = c.na ? " N/A" : c.auto ? " AUTO" : "";
-                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " · " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " · " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
+                  return `<span style="background:${bg};border:${border};color:${color};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">${c.label}${badge}${c.extra && !c.ok ? " � " + c.extra : ""}${c.ok && !c.auto && !c.na && c.extra ? " � " + c.extra + (c.isChangeover ? " C/O" : "") : ""}</span>`;
                 }).join("");
                 const urgentBadge = isUrgent ? '<span style="background:#dc2626;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">URGENT</span>' : '';
                 const isToolChangeover = !ready.tool?.auto && !ready.tool?.na && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) && r._nowToolId !== undefined && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) !== r._nowToolId;
                 const coBadge = isToolChangeover ? '<span style="background:#f59e0b;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">SetUp</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
-                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
-                const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">⏱ ~${nowHrs.toFixed(0)}h left</span>` : '';
+                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">? Ready</span>' : '';
+                const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">? ~${nowHrs.toFixed(0)}h left</span>` : '';
                 return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
                   <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${coBadge}${readyBadge}${timeHtml}</td>
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
@@ -2565,8 +2565,8 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
                 <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px;} table{width:100%;border-collapse:collapse;} h2{margin:0 0 4px} p{margin:0 0 12px;color:#64748b;font-size:12px} *{-webkit-print-color-adjust:exact;print-color-adjust:exact;} @media print{button{display:none}}</style>
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-                  <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}${lastLabourUpdate ? ' · Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
-                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
+                  <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker � Printed ${now}${lastLabourUpdate ? ' � Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
+                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
                 </div>
                 <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">
                   <th style="padding:6px 8px;text-align:left">Resource</th>
@@ -2579,7 +2579,7 @@ function NextSummaryModal({ rows, allRows, lastLabourUpdate, onSelect, onClose, 
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
           >
-            🖨 Print
+            ?? Print
           </button>
         </div>
       </div>
@@ -2605,13 +2605,13 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
               <AlertTriangle className="w-5 h-5 text-rose-600" fill="currentColor" />
               Next WOs Not Ready ({rows.length})
             </h2>
-            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness — sorted by urgency</p>
+            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness � sorted by urgency</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
         <div className="max-h-[60vh] overflow-auto divide-y divide-stone-100">
           {sorted.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready 🎉</div>
+            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready ??</div>
           ) : sorted.map((r, i) => {
             const ready = r.readiness || {};
             const toolId = WO_TOOL_MAP[r.wo] || r.tool_id || null;
@@ -2630,7 +2630,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ ~{nowHrs.toFixed(0)}h left</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>? ~{nowHrs.toFixed(0)}h left</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
@@ -2640,7 +2640,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex flex-wrap gap-1 justify-end">
                       {missing.map(m => (
                         <span key={m.label} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                          {m.label}{m.extra && <span className="font-mono"> · {m.extra}</span>}
+                          {m.label}{m.extra && <span className="font-mono"> � {m.extra}</span>}
                         </span>
                       ))}
                     </div>
@@ -2651,7 +2651,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
           })}
         </div>
         <div className="px-5 py-3 border-t border-stone-200 bg-stone-50 text-[10px] text-slate-500 italic">
-          Click a WO to open it and verify readiness · Red border = NOW WO finishing in under 4h
+          Click a WO to open it and verify readiness � Red border = NOW WO finishing in under 4h
         </div>
       </div>
     </div>
@@ -2704,7 +2704,7 @@ function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
               ))}
             </div>
             <div className="text-[10px] text-slate-500 mt-1.5 italic">
-              Marking down: <span className="font-semibold text-slate-700">{dateLabel} · {meta.label}</span>
+              Marking down: <span className="font-semibold text-slate-700">{dateLabel} � {meta.label}</span>
             </div>
           </div>
 
@@ -2775,7 +2775,7 @@ function InitialsModal({ current, onSave, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome — who are you?</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome � who are you?</h2>
         <p className="text-sm text-slate-600 mb-4">Enter your initials so we can track who logged what during the shift.</p>
         <input
           type="text"
@@ -2934,8 +2934,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   };
   const copyReport = () => {
     const lines = [];
-    lines.push(`SHIFT REPORT — ${buName(selectedLeader)}`);
-    lines.push(`${dateLabel} · ${meta.label} (${meta.time})`);
+    lines.push(`SHIFT REPORT � ${buName(selectedLeader)}`);
+    lines.push(`${dateLabel} � ${meta.label} (${meta.time})`);
     lines.push("=".repeat(60));
     lines.push("");
     lines.push(`Total units this shift: ${reportData.totalUnits.toLocaleString()}`);
@@ -2951,16 +2951,16 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
         lines.push(`--- ${res} ---`);
         for (const { row, entry } of data.entries) {
           const ratio = row.start_qty > 0 ? `${row.comp_qty}/${row.start_qty}` : "";
-          lines.push(`  ${row.wo} · ${row.descr || row.part || ""}`);
-          const effStr  = entry.eff  != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
-          const hrsStr  = entry.hrs  > 0 ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
-          const lostStr = entry.lost !== 0 ? ` · ${entry.lost.toFixed(1)}h lost` : "";
-          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty} · ${entry.by || "—"}`);
+          lines.push(`  ${row.wo} � ${row.descr || row.part || ""}`);
+          const effStr  = entry.eff  != null ? ` � Eff ${entry.eff.toFixed(1)}%` : "";
+          const hrsStr  = entry.hrs  > 0 ? ` � ${entry.hrs.toFixed(1)}h worked` : "";
+          const lostStr = entry.lost !== 0 ? ` � ${entry.lost.toFixed(1)}h lost` : "";
+          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} � total ${row.comp_qty}/${row.start_qty} � ${entry.by || "�"}`);
           if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
           if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
         }
         for (const r of data.statusOnly) {
-          lines.push(`  ${r.wo} · ${r.descr || r.part || ""} · ${r.status.toUpperCase()} (no entries this shift)`);
+          lines.push(`  ${r.wo} � ${r.descr || r.part || ""} � ${r.status.toUpperCase()} (no entries this shift)`);
         }
         lines.push("");
       }
@@ -2968,7 +2968,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     if (reportData.downLines.length > 0) {
       lines.push("LINES DOWN THIS SHIFT:");
       for (const d of reportData.downLines) {
-        lines.push(`  ${d.resource} — ${d.reason}${d.notes ? " · " + d.notes : ""} (by ${d.by || "—"})`);
+        lines.push(`  ${d.resource} � ${d.reason}${d.notes ? " � " + d.notes : ""} (by ${d.by || "�"})`);
       }
       lines.push("");
     }
@@ -2980,7 +2980,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       alert("Report copied to clipboard. Paste into email or document.");
-    }).catch(() => alert("Copy failed — try again or print instead."));
+    }).catch(() => alert("Copy failed � try again or print instead."));
   };
 
   const saveReport = async () => {
@@ -3024,7 +3024,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     const noteText = woNoteInput.trim();
     const docId = selectedHistoryReport.id;
     try {
-      // Update the wos array — find the matching WO and append the note
+      // Update the wos array � find the matching WO and append the note
       const updatedWos = (selectedHistoryReport.wos || []).map(w => {
         if (w.wo === woKey) {
           const existingNotes = w.notes ? w.notes + " | " : "";
@@ -3079,12 +3079,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
         {activeTab === "history" ? (
           selectedHistoryReport ? (
-            /* ── History detail view ── */
+            /* -- History detail view -- */
             <div className="flex flex-col flex-1 overflow-hidden">
               <div className="px-4 py-2 border-b border-stone-200 bg-stone-50 flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => setSelectedHistoryReport(null)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">← Back</button>
+                <button onClick={() => setSelectedHistoryReport(null)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">? Back</button>
                 <span className="text-slate-300">|</span>
-                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} · {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+                <span className="text-sm font-semibold text-slate-700">{selectedHistoryReport.shiftLabel} � {new Date(selectedHistoryReport.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
                 <span className="text-xs text-slate-400">{selectedHistoryReport.shiftTime}</span>
               </div>
               <div className="flex-1 overflow-auto p-4">
@@ -3118,10 +3118,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 )}
                 {(selectedHistoryReport.linesDown||[]).length>0 && (
                   <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
-                    <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({selectedHistoryReport.linesDown.length})</div>
+                    <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">? Lines down ({selectedHistoryReport.linesDown.length})</div>
                     {selectedHistoryReport.linesDown.map((d,i)=>(
                       <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
-                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"—"}</span></div>
+                        <div className="flex items-baseline justify-between"><span className="font-semibold">{d.resource}</span><span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason||"�"}</span></div>
                         {d.notes && <div className="text-xs text-slate-600 mt-0.5">{d.notes}</div>}
                       </div>
                     ))}
@@ -3151,7 +3151,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                     {w.lost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{w.lost.toFixed(1)}h {w.lost > 0 ? "earned" : "lost"}</span>}
                                   </div>
                                 )}
-                                {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {w.reason}</div>}
+                                {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">? {w.reason}</div>}
                                 {w.notes && <div className="mt-1 text-[11px] text-slate-600 italic border-l-2 border-stone-300 pl-2">{w.notes}</div>}
                                 {/* WO note input */}
                                 {woNoteTarget === w.wo ? (
@@ -3160,12 +3160,12 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                       autoFocus
                                       value={woNoteInput}
                                       onChange={e => setWoNoteInput(e.target.value)}
-                                      placeholder="Add note…"
+                                      placeholder="Add note�"
                                       className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded focus:outline-none focus:border-blue-500"
                                       onKeyDown={e => { if (e.key === "Enter" && woNoteInput.trim()) saveWoNote(w.wo); if (e.key === "Escape") { setWoNoteTarget(null); setWoNoteInput(""); } }}
                                     />
                                     <button onClick={() => saveWoNote(w.wo)} disabled={!woNoteInput.trim()} className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">Save</button>
-                                    <button onClick={() => { setWoNoteTarget(null); setWoNoteInput(""); }} className="px-2 py-1 rounded bg-stone-200 text-slate-600 text-xs">✕</button>
+                                    <button onClick={() => { setWoNoteTarget(null); setWoNoteInput(""); }} className="px-2 py-1 rounded bg-stone-200 text-slate-600 text-xs">?</button>
                                   </div>
                                 ) : (
                                   <button onClick={() => { setWoNoteTarget(w.wo); setWoNoteInput(""); }} className="mt-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-semibold">+ note</button>
@@ -3200,24 +3200,24 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                   <input
                     value={historyNoteInput}
                     onChange={e => setHistoryNoteInput(e.target.value)}
-                    placeholder="Add a note to this report…"
+                    placeholder="Add a note to this report�"
                     className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400"
                     onKeyDown={e => { if (e.key === "Enter" && historyNoteInput.trim()) saveHistoryNote(); }}
                   />
                   <button onClick={saveHistoryNote} disabled={!historyNoteInput.trim() || historyNoteSaving}
                     style={{backgroundColor: historyNoteSaving ? "#60a5fa" : "#2563eb"}}
                     className="px-3 py-2 rounded-md text-white text-sm font-semibold disabled:opacity-40">
-                    {historyNoteSaving ? "…" : "Add"}
+                    {historyNoteSaving ? "�" : "Add"}
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT — ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} · ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; if((r.reportNotes||[]).length>0){lines.push("REPORT NOTES:");for(const n of r.reportNotes)lines.push(`  ${n.by||""}: ${n.text}`);lines.push("");} for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} · ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` · Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` · ${w.hrs.toFixed(1)}h`:""}${w.lost!==0?` · ${w.lost.toFixed(1)}h ${w.lost>0?"earned":"lost"}`:""}`);if(w.notes)lines.push(`    Notes: ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
+                  <button onClick={()=>{ const r=selectedHistoryReport; const wos=r.wos||[]; const byRes={}; for(const w of wos){if(!byRes[w.resource])byRes[w.resource]=[];byRes[w.resource].push(w);} const lines=[`SHIFT REPORT � ${r.bu}`,`${new Date(r.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})} � ${r.shiftLabel} (${r.shiftTime})`,"=".repeat(50),`Total units: ${r.totalUnits}`,r.totalEff!=null?`Efficiency: ${r.totalEff.toFixed(1)}%`:"",r.totalHrs>0?`Hours: ${r.totalHrs.toFixed(1)}h`:"",""]; if((r.reportNotes||[]).length>0){lines.push("REPORT NOTES:");for(const n of r.reportNotes)lines.push(`  ${n.by||""}: ${n.text}`);lines.push("");} for(const[res,items] of Object.entries(byRes)){lines.push(`--- ${res} ---`);for(const w of items){lines.push(`  ${w.wo} � ${w.descr}`);if(w.qty>0)lines.push(`    +${w.qty} units${w.eff!=null?` � Eff ${w.eff.toFixed(1)}%`:""}${w.hrs>0?` � ${w.hrs.toFixed(1)}h`:""}${w.lost!==0?` � ${w.lost.toFixed(1)}h ${w.lost>0?"earned":"lost"}`:""}`);if(w.notes)lines.push(`    Notes: ${w.notes}`);}lines.push("");} navigator.clipboard.writeText(lines.filter(l=>l!=="").join("\n")).then(()=>alert("Copied!")).catch(()=>alert("Failed")); }} className="flex-1 px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold">Copy as text</button>
                   <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 text-slate-800 text-sm font-semibold">Print</button>
                 </div>
               </div>
             </div>
           ) : (
-            /* ── History list ── */
+            /* -- History list -- */
             <div className="flex-1 overflow-auto">
               {/* Filters */}
               <div className="px-4 pt-3 pb-2 border-b border-stone-100 bg-stone-50 flex items-center gap-3 flex-wrap">
@@ -3257,8 +3257,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               </div>
               {/* List */}
               <div className="p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Saved reports — {buName(selectedLeader)}</div>
-              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history…</div>}
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Saved reports � {buName(selectedLeader)}</div>
+              {historyLoading && <div className="text-center py-10 text-sm text-slate-400">Loading history�</div>}
               {!historyLoading && historyReports!==null && historyReports.length===0 && <div className="text-center py-10 text-sm text-slate-400 italic">No saved reports found.</div>}
               {!historyLoading && historyReports && historyReports.length>0 && (() => {
                 const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - historyDaysFilter);
@@ -3287,7 +3287,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div className="flex items-center gap-2 shrink-0">
                             {r.totalEff!=null && <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${effBg} ${effColor}`}>{r.totalEff.toFixed(1)}%</span>}
                             <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()} u</span>
-                            <span className="text-slate-300 text-xs">›</span>
+                            <span className="text-slate-300 text-xs">�</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -3306,7 +3306,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             </div>
           )
         ) : (
-          /* ── Current shift tab ── */
+          /* -- Current shift tab -- */
           <React.Fragment>
             {/* Shift selector */}
             <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 print:hidden flex-shrink-0">
@@ -3326,8 +3326,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="flex-1 overflow-auto p-6 print:p-0">
               {/* Print-only header */}
               <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
-                <p className="text-sm">{dateLabel} · {meta.label} ({meta.time})</p>
+                <h1 className="text-xl font-bold">Shift Report � {buName(selectedLeader)}</h1>
+                <p className="text-sm">{dateLabel} � {meta.label} ({meta.time})</p>
               </div>
               {/* Summary */}
               <div className="grid grid-cols-4 gap-2 mb-4">
@@ -3367,16 +3367,16 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <div className="space-y-4">
                   {reportData.downLines.length > 0 && (
                     <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
-                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down this shift ({reportData.downLines.length})</div>
+                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">? Lines down this shift ({reportData.downLines.length})</div>
                       <div className="divide-y divide-rose-200">
                         {reportData.downLines.map((d, i) => (
                           <div key={i} className="px-3 py-2 text-sm">
                             <div className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold text-slate-900">{d.resource}</span>
-                              <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "�"}</span>
                             </div>
                             {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
-                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "�"}</div>
                           </div>
                         ))}
                       </div>
@@ -3409,7 +3409,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h {item.entry.lost > 0 ? "earned" : "lost"}</div>}
                               </div>
                             )}
-                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">⚠ {item.entry.reason}</div>}
+                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">? {item.entry.reason}</div>}
                             {item.entry.notes && (
                               <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
                                 {item.entry.by && <span className="font-semibold text-slate-500 text-[10px] mr-1">{item.entry.by}:</span>}
@@ -3449,7 +3449,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
               {existingSavedAt && (
                 <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
-                  ✓ Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  ? Auto-saved from last upload � {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </div>
               )}
               {!existingSavedAt && (
@@ -3460,7 +3460,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <button onClick={saveReport} disabled={saveState === "saving"}
                   style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
                   className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
-                  {saveState==="saving"?"Saving…":saveState==="saved"?"✓ Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
+                  {saveState==="saving"?"Saving�":saveState==="saved"?"? Saved!":saveState==="error"?"Error � retry":existingSavedAt?"Update Report":"Save Report"}
                 </button>
                 <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
@@ -3496,7 +3496,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
     (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId)
   );
 
-  // Expected shift output = (start_qty / run_hrs) × 8h, with 5% tolerance
+  // Expected shift output = (start_qty / run_hrs) � 8h, with 5% tolerance
   const ratePerHour = row.run_hrs > 0 ? (row.start_qty || 0) / row.run_hrs : 0;
   const expectedShift = Math.round(ratePerHour * 8);
   const tolerance = 0.95;
@@ -3564,7 +3564,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         })}
       </div>
       <div className="text-[10px] text-slate-600 mb-2 italic">
-        Logging for: <span className="font-semibold text-slate-800">{dateLabel} · {meta.label}</span>
+        Logging for: <span className="font-semibold text-slate-800">{dateLabel} � {meta.label}</span>
       </div>
 
       {/* Qty input */}
@@ -3572,7 +3572,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 block mb-1">
           Units this shift
           <span className="text-slate-400 font-normal normal-case tracking-normal ml-1">
-            (adds to total · {remaining} remaining{expectedShift > 0 ? ` · target ~${expectedShift}/shift` : ""})
+            (adds to total � {remaining} remaining{expectedShift > 0 ? ` � target ~${expectedShift}/shift` : ""})
           </span>
         </label>
         <input
@@ -3585,11 +3585,11 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         />
       </div>
 
-      {/* Reason dropdown — shown only when entered qty is below 95% of target */}
+      {/* Reason dropdown � shown only when entered qty is below 95% of target */}
       {(isShort || isOver) && (
         <div className="mb-2.5 p-2.5 rounded-md bg-amber-50 border-2 border-amber-300">
           <label className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block mb-1.5">
-            {isOver ? "⬆ Above target — pick a reason" : "⚠ Below target — pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
+            {isOver ? "? Above target � pick a reason" : "? Below target � pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {REASONS.map(r => (
@@ -3632,7 +3632,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         {Number(qty) > 0 ? "Log shift entry" : notes.trim() ? "Log note" : "Log shift entry"}
       </button>
 
-      {/* Shift History — always visible */}
+      {/* Shift History � always visible */}
       <div className="mt-3 pt-3 border-t border-sky-200">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
           <span>Shift History</span>
@@ -3663,7 +3663,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                     </span>
                   )}
                 </div>
-                {/* Efficiency + Hours — shown for labour imports */}
+                {/* Efficiency + Hours � shown for labour imports */}
                 {isLabour && (entry.eff != null || entry.hrs > 0 || entry.lost > 0) && (
                   <div className="flex items-center gap-3 mt-1.5">
                     {entry.eff != null && (
@@ -3689,14 +3689,14 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                   </div>
                 )}
                 {entry.reason && (
-                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">⚠ {entry.reason}</div>
+                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">? {entry.reason}</div>
                 )}
                 {entry.notes && (
                   <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
                 )}
                 <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
                   {isLabour
-                    ? <span className="text-slate-400">📋 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    ? <span className="text-slate-400">?? Labour tickets � {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     : entry.by
                       ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
                       : null
@@ -3796,19 +3796,19 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                 className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Finalize WO · Archive
+                Finalize WO � Archive
               </button>
-              <div className="text-[10px] text-slate-500 text-center italic">After BR review — WO disappears from queue</div>
+              <div className="text-[10px] text-slate-500 text-center italic">After BR review � WO disappears from queue</div>
             </div>
           )}
 
           <div>
             <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Part</div>
-            <div className="text-sm text-slate-900">{row.descr || "—"}</div>
-            <div className="text-xs text-slate-500 mt-0.5 font-mono">{row.part || "—"}</div>
+            <div className="text-sm text-slate-900">{row.descr || "�"}</div>
+            <div className="text-xs text-slate-500 mt-0.5 font-mono">{row.part || "�"}</div>
           </div>
 
-          {/* Readiness checklist — shown only for queued WOs */}
+          {/* Readiness checklist � shown only for queued WOs */}
           {showReadiness && (
             <div className={`rounded-md border-2 p-3 ${ready ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300"}`}>
               <div className="flex items-center justify-between mb-2.5">
@@ -3841,7 +3841,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                     <button
                       key={k}
                       onClick={() => setReadinessCheck(row, k, !ok)}
-                      title={isNA ? "No tool required for this WO — auto-checked." : isAuto ? "Auto-checked: same tool is already running on this line. Click to override." : undefined}
+                      title={isNA ? "No tool required for this WO � auto-checked." : isAuto ? "Auto-checked: same tool is already running on this line. Click to override." : undefined}
                       className={`relative px-1 py-2.5 rounded-md border-2 transition-all flex flex-col items-center gap-0.5 ${
                         isNA
                           ? "bg-slate-400 border-slate-500 text-white shadow-sm hover:bg-slate-500"
@@ -3866,7 +3866,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
                       )}
                       {k === "tool" && (
                         <span className={`text-[10px] font-mono leading-tight ${ok ? (isNA ? "text-slate-100" : isAuto ? "text-sky-50" : "text-emerald-50") : "text-rose-600"}`}>
-                          {toolId || (isNA ? "none" : "—")}
+                          {toolId || (isNA ? "none" : "�")}
                         </span>
                       )}
                     </button>
@@ -3878,19 +3878,19 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
               )}
               {(row.readiness?.tool?.na === true) && (
                 <div className="text-[10px] text-slate-500 mt-2 italic">
-                  ⓘ No tool required for this WO — Tool check auto-cleared.
+                  ? No tool required for this WO � Tool check auto-cleared.
                 </div>
               )}
               {(row.readiness?.tool?.auto === true && !row.readiness?.tool?.na) && (
                 <div className="text-[10px] text-sky-700 mt-2 italic">
-                  ⓘ Tool auto-checked: same tool is already running on {row.resource}. Click the Tool button to override.
+                  ? Tool auto-checked: same tool is already running on {row.resource}. Click the Tool button to override.
                 </div>
               )}
             </div>
           )}
 
 
-                    {/* Shift entry — only for production-active WOs (todo & wip) */}
+                    {/* Shift entry � only for production-active WOs (todo & wip) */}
           {(row.status === "todo" || row.status === "wip") && (
             <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} />
           )}
@@ -3902,19 +3902,19 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
               className="w-full px-3 py-2.5 bg-orange-50 border border-orange-300 text-orange-800 hover:bg-orange-100 rounded-md text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <Scissors className="w-4 h-4" />
-              Cut Short → Awaiting Batch Record
+              Cut Short ? Awaiting Batch Record
             </button>
           )}
 
           {row.status === "abr" && (
             <button onClick={reopenAbr} className="w-full px-3 py-2 bg-stone-50 border border-stone-300 text-slate-700 hover:bg-stone-100 rounded-md text-xs font-medium flex items-center justify-center gap-2">
-              Reopen → In Progress
+              Reopen ? In Progress
             </button>
           )}
 
           {row.status === "brs" && (
             <button onClick={reopenBrs} className="w-full px-3 py-2 bg-stone-50 border border-stone-300 text-slate-700 hover:bg-stone-100 rounded-md text-xs font-medium flex items-center justify-center gap-2">
-              Send back → Awaiting BR
+              Send back ? Awaiting BR
             </button>
           )}
 
@@ -3951,7 +3951,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
             <Field label="Run Hrs" value={fmtNum(row.run_hrs)} />
             <Field label="Labor Hrs" value={fmtNum(row.labr_hrs)} />
             <Field label="Crew Size" value={fmtNum(row.crew)} />
-            <Field label="QA / P-V-D" value={[row.qa, row.pvd].filter(Boolean).join(" / ") || "—"} />
+            <Field label="QA / P-V-D" value={[row.qa, row.pvd].filter(Boolean).join(" / ") || "�"} />
           </div>
 
           <div>
