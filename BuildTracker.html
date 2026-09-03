@@ -774,7 +774,6 @@ function BuildTracker() {
       setOverrides(parsed);
       setFbStatus("live");
       setLastSync(new Date());
-      // Background: trim old shifts from Firestore if needed
       const trimmed = trimShifts62(parsed);
       if (trimmed) fbSave(BT_OVERRIDES_REF, trimmed).catch(() => {});
     }, err => {
@@ -804,7 +803,6 @@ function BuildTracker() {
         const rows = parseBuildPlan(wb);
         if (!rows) { setUploadStatus({ type: "build", msg: "No rows found — check sheet name 'Database Query'", ok: false }); return; }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
-        // Auto-prune stale overrides older than 62 days no longer in the build plan
         const validKeys = new Set(rows.map(r => rowKey(r)));
         const cutoffPrune = new Date(); cutoffPrune.setDate(cutoffPrune.getDate() - 62);
         const staleKeys = Object.keys(overrides).filter(k => {
@@ -883,10 +881,10 @@ function BuildTracker() {
               source: "labour",
               loggedAt: uploadedAt,
             }));
-            const shiftCutoff62 = new Date(); shiftCutoff62.setDate(shiftCutoff62.getDate() - 62);
-            const shiftCutoff62ISO = shiftCutoff62.toISOString().slice(0,10);
+            const shiftCutoff = new Date(); shiftCutoff.setDate(shiftCutoff.getDate() - 62);
+            const shiftCutoffISO = shiftCutoff.toISOString().slice(0,10);
             const mergedShifts = [...manualShifts, ...labourShifts]
-              .filter(s => (s.shiftDateISO || "").slice(0,10) >= shiftCutoff62ISO) // keep last 62 days only
+              .filter(s => (s.shiftDateISO || "").slice(0,10) >= shiftCutoffISO)
               .sort((a, b) => (b.shiftDateISO + b.shiftId).localeCompare(a.shiftDateISO + a.shiftId));
             nextOverrides[key] = { ...existing, comp_qty: newQty, status: newStatus, shifts: mergedShifts, _updatedAt: uploadedAt };
             matchCount++;
@@ -1120,7 +1118,6 @@ function BuildTracker() {
               if (!dateStr) continue;
               prRows.push({ date: dateStr, resource, hrs, qty: parseFloat(r[COL_QTY])||0, shift: SHIFT_MAP[shiftCode]||shiftCode, earned: parseFloat(r[COL_EARNED])||0, lost, unitLead: unitLead || "Other" });
             }
-            // Limit to last 62 days to stay under Firestore 1MB doc limit
             const cutoff62 = new Date(); cutoff62.setDate(cutoff62.getDate() - 62);
             const cutoff62ISO = cutoff62.toISOString().slice(0,10);
             const prRowsFiltered = prRows.filter(r => r.date >= cutoff62ISO);
@@ -2499,7 +2496,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
 
                   <div
                     className={`sticky z-20 ${bgClass}`}
-                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem" }}
+                    style={{ top: `${headerOffset + 68}px`, height: "2.25rem", minHeight: "2.25rem", opacity: 0, pointerEvents: "none" }}
                   >
                     <span className="sr-only">{line.resource}</span>
                   </div>
