@@ -1147,8 +1147,18 @@ function ShiftReportApp() {
       // Build resource -> leader map from build plan
       if (buildSnap.exists) {
         const rows = buildSnap.data().rows || [];
+        const BU_TO_LEADER_LOOKUP = {
+          "BU Verathon":"George","BU Molding":"Andrew B.",
+          "BU Tier 1":"Mark P.","BU Tier 2":"Lori F.",
+          "BU Bellfarm":"Rob S.","BU Bell Farm":"Rob S.",
+        };
         const map = {};
-        rows.forEach(function(r) { if (r.resource && r.leader) map[r.resource] = r.leader; });
+        rows.forEach(function(r) {
+          if (r.resource && r.unitLead) {
+            const leader = BU_TO_LEADER_LOOKUP[r.unitLead];
+            if (leader) map[r.resource] = leader;
+          }
+        });
         setBuResourceMap(map);
       }
       setLoading(false);
