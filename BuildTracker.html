@@ -1753,17 +1753,17 @@ function BuildTracker() {
                 {nowRow && (
                   <div>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4 }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: "#f59e0b" }}>NOW</span>
-                      <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60%" }}>{nowRow.wo}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b" }}>NOW</span>
+                      <span style={{ fontFamily: "monospace", fontSize: 12, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60%" }}>{nowRow.wo}</span>
                       {remainHrs !== null && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: remainHrs < 4 ? "#f87171" : "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: remainHrs < 4 ? "#f87171" : "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
                           {remainHrs < 1 ? `${Math.round(remainHrs * 60)}m` : `${remainHrs.toFixed(1)}h`} left
                         </span>
                       )}
                     </div>
                     {nowRow.start_qty > 0 && (
-                      <div style={{ height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, marginTop: 2, overflow: "hidden" }}>
-                        <div style={{ height: "100%", background: "#10b981", borderRadius: 2, width: `${Math.min(100,(nowRow.comp_qty||0)/nowRow.start_qty*100)}%` }} />
+                      <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, marginTop: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", background: "#10b981", borderRadius: 3, width: `${Math.min(100,(nowRow.comp_qty||0)/nowRow.start_qty*100)}%` }} />
                       </div>
                     )}
                   </div>
@@ -1781,8 +1781,8 @@ function BuildTracker() {
                   return (
                     <div style={{ marginTop: 3 }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 3 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.4)" }}>NEXT</span>
-                        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nr.wo}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.4)" }}>NEXT</span>
+                        <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nr.wo}</span>
                       </div>
                       <div style={{ display: "flex", gap: 3 }}>
                         {checks.map(c => {
@@ -1793,7 +1793,7 @@ function BuildTracker() {
                           const color = c.ok ? "white" : "#f87171";
                           const badge = c.na ? "N/A" : c.auto ? "AUTO" : null;
                           return (
-                            <div key={c.key} style={{ background: bg, border, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700, color, display: "flex", alignItems: "center", gap: 2, position: "relative" }}>
+                            <div key={c.key} style={{ background: bg, border, borderRadius: 3, padding: "2px 7px", fontSize: 11, fontWeight: 700, color, display: "flex", alignItems: "center", gap: 2, position: "relative" }}>
                               {c.label}
                               {badge && <span style={{ fontSize: 7, opacity: 0.8 }}>{badge}</span>}
                             </div>
