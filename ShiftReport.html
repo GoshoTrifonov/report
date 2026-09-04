@@ -614,16 +614,26 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
             const dt = new Date(r.date+"T12:00:00");
             const dateStr = dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
             const sMeta = SHIFTS.find(s=>s.id===r.shiftId)||SHIFTS[0];
+            const BU_COLORS = {
+              "George":    {bg:"#dbeafe", text:"#1e40af", border:"#93c5fd"},
+              "Andrew B.": {bg:"#dcfce7", text:"#166534", border:"#86efac"},
+              "Mark P.":   {bg:"#fef3c7", text:"#92400e", border:"#fcd34d"},
+              "Lori F.":   {bg:"#fce7f3", text:"#9d174d", border:"#f9a8d4"},
+              "Rob S.":    {bg:"#f3e8ff", text:"#6b21a8", border:"#d8b4fe"},
+            };
+            const buColor = BU_COLORS[r.leader] || {bg:"#f1f5f9", text:"#475569", border:"#cbd5e1"};
+            const shiftColors = ["","#4f46e5","#0891b2","#d97706"];
+            const shiftTextColor = shiftColors[r.shiftId] || "#64748b";
             return (
               <div key={r.id} onClick={()=>setSelected(r)}
                 className="border border-stone-200 rounded-lg p-3 bg-white hover:border-blue-300 hover:shadow-sm cursor-pointer transition-all">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                        <span style={{backgroundColor:buColor.bg, color:buColor.text, border:"1px solid "+buColor.border}} className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded">
                       {r.bu||buName(r.leader)}
                     </span>
                     <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
-                    <span className="text-[11px] text-slate-400">{r.shiftLabel||sMeta.label} · {r.shiftTime||sMeta.time}</span>
+                    <span className="text-xs font-semibold" style={{color:shiftTextColor}}>{r.shiftLabel||sMeta.label} · {r.shiftTime||sMeta.time}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.totalEff!=null && (
