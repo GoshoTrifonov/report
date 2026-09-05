@@ -668,6 +668,8 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
   const [shiftF,      setShiftF]      = useState(0);
   const [loading,     setLoading]     = useState(false);
   const [data,        setData]        = useState(null);
+  const [sortCol,     setSortCol]     = useState("lost");  // resource|eff|lost|units
+  const [sortDir,     setSortDir]     = useState("asc");   // asc|desc
 
   useEffect(() => {
     setLoading(true);
@@ -737,6 +739,10 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
       ...r,
       eff: r.hrs>0 ? Math.round(r.earned/r.hrs*1000)/10 : null,
       topReason: (() => {
+        // Auto-reason for known rework/reclaim resources
+        const res = r.resource || '';
+        if (/^(Midnights|Days|Afternoons)\s+SV\s*\d/i.test(res)) return 'Rework';
+        if (/^Zone\s*3[-\s]*CR$/i.test(res)) return 'Camera Reclaim';
         // Prefer downtime reason (most hours), fall back to underperf reason (most occurrences)
         const dtTop = Object.entries(r.downtimeReasons||{}).sort((a,b)=>b[1]-a[1])[0];
         if (dtTop) return dtTop[0] + ' (' + dtTop[1].toFixed(0) + 'h)';
@@ -863,17 +869,28 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                 </div>
                 <div className="border border-stone-200 rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead>
+                                        <thead>
                       <tr className="bg-stone-100 border-b border-stone-200">
-                        <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Resource</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Eff</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Lost</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Units</th>
-                        <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Top reason</th>
+                        {[{key:"resource",label:"Resource",align:"left"},{key:"eff",label:"Eff",align:"right"},{key:"lost",label:"Lost",align:"right"},{key:"units",label:"Units",align:"right"},{key:"topReason",label:"Top Reason",align:"left"}].map(col=>(
+                          <th key={col.key} onClick={()=>{ if(sortCol===col.key){setSortDir(d=>d==="asc"?"desc":"asc");}else{setSortCol(col.key);setSortDir(col.key==="resource"?"asc":"asc");} }}
+                            className={"px-3 py-2 text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none hover:bg-stone-200 transition-colors "+(col.align==="right"?"text-right":"text-left")}
+                            style={{color:sortCol===col.key?"#1e3a5f":"#64748b"}}>
+                            {col.label} {sortCol===col.key ? (sortDir==="asc"?"▲":"▼") : <span className="text-slate-300">▲</span>}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
-                      {resources.map((r,i)=>{
+                      {(() => {
+                        const sorted = [...resources].sort((a,b)=>{
+                          let av=a[sortCol], bv=b[sortCol];
+                          if (sortCol==="resource"||sortCol==="topReason") { av=(av||"").toLowerCase(); bv=(bv||"").toLowerCase(); }
+                          else { av=av??Infinity; bv=bv??Infinity; }
+                          if (av<bv) return sortDir==="asc"?-1:1;
+                          if (av>bv) return sortDir==="asc"?1:-1;
+                          return 0;
+                        });
+                        return sorted.map((r,i)=>{
                         const rc=r.eff==null?"#64748b":r.eff>=TARGET?"#16a34a":r.eff>=76.5?"#d97706":"#dc2626";
                         const rb=r.eff==null?"white":r.eff>=TARGET?"#f0fdf4":r.eff>=76.5?"#fffbeb":"#fff1f2";
                         return (
@@ -891,7 +908,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                             </td>
                           </tr>
                         );
-                      })}
+                      })})()}
                     </tbody>
                   </table>
                 </div>
