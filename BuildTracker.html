@@ -3698,7 +3698,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
   const isPlantwide = type === "plantwide";
   const color = isSafety ? "#dc2626" : isPlantwide ? "#7c3aed" : "#ea580c";
   const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage", "Not Work Related"];
-  const NC_SEVERITIES = ["Minor", "Major", "Critical"];
+  const NC_SEVERITIES = ["Near Miss", "Preventable", "Label Accountability"];
   const PLANTWIDE_SEVERITIES = ["Power Outage", "Chiller Down", "Compressor Down", "Fire Alarm", "Water Issue", "HVAC", "Other"];
   const severities = isSafety ? SAFETY_SEVERITIES : isPlantwide ? PLANTWIDE_SEVERITIES : NC_SEVERITIES;
 
