@@ -670,6 +670,8 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
   const [data,        setData]        = useState(null);
   const [sortCol,     setSortCol]     = useState("lost");  // resource|eff|lost|units
   const [sortDir,     setSortDir]     = useState("asc");   // asc|desc
+  const [resFilter,   setResFilter]   = useState("__ALL__"); // resource filter
+  const [logsOpen,    setLogsOpen]    = useState(false);   // safety/NC panel open
 
   useEffect(() => {
     setLoading(true);
@@ -753,6 +755,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
 
     // Safety/NC from allLogsSnap
     let safetyCount=0, ncCount=0;
+    const logEntries=[];
     if (allLogsSnap) {
       allLogsSnap.forEach(doc => {
         const log=doc.data();
@@ -761,10 +764,12 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
         if (shiftF!==0&&log.shiftId!==shiftF) return;
         if (log.type==="safety") safetyCount++;
         if (log.type==="nc") ncCount++;
+        logEntries.push({...log, id:doc.id});
       });
+      logEntries.sort(function(a,b){ return (b.shiftDate||"").localeCompare(a.shiftDate||""); });
     }
 
-    setData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted });
+    setData({ thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, logEntries, totalDowntimeHrs, dailyEffSorted });
     setLoading(false);
   }, [allDocs, allLogsSnap, buFilter, rangeF, shiftF]);
 
@@ -783,13 +788,28 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
           </div>
           <RangePicker value={rangeF} onChange={setRangeF} />
         </div>
+        {data && data.resources && data.resources.length>0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Line</span>
+            <select value={resFilter} onChange={e=>setResFilter(e.target.value)}
+              className="text-[11px] font-semibold border border-slate-200 rounded px-2 py-0.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400">
+              <option value="__ALL__">All lines</option>
+              {[...data.resources].sort((a,b)=>a.resource.localeCompare(b.resource)).map(r=>(
+                <option key={r.resource} value={r.resource}>{r.resource}</option>
+              ))}
+            </select>
+            {resFilter!=="__ALL__" && (
+              <button onClick={()=>setResFilter("__ALL__")} className="text-[10px] text-blue-500 hover:text-blue-700 font-semibold">clear</button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
         {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
         {!loading && !data && <div className="text-center py-12 text-sm text-slate-400 italic">No data</div>}
         {!loading && data && (() => {
-          const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, totalDowntimeHrs, dailyEffSorted } = data;
+          const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, logEntries, totalDowntimeHrs, dailyEffSorted } = data;
           const trend = thisEff!=null&&prevEff!=null ? thisEff-prevEff : null;
           const effColor = thisEff==null?"#64748b":thisEff>=TARGET?"#16a34a":thisEff>=76.5?"#d97706":"#dc2626";
           const effBg    = thisEff==null?"#f8fafc":thisEff>=TARGET?"#f0fdf4":thisEff>=76.5?"#fffbeb":"#fff1f2";
@@ -830,19 +850,54 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                   )}
                 </div>
                 {(safetyCount>0||ncCount>0) && (
-                  <div className="flex gap-2 mt-2">
-                    {safetyCount>0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">Safety</span>
-                        <span className="text-lg font-bold text-red-700 tabular-nums">{safetyCount}</span>
-                        <span className="text-[10px] text-red-400">incident{safetyCount!==1?"s":""}</span>
-                      </div>
-                    )}
-                    {ncCount>0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">NC</span>
-                        <span className="text-lg font-bold text-orange-700 tabular-nums">{ncCount}</span>
-                        <span className="text-[10px] text-orange-400">incident{ncCount!==1?"s":""}</span>
+                  <div className="mt-2">
+                    <button onClick={()=>setLogsOpen(o=>!o)}
+                      className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg border hover:opacity-90 transition-opacity"
+                      style={{background:"#fef2f2",borderColor:"#fecaca"}}>
+                      {safetyCount>0 && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">Safety</span>
+                          <span className="text-lg font-bold text-red-700 tabular-nums">{safetyCount}</span>
+                          <span className="text-[10px] text-red-400">incident{safetyCount!==1?"s":""}</span>
+                        </span>
+                      )}
+                      {ncCount>0 && (
+                        <span className="flex items-center gap-1.5 ml-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">NC</span>
+                          <span className="text-lg font-bold text-orange-700 tabular-nums">{ncCount}</span>
+                          <span className="text-[10px] text-orange-400">incident{ncCount!==1?"s":""}</span>
+                        </span>
+                      )}
+                      <span className="ml-auto text-[11px] text-slate-400 font-semibold">{logsOpen?"▲ hide":"▼ details"}</span>
+                    </button>
+                    {logsOpen && (
+                      <div className="mt-2 space-y-2">
+                        {logEntries.map((log,i)=>{
+                          const isSafety=log.type==="safety";
+                          const isPlant=log.type==="plantwide";
+                          const bg=isSafety?"#fef2f2":isPlant?"#eff6ff":"#fff7ed";
+                          const border=isSafety?"#fecaca":isPlant?"#bfdbfe":"#fed7aa";
+                          const badge=isSafety?"Safety":isPlant?"Plantwide":"NC";
+                          const badgeColor=isSafety?"text-red-600":isPlant?"text-blue-600":"text-orange-600";
+                          const sevColor=log.severity==="High"?"text-red-600":log.severity==="Medium"?"text-amber-600":"text-slate-500";
+                          return (
+                            <div key={i} className="rounded-lg border p-3" style={{background:bg,borderColor:border}}>
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={"text-[10px] font-bold uppercase tracking-wider "+badgeColor}>{badge}</span>
+                                  {log.severity && <span className={"text-[10px] font-semibold "+sevColor}>{log.severity}</span>}
+                                  {log.resource && <span className="text-[11px] font-semibold text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">{log.resource}</span>}
+                                  {log.wo && <span className="text-[10px] text-slate-500 font-mono">{log.wo}</span>}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="text-[10px] text-slate-400">{log.shiftDate} · S{log.shiftId}</div>
+                                  {log.by && <div className="text-[10px] font-semibold text-slate-500">{log.by}</div>}
+                                </div>
+                              </div>
+                              <div className="text-[12px] text-slate-700 leading-snug">{log.description}</div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -882,7 +937,8 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                     </thead>
                     <tbody className="divide-y divide-stone-100">
                       {(() => {
-                        const sorted = [...resources].sort((a,b)=>{
+                        const filteredRes = resFilter==="__ALL__" ? resources : resources.filter(r=>r.resource===resFilter);
+                        const sorted = [...filteredRes].sort((a,b)=>{
                           let av=a[sortCol], bv=b[sortCol];
                           if (sortCol==="resource"||sortCol==="topReason") { av=(av||"").toLowerCase(); bv=(bv||"").toLowerCase(); }
                           else { av=av??Infinity; bv=bv??Infinity; }
