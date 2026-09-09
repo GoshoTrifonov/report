@@ -2042,13 +2042,12 @@ function BuildTracker() {
             <Stat label="Lines" value={stats.lines} />
             <button
               onClick={() => setShowNextSummary(v => !v)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition-colors"
-              style={{ background: "#0ea5e9", color: "white" }}
+              className="flex flex-col items-center justify-center px-3 py-1.5 rounded-lg font-semibold transition-colors"
+              style={{ background: "#0ea5e9", color: "white", minWidth: 64 }}
               title="Click to see all Next WOs"
             >
-              <span className="text-[11px] uppercase tracking-wider font-bold">Next WOs</span>
-              <span className="text-lg font-bold tabular-nums leading-tight">{stats.nextAllList.length}</span>
-              <span className="text-xs opacity-75">▾</span>
+              <span className="text-[10px] uppercase tracking-wider font-bold opacity-90">Next WOs</span>
+              <span className="text-xl font-bold tabular-nums leading-tight">{stats.nextAllList.length}</span>
             </button>
             {stats.abr > 0 && <StatWithIcon label="Awaiting BR" value={stats.abr} accent="yellow" icon={Flag} fill />}
             {stats.brs > 0 && <StatWithIcon label="Submitted" value={stats.brs} accent="indigo" icon={FileCheck2} />}
