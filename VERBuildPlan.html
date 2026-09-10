@@ -461,10 +461,10 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
 
 function TableView({ rows, weeks, allWeeks, allResources }) {
   const [showAll, setShowAll] = useState(false);
+  const [collapsedRows, setCollapsedRows] = useState(new Set());
   const displayWeeks = showAll ? allWeeks : weeks;
   if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No results.</div>;
 
-  // Group rows by resource
   const groups = [];
   const seen = {};
   rows.forEach(r => {
@@ -472,15 +472,28 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
     seen[r.resource].push(r);
   });
 
+  const allCollapsed = groups.every(r => collapsedRows.has(r));
+  const toggleRow = (res) => setCollapsedRows(prev => {
+    const next = new Set(prev);
+    if (next.has(res)) next.delete(res); else next.add(res);
+    return next;
+  });
+  const toggleAll = () => setCollapsedRows(allCollapsed ? new Set() : new Set(groups));
+
   return (
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:8}}>
         <div style={{color:'#94a3b8',fontSize:13}}>
           <span style={{color:'#0f172a',fontWeight:600}}>{rows.length}</span> parts · <span style={{color:'#0f172a',fontWeight:600}}>{displayWeeks.length}</span> weeks
         </div>
-        <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#2563eb',background:'transparent',border:'1px solid #cbd5e1',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
-          {showAll ? 'Show near-term only' : `Show all ${allWeeks.length} weeks`}
-        </button>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={toggleAll} style={{fontSize:12,color:'#1e40af',background:'transparent',border:'1px solid #c4d4e8',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontWeight:500}}>
+            {allCollapsed ? '▸ Expand All' : '▾ Collapse All'}
+          </button>
+          <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#2563eb',background:'transparent',border:'1px solid #cbd5e1',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
+            {showAll ? 'Near-term only' : `All ${allWeeks.length} weeks`}
+          </button>
+        </div>
       </div>
       <div style={{overflowX:'auto',borderRadius:10,border:'1px solid #e2e8f0'}}>
         <table style={{minWidth:'100%',borderCollapse:'collapse',fontSize:12}}>
@@ -495,15 +508,16 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
               const parts = seen[res];
               const color = resourceColor(res, allResources);
               const resRows = displayWeeks.map(w => parts.reduce((s,r)=>s+(r.weeks[w]||0),0));
+              const collapsed = collapsedRows.has(res);
               return (
                 <React.Fragment key={res}>
-                  {/* Resource subtotal row */}
-                  <tr style={{background:'#f1f5f9'}}>
+                  <tr style={{background:'#f1f5f9',cursor:'pointer'}} onClick={()=>toggleRow(res)}>
                     <td style={{position:'sticky',left:0,zIndex:5,background:'#f1f5f9',padding:'7px 14px',borderRight:'1px solid #e2e8f0',borderBottom:'1px solid #cbd5e1'}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <div style={{width:3,height:16,borderRadius:2,background:color,flexShrink:0}}/>
                         <span style={{color,fontWeight:700,fontSize:12}}>{res}</span>
                         <span style={{color:'#64748b',fontSize:11}}>({parts.length})</span>
+                        <span style={{color:'#94a3b8',fontSize:11,marginLeft:2}}>{collapsed ? '▸' : '▾'}</span>
                       </div>
                     </td>
                     {resRows.map((total,i) => (
@@ -512,8 +526,7 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
                       </td>
                     ))}
                   </tr>
-                  {/* Part rows */}
-                  {parts.map((r,i) => (
+                  {!collapsed && parts.map((r,i) => (
                     <tr key={r.part_id} style={{background: i%2===0 ? '#ffffff' : '#f8fafc', borderBottom:'1px solid #e2e8f0'}}>
                       <td style={{position:'sticky',left:0,zIndex:5,background: i%2===0?'#ffffff':'#f8fafc',padding:'8px 14px 8px 24px',borderRight:'1px solid #e2e8f0',minWidth:170}}>
                         <div style={{color:'#1e293b',fontWeight:500,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:155}}>{r.description||r.part_id}</div>
