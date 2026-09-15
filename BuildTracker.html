@@ -282,27 +282,7 @@ function fbParse(snap) {
 }
 
 // ── Build Plan parser (from Excel upload) ────────────────────────────────────
-function parseBuildPlan(workbook) {
-  // Looks for sheet named "Database Query" first, falls back to first sheet
-  const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("database")) || workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-  if (raw.length < 2) return null;
-  const header = raw[0].map(h => String(h || "").trim().toUpperCase());
-  const col = (names) => { for (const n of names) { const i = header.indexOf(n); if (i >= 0) return i; } return -1; };
-  const COL_ZONE     = col(["ZONE", "A"]) >= 0 ? col(["ZONE"]) : 0;
-  const COL_RESOURCE = col(["RESOURCE_ID", "RESOURCE"]) >= 0 ? col(["RESOURCE_ID", "RESOURCE"]) : 1;
-  const COL_CREW     = col(["CREW_SIZE", "CREW"]) >= 0 ? col(["CREW_SIZE", "CREW"]) : 2;
-  const COL_TOOL     = col(["TOOL_ID", "TOOL"]) >= 0 ? col(["TOOL_ID", "TOOL"]) : 3;
-  const COL_WO       = col(["WORKORDER", "WO"]) >= 0 ? col(["WORKORDER", "WO"]) : 4;
-  const COL_PART     = col(["PART", "PART_NUM"]) >= 0 ? col(["PART", "PART_NUM"]) : 5;
-  const COL_DESCR    = col(["PART_DESCR", "DESCRIPTION", "DESCR"]) >= 0 ? col(["PART_DESCR", "DESCRIPTION", "DESCR"]) : 6;
-  const COL_LABR     = col(["LABR_HRS", "LABOUR_HRS"]) >= 0 ? col(["LABR_HRS", "LABOUR_HRS"]) : 7;
-  const COL_RUN      = col(["RUN_HRS"]) >= 0 ? col(["RUN_HRS"]) : 8;
-  const COL_STARTQTY = col(["START_QTY", "QTY"]) >= 0 ? col(["START_QTY", "QTY"]) : 9;
-  const COL_COMPQTY  = col(["COMP_QTY"]) >= 0 ? col(["COMP_QTY"]) : 10;
-
-  const RESOURCE_BU_MAP = {
+const RESOURCE_BU_MAP = {
     "Bottle Assembly": "BU Molding", "CHS Extruder": "BU Molding", "Extruder": "BU Molding",
     "Off Line Cuttin": "BU Molding", "16": "BU Molding", "4A": "BU Molding", "6": "BU Molding",
     "8": "BU Molding", "9": "BU Molding", "14": "BU Molding", "18": "BU Molding", "22": "BU Molding",
@@ -364,6 +344,27 @@ function parseBuildPlan(workbook) {
     "ThermoformerDNA": "BU Bell Farm", "SMT": "BU Bell Farm",
     "ThermoformerMTM": "BU Bell Farm", "Days SV6": "BU Bell Farm", "Thermoformer": "BU Bell Farm",
   };
+
+function parseBuildPlan(workbook) {
+  // Looks for sheet named "Database Query" first, falls back to first sheet
+  const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("database")) || workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  if (raw.length < 2) return null;
+  const header = raw[0].map(h => String(h || "").trim().toUpperCase());
+  const col = (names) => { for (const n of names) { const i = header.indexOf(n); if (i >= 0) return i; } return -1; };
+  const COL_ZONE     = col(["ZONE", "A"]) >= 0 ? col(["ZONE"]) : 0;
+  const COL_RESOURCE = col(["RESOURCE_ID", "RESOURCE"]) >= 0 ? col(["RESOURCE_ID", "RESOURCE"]) : 1;
+  const COL_CREW     = col(["CREW_SIZE", "CREW"]) >= 0 ? col(["CREW_SIZE", "CREW"]) : 2;
+  const COL_TOOL     = col(["TOOL_ID", "TOOL"]) >= 0 ? col(["TOOL_ID", "TOOL"]) : 3;
+  const COL_WO       = col(["WORKORDER", "WO"]) >= 0 ? col(["WORKORDER", "WO"]) : 4;
+  const COL_PART     = col(["PART", "PART_NUM"]) >= 0 ? col(["PART", "PART_NUM"]) : 5;
+  const COL_DESCR    = col(["PART_DESCR", "DESCRIPTION", "DESCR"]) >= 0 ? col(["PART_DESCR", "DESCRIPTION", "DESCR"]) : 6;
+  const COL_LABR     = col(["LABR_HRS", "LABOUR_HRS"]) >= 0 ? col(["LABR_HRS", "LABOUR_HRS"]) : 7;
+  const COL_RUN      = col(["RUN_HRS"]) >= 0 ? col(["RUN_HRS"]) : 8;
+  const COL_STARTQTY = col(["START_QTY", "QTY"]) >= 0 ? col(["START_QTY", "QTY"]) : 9;
+  const COL_COMPQTY  = col(["COMP_QTY"]) >= 0 ? col(["COMP_QTY"]) : 10;
+
   // Leader = BU from RESOURCE_BU_MAP, fallback to previous BUILD_DATA
   const leaderMap = {};
   if (typeof BUILD_DATA !== "undefined") {
@@ -782,10 +783,12 @@ function BuildTracker() {
   const labourInputRef = useRef(null);
 
   // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
+  // Use RESOURCE_BU_MAP from parseBuildPlan as the source of truth for leader/BU
   const resourceLeaderMap = useMemo(() => {
-    const map = {};
+    const map = { ...RESOURCE_BU_MAP };
+    // Also include any resources from BUILD_DATA not in the hardcoded map
     for (const r of BUILD_DATA.rows) {
-      if (r.resource && r.leader) map[r.resource] = r.leader;
+      if (r.resource && r.leader && !map[r.resource]) map[r.resource] = r.leader;
     }
     return map;
   }, []);
@@ -1381,11 +1384,11 @@ function BuildTracker() {
   // Derive the list of leaders present in the data, ordered by WO count (descending).
   const leaderList = useMemo(() => {
     const counts = new Map();
-    for (const r of BUILD_DATA.rows) {
-      counts.set(r.leader, (counts.get(r.leader) || 0) + 1);
+    for (const r of allRows) {
+      if (r.leader) counts.set(r.leader, (counts.get(r.leader) || 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
-  }, []);
+  }, [allRows]);
 
   // Production-active = todo/wip only. ABR/BRS shown in strips, not in timeline top-3.
   const lines = useMemo(() => {
