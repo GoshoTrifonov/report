@@ -441,11 +441,19 @@ const SHIFT_HOURS = 8;
 // Business Unit display names — maps internal leader keys to BU labels shown in the UI.
 // Internal data still uses leader names (e.g. "George") for filtering; this is display-only.
 const LEADER_TO_BU = {
-  "George":    "BU Verathon",
-  "Andrew B.": "BU Molding",
-  "Mark P.":   "BU Tier 1",
-  "Lori F.":   "BU Tier 2",
-  "Rob S.":    "BU Bellfarm",
+  "George":                   "BU Verathon",
+  "Andrew B.":                "BU Molding",
+  "Mark P.":                  "BU Tier 1",
+  "Lori F.":                  "BU Tier 2",
+  "Rob S.":                   "BU Bellfarm",
+  // Tier 1 subdivisions
+  "BU Tier 1 - Respiratory":  "BU Tier 1 - Respiratory",
+  "BU Tier 1 - Blades":       "BU Tier 1 - Blades",
+  "BU Tier 1":                "BU Tier 1",
+  // Tier 2 subdivisions
+  "BU Tier 2 - DNA":          "BU Tier 2 - DNA",
+  "BU Tier 2 - FLEX":         "BU Tier 2 - FLEX",
+  "BU Tier 2":                "BU Tier 2",
 };
 const buName = (leader) => LEADER_TO_BU[leader] || leader;
 const STATUS = {
@@ -980,12 +988,16 @@ function BuildTracker() {
               if (!s.hrs && !s.qty && !s.lost) continue;
               // Resolve leader from the BU column in the labour ticket (same as Production Report)
               const BU_TO_LEADER = {
-                "bu verathon":   "George",
-                "bu molding":    "Andrew B.",
-                "bu tier 1":     "Mark P.",
-                "bu tier 2":     "Lori F.",
-                "bu bellfarm":   "Rob S.",
-                "bu bell farm":  "Rob S.",
+                "bu verathon":              "George",
+                "bu molding":               "Andrew B.",
+                "bu tier 1":                "Mark P.",
+                "bu tier 1 - respiratory":  "BU Tier 1 - Respiratory",
+                "bu tier 1 - blades":       "BU Tier 1 - Blades",
+                "bu tier 2":                "Lori F.",
+                "bu tier 2 - dna":          "BU Tier 2 - DNA",
+                "bu tier 2 - flex":         "BU Tier 2 - FLEX",
+                "bu bellfarm":              "Rob S.",
+                "bu bell farm":             "Rob S.",
               };
               const buLower = (s.bu || "").toLowerCase().trim();
               let leaderFromBu = BU_TO_LEADER[buLower] || null;
@@ -1100,13 +1112,13 @@ function BuildTracker() {
               "Grinder 1":"Midnights","Grinder 2":"Days","Grinder 3":"Afternoons",
               "MOLDING 1":"Midnights","MOLDING 2":"Days","MOLDING 3":"Afternoons",
             };
-            const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm"]);
+            const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm","BU Tier 1 - Respiratory","BU Tier 1 - Blades","BU Tier 2 - DNA","BU Tier 2 - FLEX"]);
             const OTHER_VALS = new Set(["#N/A","#NA","0","N/A"]);
             const prRows = [];
             for (let i = 1; i < raw.length; i++) {
               const r = raw[i];
               const rawLead = (r[COL_LEAD] == null || (typeof r[COL_LEAD] === 'object')) ? "" : String(r[COL_LEAD]).trim();
-              const unitLead = KNOWN_BUS.has(rawLead) ? (rawLead === "BU Bell Farm" ? "BU Bellfarm" : rawLead) : OTHER_VALS.has(rawLead) ? "Other" : (rawLead === "" ? null : "Other");
+              const unitLead = KNOWN_BUS.has(rawLead) ? (rawLead === "BU Bell Farm" ? "BU Bellfarm" : rawLead) : OTHER_VALS.has(rawLead) ? "Other" : (rawLead.startsWith("BU Tier") ? rawLead : (rawLead === "" ? null : "Other"));
               const hrs = parseFloat(r[COL_HRS]) || 0;
               const lost = parseFloat(r[COL_LOST]) || 0;
               if (!unitLead && hrs === 0 && lost === 0) continue;
