@@ -94,7 +94,7 @@
   .stepper button.active .num { color: var(--amber); }
   .stepper button.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--amber); }
   .stepper button.done { color: var(--ink-soft); }
-  .stepper button.done .num::before { content: '&#10003; '; color: var(--green); }
+  .stepper button.done .num::before { content: '\2713 '; color: var(--green); }
   .stepper button.disabled { opacity: 0.35; pointer-events: none; }
 
   /* Layout */
@@ -144,7 +144,7 @@
     transition: all 0.15s;
   }
   .op-row.absent .chk { background: var(--red); border-color: var(--red); }
-  .op-row.absent .chk::after { content: '&#10005;'; color: white; font-size: 13px; font-weight: 700; }
+  .op-row.absent .chk::after { content: '\2715'; color: white; font-size: 13px; font-weight: 700; }
   .op-name { font-size: 14px; font-weight: 500; flex: 1; }
 
   /* Counter banner */
@@ -294,7 +294,7 @@
     padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: var(--red);
     display: flex; gap: 10px; align-items: flex-start;
   }
-  .warning::before { content: '&#9888;'; font-size: 16px; line-height: 1; flex-shrink: 0; }
+  .warning::before { content: '\26A0'; font-size: 16px; line-height: 1; flex-shrink: 0; }
   .warning strong { font-weight: 600; }
 
   /* Bottom nav */
@@ -495,7 +495,7 @@
   .skill-chk.checked { background: var(--green-soft); border-color: var(--green); color: var(--green); font-weight: 500; }
   .skill-chk .ckbox { width: 14px; height: 14px; border: 1.5px solid var(--ink-faint); border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .skill-chk.checked .ckbox { background: var(--green); border-color: var(--green); }
-  .skill-chk.checked .ckbox::after { content: '&#10003;'; color: white; font-size: 11px; font-weight: 700; }
+  .skill-chk.checked .ckbox::after { content: '\2713'; color: white; font-size: 11px; font-weight: 700; }
   .skill-chk input { display: none; }
 
   .op-edit-actions {
@@ -604,7 +604,7 @@
       font-size: 9pt; color: black; font-weight: 500;
     }
     .chip.floater { background: transparent; border: 0; color: black; }
-    .chip.floater::before { content: '&#9670; '; }
+    .chip.floater::before { content: '\25C6 '; }
 
     /* Bench strip &mdash; visually lighter than floaters */
     .bench-card {
@@ -616,7 +616,7 @@
       display: inline-block; margin-right: 6mm;
     }
     .bench-card .chip { color: #333; font-weight: 400; }
-    .bench-card .chip::before { content: '&#9675; '; color: #777; }
+    .bench-card .chip::before { content: '\25CB '; color: #777; }
 
     /* Absent footer */
     .print-absent {
@@ -1691,8 +1691,6 @@ function renderTotals() {
   if (moldingFloaterRow) moldingFloaterRow.style.display = isMolding ? '' : 'none';
   document.getElementById('lopro-total').textContent = lopro;
   document.getElementById('floater-num').textContent = floaters;
-  const mfnEl = document.getElementById('molding-floater-num');
-  if (mfnEl) mfnEl.textContent = moldingFloaters;
   const mfnEl = document.getElementById('molding-floater-num');
   if (mfnEl) mfnEl.textContent = moldingFloaters;
   document.getElementById('other-total').textContent = other + moldingOps;
