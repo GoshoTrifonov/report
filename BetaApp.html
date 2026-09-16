@@ -1311,6 +1311,8 @@ visibleLines().forEach(l => {
 });
 // Override Molding Floaters default to 2
 if (!('Molding_Floaters' in state.headcount)) state.headcount['Molding_Floaters'] = 2;
+// Override Molding Floaters default to 2
+if (!('Molding_Floaters' in state.headcount)) state.headcount['Molding_Floaters'] = 2;
 
 let currentStep = 1;
 
@@ -1689,6 +1691,8 @@ function renderTotals() {
   if (moldingFloaterRow) moldingFloaterRow.style.display = isMolding ? '' : 'none';
   document.getElementById('lopro-total').textContent = lopro;
   document.getElementById('floater-num').textContent = floaters;
+  const mfnEl = document.getElementById('molding-floater-num');
+  if (mfnEl) mfnEl.textContent = moldingFloaters;
   const mfnEl = document.getElementById('molding-floater-num');
   if (mfnEl) mfnEl.textContent = moldingFloaters;
   document.getElementById('other-total').textContent = other + moldingOps;
@@ -3388,9 +3392,10 @@ if (document.readyState === 'loading') {
 // Register the cache-first service worker so the app opens instantly every
 // morning, even on cold/slow networks. Only activates over https &mdash; silently
 // no-ops on file://.
+// Cache bust: unregister old service workers so stale cached versions don't persist
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
   });
 }
 </script>
