@@ -282,6 +282,69 @@ function fbParse(snap) {
 }
 
 // ── Build Plan parser (from Excel upload) ────────────────────────────────────
+const RESOURCE_BU_MAP = {
+  "Bottle Assembly":"BU Molding","CHS Extruder":"BU Molding","Extruder":"BU Molding",
+  "Off Line Cuttin":"BU Molding","16":"BU Molding","4A":"BU Molding","6":"BU Molding",
+  "8":"BU Molding","9":"BU Molding","14":"BU Molding","18":"BU Molding","22":"BU Molding",
+  "28":"BU Molding","33":"BU Molding","34":"BU Molding","40":"BU Molding","10":"BU Molding",
+  "11":"BU Molding","12":"BU Molding","13":"BU Molding","17":"BU Molding","23":"BU Molding",
+  "26":"BU Molding","38":"BU Molding","4":"BU Molding","Smith Housings":"BU Molding",
+  "GRP085":"BU Molding","46":"BU Molding","48":"BU Molding","47":"BU Molding",
+  "41":"BU Molding","Pad Printer":"BU Molding","Days SV8":"BU Molding","GRP075":"BU Molding",
+  "Afternoons SV4":"BU Molding","Days SV4":"BU Molding","CRH":"BU Molding",
+  "Mold Man 2":"BU Molding","Mold Man":"BU Molding","Elastic Tipper":"BU Molding",
+  "OP1 Mold Tier 1":"BU Molding","Inspect & Pack":"BU Molding",
+  "15":"BU Verathon","27":"BU Verathon","45":"BU Verathon","42":"BU Verathon",
+  "43":"BU Verathon","LoPro Pack #1":"BU Verathon","LoPro Pack #2":"BU Verathon",
+  "LoPro Pack #3":"BU Verathon","LoPro/Mac":"BU Verathon","Multivac":"BU Verathon",
+  "Stylet Pack":"BU Verathon","LoPro/Mac 3":"BU Verathon","2":"BU Verathon",
+  "2A":"BU Verathon","7":"BU Verathon","21":"BU Verathon","24":"BU Verathon",
+  "25":"BU Verathon","36":"BU Verathon","37":"BU Verathon","30":"BU Verathon",
+  "39":"BU Verathon","LoPro/Mac 2":"BU Verathon","LoPro Merged":"BU Verathon",
+  "Multivac 2":"BU Verathon","LoPro Merged S3":"BU Verathon","LoPro Spectrum":"BU Verathon",
+  "Zone 3- CR":"BU Verathon","LoPro S3 HDMI":"BU Verathon","LoPro S4 HDMI":"BU Verathon",
+  "SC Sub Assembly":"BU Verathon","Camera printing":"BU Verathon","Camera Printing":"BU Verathon",
+  "Midnights SV1":"BU Verathon","Afternoons SV1":"BU Verathon","Days SV2":"BU Verathon",
+  "Days SV9":"BU Verathon","Lopro QC S3":"BU Verathon","Lopro QC Mac":"BU Verathon",
+  "Lopro QC S4":"BU Verathon","Lopro HDMI Mix":"BU Verathon","Lopro QC Mix":"BU Verathon",
+  "Flex Line 3":"BU Verathon","NG2":"BU Verathon","Lopro QC Mac 3":"BU Verathon",
+  "Lopro QC Mac 4":"BU Verathon","49":"BU Verathon",
+  "DNA Bag Assy":"BU Tier 2 - DNA","DNA Cap Insert":"BU Tier 2 - DNA",
+  "DNA Cell 4":"BU Tier 2 - DNA","DNA Cell 5":"BU Tier 2 - DNA","DNA Cell 8":"BU Tier 2 - DNA",
+  "PK Pump 014":"BU Tier 2 - DNA","PK Pump 033":"BU Tier 2 - DNA","PK Pump 074":"BU Tier 2 - DNA",
+  "PK Dispense":"BU Tier 2 - DNA","DNA Cell 3":"BU Tier 2 - DNA",
+  "DNA OC Cell # 4":"BU Tier 2 - DNA","DNA Swab Cell":"BU Tier 2 - DNA",
+  "Days SV7":"BU Tier 2",
+  "FLEX Bag Carton":"BU Tier 2 - FLEX","FLEX Cup Line":"BU Tier 2 - FLEX",
+  "Flex Line 2":"BU Tier 2 - FLEX","Flex Packaging":"BU Tier 2 - FLEX",
+  "19":"BU Tier 1 - Respiratory","20":"BU Tier 1 - Respiratory","29":"BU Tier 1 - Respiratory",
+  "31":"BU Tier 1 - Respiratory","32":"BU Tier 1 - Respiratory","35":"BU Tier 1 - Respiratory",
+  "5":"BU Tier 1 - Respiratory","Capnoxygen Line":"BU Tier 1 - Respiratory",
+  "Line 1":"BU Tier 1 - Respiratory","Line 2":"BU Tier 1 - Respiratory",
+  "Line 3":"BU Tier 1 - Respiratory","OxyMask Cell":"BU Tier 1 - Respiratory",
+  "Sub Assembly":"BU Tier 1 - Respiratory","Sub Assembly 2":"BU Tier 1 - Respiratory",
+  "BL/Scalpel Pack":"BU Tier 1 - Blades","Blade Coat":"BU Tier 1 - Blades",
+  "Blade Inspect":"BU Tier 1 - Blades","Blue Scalpel":"BU Tier 1 - Blades",
+  "CANICA":"BU Tier 1 - Blades","CANICA GAMMA":"BU Tier 1 - Blades",
+  "CANICA PACK":"BU Tier 1 - Blades","Cartridge Assem":"BU Tier 1 - Blades",
+  "Ivers Lee":"BU Tier 1 - Blades","Mini Staker":"BU Tier 1 - Blades",
+  "Orange Scalpel":"BU Tier 1 - Blades","Paper Wrap Pack":"BU Tier 1 - Blades",
+  "PERS PACK":"BU Tier 1 - Blades","Scalpel Packing":"BU Tier 1 - Blades",
+  "Smiths Bake":"BU Tier 1 - Blades","SPSS # 3":"BU Tier 1 - Blades",
+  "SPSS # 4":"BU Tier 1 - Blades","PPSS":"BU Tier 1 - Blades","PPSS Pack":"BU Tier 1 - Blades",
+  "B/F& Polish":"BU Tier 1","BetterShield":"BU Tier 1","Blade Grinder":"BU Tier 1",
+  "Blade Grinder 2":"BU Tier 1","Blade Singulate":"BU Tier 1","CBF":"BU Tier 1",
+  "Face Shield":"BU Tier 1","LINE3OP":"BU Tier 1","OP1":"BU Tier 1",
+  "OP1 Tier 1":"BU Tier 1","CBF 2":"BU Tier 1","Smiths Purge":"BU Tier 1",
+  "Cut":"BU Tier 1","Days SV5":"BU Tier 1","Afternoons SV2":"BU Tier 1",
+  "Midnights SV2":"BU Tier 1","Days SV3":"BU Tier 1","Days SV1":"BU Tier 1",
+  "Procell Line":"BU Tier 1",
+  "DNA OC Cell # 5":"BU Bell Farm","Thermoformer-OK":"BU Bell Farm",
+  "Thermoformer-OM":"BU Bell Farm","Thermoformer-OP":"BU Bell Farm",
+  "ThermoformerDNA":"BU Bell Farm","SMT":"BU Bell Farm",
+  "ThermoformerMTM":"BU Bell Farm","Days SV6":"BU Bell Farm","Thermoformer":"BU Bell Farm",
+};
+
 function parseBuildPlan(workbook) {
   // Looks for sheet named "Database Query" first, falls back to first sheet
   const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("database")) || workbook.SheetNames[0];
@@ -318,7 +381,7 @@ function parseBuildPlan(workbook) {
     const compQty = typeof compRaw === "number" ? compRaw : (parseInt(compRaw) || 0);
     rows.push({
       resource,
-      leader: leaderMap[resource] || "",
+      leader: RESOURCE_BU_MAP[resource] || leaderMap[resource] || "",
       tool_id: String(r[COL_TOOL] || "").trim() || null,
       wo,
       part: String(r[COL_PART] || "").trim(),
@@ -441,11 +504,21 @@ const SHIFT_HOURS = 8;
 // Business Unit display names — maps internal leader keys to BU labels shown in the UI.
 // Internal data still uses leader names (e.g. "George") for filtering; this is display-only.
 const LEADER_TO_BU = {
-  "George":    "BU Verathon",
-  "Andrew B.": "BU Molding",
-  "Mark P.":   "BU Tier 1",
-  "Lori F.":   "BU Tier 2",
-  "Rob S.":    "BU Bellfarm",
+  "George":                  "BU Verathon",
+  "Andrew B.":               "BU Molding",
+  "Mark P.":                 "BU Tier 1",
+  "Lori F.":                 "BU Tier 2",
+  "Rob S.":                  "BU Bellfarm",
+  "BU Verathon":             "BU Verathon",
+  "BU Molding":              "BU Molding",
+  "BU Tier 1":               "BU Tier 1",
+  "BU Tier 1 - Respiratory": "BU Tier 1 - Respiratory",
+  "BU Tier 1 - Blades":      "BU Tier 1 - Blades",
+  "BU Tier 2":               "BU Tier 2",
+  "BU Tier 2 - DNA":         "BU Tier 2 - DNA",
+  "BU Tier 2 - FLEX":        "BU Tier 2 - FLEX",
+  "BU Bell Farm":            "BU Bell Farm",
+  "BU Bellfarm":             "BU Bellfarm",
 };
 const buName = (leader) => LEADER_TO_BU[leader] || leader;
 const STATUS = {
@@ -713,9 +786,9 @@ function BuildTracker() {
 
   // ── Build resource→leader map from BUILD_DATA (static, never changes) ─────
   const resourceLeaderMap = useMemo(() => {
-    const map = {};
+    const map = { ...RESOURCE_BU_MAP };
     for (const r of BUILD_DATA.rows) {
-      if (r.resource && r.leader) map[r.resource] = r.leader;
+      if (r.resource && r.leader && !map[r.resource]) map[r.resource] = r.leader;
     }
     return map;
   }, []);
@@ -980,12 +1053,16 @@ function BuildTracker() {
               if (!s.hrs && !s.qty && !s.lost) continue;
               // Resolve leader from the BU column in the labour ticket (same as Production Report)
               const BU_TO_LEADER = {
-                "bu verathon":   "George",
-                "bu molding":    "Andrew B.",
-                "bu tier 1":     "Mark P.",
-                "bu tier 2":     "Lori F.",
-                "bu bellfarm":   "Rob S.",
-                "bu bell farm":  "Rob S.",
+                "bu verathon":             "BU Verathon",
+                "bu molding":              "BU Molding",
+                "bu tier 1":               "BU Tier 1",
+                "bu tier 1 - respiratory": "BU Tier 1 - Respiratory",
+                "bu tier 1 - blades":      "BU Tier 1 - Blades",
+                "bu tier 2":               "BU Tier 2",
+                "bu tier 2 - dna":         "BU Tier 2 - DNA",
+                "bu tier 2 - flex":        "BU Tier 2 - FLEX",
+                "bu bellfarm":             "BU Bell Farm",
+                "bu bell farm":            "BU Bell Farm",
               };
               const buLower = (s.bu || "").toLowerCase().trim();
               let leaderFromBu = BU_TO_LEADER[buLower] || null;
@@ -1100,7 +1177,7 @@ function BuildTracker() {
               "Grinder 1":"Midnights","Grinder 2":"Days","Grinder 3":"Afternoons",
               "MOLDING 1":"Midnights","MOLDING 2":"Days","MOLDING 3":"Afternoons",
             };
-            const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm"]);
+            const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm","BU Tier 1 - Respiratory","BU Tier 1 - Blades","BU Tier 2 - DNA","BU Tier 2 - FLEX"]);
             const OTHER_VALS = new Set(["#N/A","#NA","0","N/A"]);
             const prRows = [];
             for (let i = 1; i < raw.length; i++) {
@@ -1308,7 +1385,8 @@ function BuildTracker() {
   const leaderList = useMemo(() => {
     const counts = new Map();
     for (const r of BUILD_DATA.rows) {
-      counts.set(r.leader, (counts.get(r.leader) || 0) + 1);
+      const bu = RESOURCE_BU_MAP[r.resource] || r.leader || "";
+      if (bu) counts.set(bu, (counts.get(bu) || 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
   }, []);
@@ -2466,7 +2544,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
             );
           })}
           {lines.length === 0 && (
-            <div className="px-4 py-8 text-center text-xs text-slate-400 italic">No active production WOs for {buName(selectedLeader)}</div>
+            <div className="px-4 py-8 text-center text-xs text-slate-400 italic">No active production WOs</div>
           )}
         </div>
 
