@@ -136,21 +136,19 @@ const Clock      = p => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline p
 const ExternalLink = p => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Icon>;
 
 // - Constants -
-const LEADER_TO_BU = {
-  "George":    "BU Verathon",
-  "Andrew B.": "BU Molding",
-  "Mark P.":   "BU Tier 1",
-  "Lori F.":   "BU Tier 2",
-  "Rob S.":    "BU Bellfarm",
-};
-const ALL_LEADERS = Object.keys(LEADER_TO_BU);
-const buName = (leader) => LEADER_TO_BU[leader] || leader;
-const matchesBU = (r, filterKey) => {
-  if (filterKey === "__ALL__") return true;
-  if (r.leader === filterKey) return true;
-  if (r.bu && BU_NAME_TO_KEY[r.bu] === filterKey) return true;
-  return false;
-};
+const ALL_BU_KEYS = [
+  "BU Verathon","BU Molding",
+  "BU Tier 1","BU Tier 1 - Respiratory","BU Tier 1 - Blades",
+  "BU Tier 2","BU Tier 2 - DNA","BU Tier 2 - FLEX",
+  "BU Bell Farm",
+];
+const LEGACY_LEADER_TO_BU = {"George":"BU Verathon","Andrew B.":"BU Molding","Mark P.":"BU Tier 1","Lori F.":"BU Tier 2","Rob S.":"BU Bell Farm"};
+const normBU = (bu) => (!bu||bu==="BU Bellfarm") ? "BU Bell Farm" : (bu||"");
+const docBU  = (r)  => normBU(r.bu) || normBU(LEGACY_LEADER_TO_BU[r.leader]) || "";
+const matchesBU = (r, key) => key==="__ALL__" || docBU(r)===key;
+const ALL_LEADERS = ALL_BU_KEYS;
+const buName = (k) => k;
+const LEADER_TO_BU = {};
 
 const SHIFTS = [
   { id:1, label:"Shift 1", time:"11pm\u20137am" },
@@ -224,8 +222,8 @@ function RangePicker({ value, onChange }) {
 
 function BUPicker({ value, onChange, includeAll=true }) {
   const opts = includeAll
-    ? [{ v:"__ALL__", label:"All BUs" }, ...ALL_LEADERS.map(l=>({ v:l, label:buName(l) }))]
-    : ALL_LEADERS.map(l=>({ v:l, label:buName(l) }));
+    ? [{ v:"__ALL__", label:"All BUs" }, ...ALL_BU_KEYS.map(k=>({ v:k, label:k }))]
+    : ALL_BU_KEYS.map(k=>({ v:k, label:k }));
   return (
     <div className="flex gap-1 flex-wrap">
       {opts.map(o=>(
@@ -312,12 +310,10 @@ function DowntimeCard({ r }) {
 // - History tab -
 function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
   // Filter linesDown to only those belonging to this report's BU leader
-  const filterLines = function(linesDown, leader) {
-    if (!linesDown || !linesDown.length) return [];
-    if (!leader || !Object.keys(buResourceMap).length) return linesDown;
-    return linesDown.filter(function(d) {
-      return buResourceMap[d.resource] === leader;
-    });
+  const filterLines = function(linesDown, buKey) {
+    if (!linesDown||!linesDown.length) return [];
+    if (!buKey||!Object.keys(buResourceMap).length) return linesDown;
+    return linesDown.filter(function(d){return buResourceMap[d.resource]===buKey;});
   };
 
   const [buFilter,   setBuFilter]   = useState("__ALL__");
@@ -384,7 +380,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
 
   const copyReport = (r) => {
     const lines = [];
-    lines.push(`SHIFT REPORT \u2014 ${r.bu||buName(r.leader)}`);
+    lines.push(`SHIFT REPORT \u2014 ${docBU(r)}`);
     const dt = new Date(r.date+"T12:00:00");
     lines.push(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"})+" \u2014 "+(r.shiftLabel||`Shift ${r.shiftId}`)+" ("+(r.shiftTime||"")+")" );
     lines.push("=".repeat(60));
@@ -425,7 +421,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
           <span className="text-sm text-slate-600">{dateStr}</span>
           <span className="text-xs text-slate-400">{selected.shiftTime||sMeta.time}</span>
           <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-            {selected.bu||buName(selected.leader)}
+            {docBU(selected)}
           </span>
         </div>
 
@@ -433,7 +429,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
         <div className="flex-1 overflow-auto p-4">
           {/* Print header */}
           <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-            <h1 className="text-xl font-bold">Shift Report — {selected.bu||buName(selected.leader)}</h1>
+            <h1 className="text-xl font-bold">Shift Report — {docBU(selected)}</h1>
             <p className="text-sm">{dateStr} — {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
           </div>
 
@@ -441,7 +437,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
             <StatCard label="Total units" value={(selected.totalUnits||0).toLocaleString()} />
             <StatCard label="Entries"     value={selected.entries||0} />
             <StatCard label="Resources"   value={selected.resourceCount||0} />
-            <StatCard label="Lines down"  value={filterLines(selected.linesDown, selected.leader).length} />
+            <StatCard label="Lines down"  value={filterLines(selected.linesDown, docBU(selected)).length} />
           </div>
           {(selected.totalEff!=null||selected.totalHrs>0) && (
             <div className="grid grid-cols-3 gap-2 mb-4">
@@ -467,10 +463,10 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
           )}
 
           {/* Lines down */}
-          {filterLines(selected.linesDown, selected.leader).length>0 && (
+          {filterLines(selected.linesDown, docBU(selected)).length>0 && (
             <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
-              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({filterLines(selected.linesDown, selected.leader).length})</div>
-              {filterLines(selected.linesDown, selected.leader).map((d,i)=>(
+              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">⚠ Lines down ({filterLines(selected.linesDown, docBU(selected)).length})</div>
+              {filterLines(selected.linesDown, docBU(selected)).map((d,i)=>(
                 <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
                   <div className="flex items-baseline justify-between">
                     <span className="font-semibold">{d.resource}</span>
@@ -621,18 +617,17 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
             const dateStr = dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
             const sMeta = SHIFTS.find(s=>s.id===r.shiftId)||SHIFTS[0];
             const BU_COLORS = {
-              "George":           {bg:"#dbeafe", text:"#1e40af", border:"#93c5fd"},
-              "Andrew B.":        {bg:"#dcfce7", text:"#166534", border:"#86efac"},
-              "Mark P.":          {bg:"#fef3c7", text:"#92400e", border:"#fcd34d"},
-              "Mark P. - Resp":   {bg:"#fef9c3", text:"#713f12", border:"#fde047"},
-              "Mark P. - Blades": {bg:"#ffedd5", text:"#9a3412", border:"#fdba74"},
-              "Lori F.":          {bg:"#fce7f3", text:"#9d174d", border:"#f9a8d4"},
-              "Lori F. - DNA":    {bg:"#fdf2f8", text:"#86198f", border:"#e879f9"},
-              "Lori F. - Flex":   {bg:"#fdf4ff", text:"#7e22ce", border:"#c084fc"},
-              "Rob S.":           {bg:"#f3e8ff", text:"#6b21a8", border:"#d8b4fe"},
+              "BU Verathon":             {bg:"#dbeafe", text:"#1e40af", border:"#93c5fd"},
+              "BU Molding":              {bg:"#dcfce7", text:"#166534", border:"#86efac"},
+              "BU Tier 1":               {bg:"#fef3c7", text:"#92400e", border:"#fcd34d"},
+              "BU Tier 1 - Respiratory": {bg:"#fef9c3", text:"#713f12", border:"#fde047"},
+              "BU Tier 1 - Blades":      {bg:"#ffedd5", text:"#9a3412", border:"#fdba74"},
+              "BU Tier 2":               {bg:"#fce7f3", text:"#9d174d", border:"#f9a8d4"},
+              "BU Tier 2 - DNA":         {bg:"#fdf2f8", text:"#86198f", border:"#e879f9"},
+              "BU Tier 2 - FLEX":        {bg:"#fdf4ff", text:"#7e22ce", border:"#c084fc"},
+              "BU Bell Farm":            {bg:"#f3e8ff", text:"#6b21a8", border:"#d8b4fe"},
             };
-            const leaderKey = r.leader || (r.bu ? (BU_NAME_TO_KEY[r.bu]||"") : "");
-            const buColor = BU_COLORS[leaderKey] || {bg:"#f1f5f9", text:"#475569", border:"#cbd5e1"};
+            const buColor = BU_COLORS[docBU(r)] || {bg:"#f1f5f9", text:"#475569", border:"#cbd5e1"};
             const shiftColors = ["","#4f46e5","#0891b2","#d97706"];
             const shiftTextColor = shiftColors[r.shiftId] || "#64748b";
             return (
@@ -641,7 +636,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                                         <span style={{backgroundColor:buColor.bg, color:buColor.text, border:"1px solid "+buColor.border}} className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded">
-                      {r.bu||buName(r.leader)}
+                      {docBU(r)}
                     </span>
                     <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
                     <span className="text-xs font-semibold" style={{color:shiftTextColor}}>{r.shiftLabel||sMeta.label} · {r.shiftTime||sMeta.time}</span>
@@ -661,7 +656,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
                   {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
                   {r.totalHrs>0  && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
                   {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost<0?"lost":"earned"}</span>}
-                  {filterLines(r.linesDown, r.leader).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {filterLines(r.linesDown, r.leader).length} down</span>}
+                  {filterLines(r.linesDown, docBU(r)).length>0 && <span className="text-[10px] font-semibold text-rose-600">⚠ {filterLines(r.linesDown, docBU(r)).length} down</span>}
                 </div>
               </div>
             );
@@ -771,7 +766,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
       allLogsSnap.forEach(doc => {
         const log=doc.data();
         if (log.shiftDate<fromISO||log.shiftDate>toISO) return;
-        if (buFilter!=="__ALL__"&&log.bu!==buFilter) return;
+        if (!matchesBU({bu:log.bu,leader:""}, buFilter)) return;
         if (shiftF!==0&&log.shiftId!==shiftF) return;
         if (log.type==="safety") safetyCount++;
         if (log.type==="nc") ncCount++;
@@ -1231,21 +1226,11 @@ function ShiftReportApp() {
       // Build resource -> leader map from build plan
       if (buildSnap.exists) {
         const rows = buildSnap.data().rows || [];
-        const BU_TO_LEADER_LOOKUP = {
-          "BU Verathon":"George","BU Molding":"Andrew B.",
-          "BU Tier 1":"Mark P.","BU Tier 1 - Respiratory":"Mark P. - Resp","BU Tier 1 - Blades":"Mark P. - Blades",
-          "BU Tier 2":"Lori F.","BU Tier 2 - DNA":"Lori F. - DNA","BU Tier 2 - FLEX":"Lori F. - Flex",
-          "BU Bellfarm":"Rob S.","BU Bell Farm":"Rob S.",
-        
         const map = {};
-        rows.forEach(function(r) {
-          if (r.resource && r.unitLead) {
-            const leader = BU_TO_LEADER_LOOKUP[r.unitLead];
-            if (leader) map[r.resource] = leader;
-          }
+        rows.forEach(function(r){
+          if(r.resource&&r.unitLead) map[r.resource]=normBU(r.unitLead);
         });
-        setBuResourceMap(map);
-      }
+        setBuResourceMap(map);     }
       setLoading(false);
     }).catch(e => {
       console.error("Load failed:", e);
