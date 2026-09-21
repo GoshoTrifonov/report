@@ -2973,7 +2973,6 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
                   <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
                   <td style="padding:6px 8px;white-space:nowrap">${pillsHtml2}</td>
-                  <td style="padding:6px 8px;border:1px solid #e2e8f0;color:#94a3b8;font-size:10px;width:140px">&nbsp;</td>
                 </tr>`;
               }).join("");
               const zeroSection_html = (nowZeroQtyList || []).length > 0
@@ -3013,7 +3012,6 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
                   <td style="padding:6px 8px;font-size:11px;color:#475569;max-width:200px">${liveRow.descr || liveRow.part || ""}</td>
                   <td style="padding:6px 8px;white-space:nowrap">${pillsHtml}</td>
-                  <td style="padding:6px 8px;border:1px solid #e2e8f0;color:#94a3b8;font-size:10px;width:140px">&nbsp;</td>
                 </tr>`;
               }).join("");
               const win = window.open("", "_blank");
@@ -3029,7 +3027,6 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                   <th style="padding:6px 8px;text-align:left">WO</th>
                   <th style="padding:6px 8px;text-align:left">Description</th>
                   <th style="padding:6px 8px;text-align:left">Readiness</th>
-                  <th style="padding:6px 8px;text-align:left;width:140px">Notes</th>
                 </tr></thead><tbody>${zeroSection_html}${rows_html}</tbody></table>
               </body></html>`);
               win.document.close();
@@ -3738,6 +3735,8 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                         </div>
                         <div className="text-[12px] text-slate-700 mt-1.5 leading-snug">{log.description}</div>
                         {log.wo && <div className="text-[10px] text-slate-400 mt-1">WO: {log.wo}</div>}
+                {log.ncNum && <div className="text-[10px] text-slate-400 mt-0.5">NC#: {log.ncNum}</div>}
+                {log.ncPart && <div className="text-[10px] text-slate-400 mt-0.5">Part: {log.ncPart}</div>}
                       </div>
                     ))}
                   </div>
@@ -3778,7 +3777,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
   const isPlantwide = type === "plantwide";
   const color = isSafety ? "#dc2626" : isPlantwide ? "#7c3aed" : "#ea580c";
   const SAFETY_SEVERITIES = ["Near Miss", "First Aid", "Lost Time", "Property Damage", "Not Work Related"];
-  const NC_SEVERITIES = ["Near Miss", "Preventable", "Label Accountability"];
+  const NC_SEVERITIES = ["Preventable", "Near Miss", "Label Accountability"];
   const PLANTWIDE_SEVERITIES = ["Power Outage", "Chiller Down", "Compressor Down", "Fire Alarm", "Water Issue", "HVAC", "Other"];
   const severities = isSafety ? SAFETY_SEVERITIES : isPlantwide ? PLANTWIDE_SEVERITIES : NC_SEVERITIES;
 
@@ -3790,6 +3789,8 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
   const { shiftId: currentShiftId } = React.useMemo(() => getCurrentShift(new Date()), []);
   const [resource, setResource] = React.useState("");
   const [wo, setWo] = React.useState("");
+  const [ncNum, setNcNum] = React.useState("");
+  const [ncPart, setNcPart] = React.useState("");
   const [severity, setSeverity] = React.useState(severities[0]);
   const [description, setDescription] = React.useState("");
   const [logDate, setLogDate] = React.useState(todayISO);
@@ -3822,6 +3823,8 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
         type,
         resource: resource || "",
         wo: wo || "",
+        ncNum: (!isSafety && !isPlantwide) ? ncNum.trim() : "",
+        ncPart: (!isSafety && !isPlantwide) ? ncPart.trim() : "",
         severity,
         description: description.trim(),
         by: userInitials || "?",
@@ -3934,6 +3937,21 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                 <input value={wo} onChange={e => setWo(e.target.value)} placeholder="e.g. W1029878/1"
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
               </div>
+
+              {!isSafety && !isPlantwide && (
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">NC # <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+                    <input value={ncNum} onChange={e => setNcNum(e.target.value)} placeholder="e.g. NC202700614"
+                      className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Part <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+                    <input value={ncPart} onChange={e => setNcPart(e.target.value)} placeholder="e.g. SMI1/73-0415"
+                      className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400" />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Description <span className="text-rose-500">*</span></label>
