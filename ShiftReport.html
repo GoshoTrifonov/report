@@ -308,7 +308,7 @@ function DowntimeCard({ r }) {
 }
 
 // - History tab -
-function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
+function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null }) {
   // Filter linesDown to only those belonging to this report's BU leader
   const filterLines = function(linesDown, buKey) {
     if (!linesDown||!linesDown.length) return [];
@@ -461,6 +461,61 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={} }) {
               )}
             </div>
           )}
+
+          {/* NC / Safety / Plantwide logs for this shift */}
+          {(() => {
+            if (!allLogsSnap) return null;
+            const shiftLogs = [];
+            allLogsSnap.forEach(function(doc) {
+              const log = doc.data();
+              if (log.shiftDate === selected.date && log.shiftId === selected.shiftId) {
+                if (!matchesBU({bu:log.bu, leader:""}, docBU(selected)==="__ALL__"?"__ALL__":docBU(selected))) return;
+                shiftLogs.push({...log, id:doc.id});
+              }
+            });
+            if (!shiftLogs.length) return null;
+            const TYPE_STYLE = {
+              safety:   {bg:"#fef2f2", border:"#fca5a5", hdr:"#dc2626", label:"Safety"},
+              nc:       {bg:"#fff7ed", border:"#fdba74", hdr:"#ea580c", label:"NC"},
+              plantwide:{bg:"#eff6ff", border:"#93c5fd", hdr:"#2563eb", label:"Plantwide"},
+            };
+            const grouped = {};
+            shiftLogs.forEach(function(log) {
+              const t = log.type||"nc";
+              if (!grouped[t]) grouped[t]=[];
+              grouped[t].push(log);
+            });
+            return (
+              <div className="mb-4 space-y-2">
+                {Object.entries(grouped).map(function([type, logs]) {
+                  const s = TYPE_STYLE[type] || TYPE_STYLE.nc;
+                  return (
+                    <div key={type} className="rounded-md overflow-hidden border-2" style={{borderColor:s.border, background:s.bg}}>
+                      <div className="px-3 py-2 font-semibold text-sm text-white" style={{backgroundColor:s.hdr}}>
+                        {s.label} ({logs.length})
+                      </div>
+                      {logs.map(function(log, i) {
+                        const sevColor = log.severity==="High"?"#dc2626":log.severity==="Medium"?"#d97706":"#64748b";
+                        return (
+                          <div key={i} className="px-3 py-2.5 border-t text-sm" style={{borderColor:s.border}}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                {log.severity && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{backgroundColor:sevColor}}>{log.severity}</span>}
+                                {log.resource && <span className="text-[11px] font-semibold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">{log.resource}</span>}
+                                {log.wo && <span className="text-[10px] font-mono text-slate-500">{log.wo}</span>}
+                              </div>
+                              {log.by && <span className="text-[10px] font-semibold text-slate-400 shrink-0">{log.by}</span>}
+                            </div>
+                            {log.description && <div className="mt-1 text-[12px] text-slate-700 leading-snug">{log.description}</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Lines down */}
           {filterLines(selected.linesDown, docBU(selected)).length>0 && (
@@ -1346,7 +1401,7 @@ function ShiftReportApp() {
         )}
         {!loading && allDocs && (
           activeTab==="history"
-            ? <HistoryTab allDocs={allDocs} buResourceMap={buResourceMap} />
+            ? <HistoryTab allDocs={allDocs} buResourceMap={buResourceMap} allLogsSnap={allLogsSnap} />
             : <AnalyticsTab allDocs={allDocs} allLogsSnap={allLogsSnap} />
         )}
       </div>
