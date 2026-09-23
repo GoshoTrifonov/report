@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SMI Production Hub</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; background: #0f172a; color: white; min-height: 100vh; }
+
+  /* Login */
+  #login { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .login-card { background: #1e293b; border-radius: 16px; padding: 40px; width: 100%; max-width: 360px; text-align: center; border: 1px solid #334155; }
+  .login-card .logo { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .login-card .sub { color: #94a3b8; font-size: 13px; margin-bottom: 32px; }
+  .login-card input { width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 15px; outline: none; margin-bottom: 12px; }
+  .login-card input:focus { border-color: #3b82f6; }
+  .login-card button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .login-card button:hover { background: #2563eb; }
+  .login-card .error { color: #f87171; font-size: 13px; margin-top: 8px; display: none; }
+
+  /* Hub */
+  #hub { display: none; min-height: 100vh; }
+
+  /* Header */
+  .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .header-logo { display: flex; align-items: center; gap: 12px; }
+  .header-logo svg { width: 32px; height: 32px; }
+  .header-logo .name { font-size: 18px; font-weight: 700; }
+  .header-logo .badge { font-size: 11px; color: #94a3b8; background: #334155; padding: 2px 8px; border-radius: 20px; }
+  .header-right { font-size: 13px; color: #64748b; }
+
+  /* Main */
+  .main { padding: 32px 24px; max-width: 960px; margin: 0 auto; }
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 16px; }
+
+  /* App grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
+
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 24px; text-decoration: none; color: white; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+  .card:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.15); }
+  .card.primary { border-color: #3b82f6; background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); }
+  .card.primary:hover { border-color: #60a5fa; box-shadow: 0 8px 24px rgba(59,130,246,0.25); }
+
+  .card-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .card-icon.blue { background: rgba(59,130,246,0.15); }
+  .card-icon.green { background: rgba(16,185,129,0.15); }
+  .card-icon.violet { background: rgba(139,92,246,0.15); }
+  .card-icon.amber { background: rgba(245,158,11,0.15); }
+  .card-icon.rose { background: rgba(244,63,94,0.15); }
+  .card-icon.sky { background: rgba(14,165,233,0.15); }
+
+  .card-body { flex: 1; }
+  .card-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .card-desc { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .card-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 20px; }
+  .tag-live { background: rgba(16,185,129,0.15); color: #34d399; }
+  .tag-ops { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .tag-floor { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .tag-quality { background: rgba(244,63,94,0.15); color: #fb7185; }
+  .card-arrow { color: #475569; font-size: 18px; }
+  .card:hover .card-arrow { color: #3b82f6; }
+
+  /* Quick links */
+  .quick { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+  .quick a { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, color 0.15s; }
+  .quick a:hover { border-color: #475569; color: white; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 32px 24px; color: #334155; font-size: 12px; border-top: 1px solid #1e293b; }
+  .footer span { color: #475569; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; }
+    .main { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo">Southmedic<span style="color:#3b82f6">.</span></div>
+    <div class="sub">Production Operations Hub</div>
+    <input type="password" id="pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')tryLogin()" autofocus />
+    <button onclick="tryLogin()">Sign In</button>
+    <div class="error" id="err">Incorrect password</div>
+  </div>
+</div>
+
+<!-- Hub -->
+<div id="hub">
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#3b82f6"/>
+        <path d="M8 16h16M16 8v16" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="4" fill="white"/>
+      </svg>
+      <span class="name">SMI Production</span>
+      <span class="badge">Operations Hub</span>
+    </div>
+    <div class="header-right" id="clock"></div>
+  </div>
+
+  <div class="main">
+
+    <!-- Primary app -->
+    <div class="section-title">Main</div>
+    <div class="grid" style="margin-bottom: 24px;">
+      <a class="card primary" href="BuildTracker.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon blue">📋</div>
+          <div class="card-body">
+            <div class="card-name">Build Plan Tracker</div>
+            <div class="card-desc">Live WO tracking, shift logging, readiness checks and TV mode for all BUs</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-live">● Live</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Reporting -->
+    <div class="section-title">Reporting & Analytics</div>
+    <div class="grid">
+      <a class="card" href="index.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon green">📊</div>
+          <div class="card-body">
+            <div class="card-name">Production Report</div>
+            <div class="card-desc">Labour ticket data — efficiency, lost hours and units by resource and BU</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-ops">Reporting</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="card" href="ShiftReport.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon sky">📁</div>
+          <div class="card-body">
+            <div class="card-name">Shift Report</div>
+            <div class="card-desc">Shift history, analytics, downtime and efficiency trends by BU</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-ops">Reporting</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="card" href="VERBuildPlan.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon violet">🟢</div>
+          <div class="card-body">
+            <div class="card-name">VER Build Plan</div>
+            <div class="card-desc">Weekly build plan tracking for BU Verathon</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-ops">Planning</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Operations -->
+    <div class="section-title">Operations</div>
+    <div class="grid">
+      <a class="card" href="DailyManpower.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon amber">👥</div>
+          <div class="card-body">
+            <div class="card-name">Daily Manpower</div>
+            <div class="card-desc">Headcount tracking across all BUs — replaces the physical whiteboard</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-floor">Floor</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="card" href="BetaApp.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon amber">📅</div>
+          <div class="card-body">
+            <div class="card-name">Shift Assignment</div>
+            <div class="card-desc">Multi-BU shift scheduling with roster and training matrix</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-floor">Floor</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="card" href="ShiftReadiness.html">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="card-icon green">✅</div>
+          <div class="card-body">
+            <div class="card-name">Shift Readiness</div>
+            <div class="card-desc">Pre-shift readiness audits across Verathon production lines</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-tag tag-floor">Floor</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    SMI Production Hub · <span>goshotrifonov.github.io/report</span>
+  </div>
+</div>
+
+<script>
+  function tryLogin() {
+    const pw = document.getElementById('pw').value;
+    if (pw === 'smi1234') {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('hub').style.display = 'block';
+      localStorage.setItem('smi_hub_auth', '1');
+      startClock();
+    } else {
+      document.getElementById('err').style.display = 'block';
+      document.getElementById('pw').value = '';
+      document.getElementById('pw').focus();
+    }
+  }
+
+  function startClock() {
+    function tick() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleString('en-CA', {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  // Auto-login if already authenticated this session
+  if (localStorage.getItem('smi_hub_auth') === '1') {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('hub').style.display = 'block';
+    startClock();
+  }
+</script>
+</body>
+</html>
