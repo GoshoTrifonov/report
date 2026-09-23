@@ -364,6 +364,7 @@ function parseBuildPlan(workbook) {
   const COL_RUN      = col(["RUN_HRS"]) >= 0 ? col(["RUN_HRS"]) : 8;
   const COL_STARTQTY = col(["START_QTY", "QTY"]) >= 0 ? col(["START_QTY", "QTY"]) : 9;
   const COL_COMPQTY  = col(["COMP_QTY"]) >= 0 ? col(["COMP_QTY"]) : 10;
+  const COL_LABELS   = 14; // Column O: "P" = labels printed/ready
 
   // We need leader mapping — load from current BUILD_DATA if available, else blank
   const leaderMap = {};
@@ -390,6 +391,7 @@ function parseBuildPlan(workbook) {
       start_qty: parseInt(r[COL_STARTQTY]) || 0,
       comp_qty: compQty,
       status: compQty > 0 && compQty >= (parseInt(r[COL_STARTQTY]) || 0) ? "done" : "todo",
+      labelsFromPlan: String(r[COL_LABELS] || "").trim().toUpperCase() === "P",
     });
   }
   return rows.length > 0 ? rows : null;
@@ -801,13 +803,24 @@ function BuildTracker() {
       const data = fbParse(snap);
       if (data && data.rows && data.rows.length > 0) {
         // Inject leader from resource map, sanitize comp_qty
-        const rows = data.rows.map((r, idx) => ({
-          ...r,
-          _idx: idx,
-          leader: resourceLeaderMap[r.resource] || r.leader || "",
-          comp_qty: parseFloat(r.comp_qty) || 0,
-          status: r.status || "todo",
-        }));
+        // Auto-set labels readiness from col O ("P" = printed)
+        const rows = data.rows.map((r, idx) => {
+          const autoLabels = r.labelsFromPlan === true;
+          const existingLabels = r.readiness?.labels;
+          return {
+            ...r,
+            _idx: idx,
+            leader: resourceLeaderMap[r.resource] || r.leader || "",
+            comp_qty: parseFloat(r.comp_qty) || 0,
+            status: r.status || "todo",
+            readiness: {
+              ...(r.readiness || {}),
+              labels: autoLabels && !existingLabels?.ok
+                ? { ok: true, auto: true }
+                : (existingLabels || {}),
+            },
+          };
+        });
         setBuildPlanRows(rows);
           if (data.uploadedAt) setLastBuildPlanUpdate(new Date(data.uploadedAt));
       } else {
