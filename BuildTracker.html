@@ -1934,7 +1934,7 @@ function BuildTracker() {
             <span>{lines.length} lines</span>
             <span>? {stats.wip} WIP</span>
             {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>? {stats.nextNotReady} not ready</span>}
-            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>?? {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>🟢 {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
           </div>
         </div>
 
@@ -2006,9 +2006,9 @@ function BuildTracker() {
           <button onClick={() => labourInputRef.current?.click()}
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📂 Labour</button>
           <button onClick={() => setMaterialsModal("setups")}
-            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? SetUps {stats.nextSetupsList?.length || 0}</button>
+            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔧 SetUps {stats.nextSetupsList?.length || 0}</button>
           <button onClick={() => setShowNextSummary(v => !v)}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Next {stats.nextAllList?.length || 0}</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>? {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
@@ -2051,9 +2051,9 @@ function BuildTracker() {
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
                 <span>{lines.length} {lines.length === 1 ? "line" : "lines"} - Bars by run hours - {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
                 {fbStatus === "loading" && <span className="text-amber-600 font-medium">- ? Connecting�</span>}
-                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">- ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">- 🟢 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
                 {fbStatus === "error" && <span className="text-rose-600 font-medium">- ? Offline</span>}
-                {buildPlanRows && <span className="text-blue-600 font-medium">- ?? Custom build plan</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">- 📋 Custom build plan</span>}
                 {!buildPlanRows && <span className="text-slate-400 font-medium">- using baked-in build plan</span>}
               </div>
             </div>
@@ -3081,7 +3081,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
         </div>
         <div className="max-h-[60vh] overflow-auto divide-y divide-stone-100">
           {sorted.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready ??</div>
+            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready ✅</div>
           ) : sorted.map((r, i) => {
             const ready = r.readiness || {};
             const toolId = WO_TOOL_MAP[r.wo] || r.tool_id || null;
@@ -4307,7 +4307,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 {entry.downtimeReason && (
                   <div className="mt-1 flex items-center gap-1">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">?? Down: {entry.downtimeReason}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">🔻 Down: {entry.downtimeReason}</span>
                     {entry.downtimeDuration > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-800">{entry.downtimeDuration}h</span>}
                   </div>
                 )}
@@ -4316,7 +4316,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
                   {isLabour
-                    ? <span className="text-slate-400">?? Labour tickets � {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    ? <span className="text-slate-400">📊 Labour tickets � {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     : entry.by
                       ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
                       : null
