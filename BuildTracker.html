@@ -2099,16 +2099,7 @@ function BuildTracker() {
       const allReady = !isDown && liveNext && ['tool','labels','kit'].every(function(k) { var rd = Object.assign({}, (liveNext.readiness || {}), ((nextOvr || {}).readiness || {}))[k] || {}; return rd.ok; });
       const rowBg = isDown ? ';background:#fef2f2' : allReady ? ';background:#f0fdf4' : '';
       if (isDown) { return '<tr style="border-bottom:1px solid #e2e8f0;background:#fef2f2"><td style="padding:7px 8px;font-weight:700;font-size:12px">' + resource + ' ' + statusBadge + '</td><td style="padding:7px 8px;font-family:monospace;font-size:11px;color:#94a3b8">' + (liveNow.wo || '--') + '</td><td style="padding:7px 8px;font-size:11px;color:#94a3b8">' + (liveNow.descr || liveNow.part || '--') + '</td><td></td><td colspan="3" style="padding:7px 8px;color:#dc2626;font-size:11px;font-style:italic">Line is DOWN</td><td style="padding:7px 8px;border:1px solid #e2e8f0;min-width:160px">&nbsp;</td></tr>'; }
-      return "<tr style='border-bottom:1px solid #e2e8f0" + rowBg + "'>
-        + '<td style="padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap">' + resource + " " + statusBadge + '</td>'
-        + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNow.wo || "--") + '</td>'
-        + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNow.descr || liveNow.part || "--") + '</td>'
-        + '<td style="padding:7px 8px;font-size:11px;white-space:nowrap;color:' + timeColor + '">' + remainStr + '</td>'
-        + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNext ? liveNext.wo : "--") + '</td>'
-        + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNext ? (liveNext.descr || liveNext.part || "--") : "--") + '</td>'
-        + '<td style="padding:7px 8px;white-space:nowrap">' + makePills(liveNext, nextOvr) + '</td>'
-        + '<td style="padding:7px 8px;border:1px solid #e2e8f0;min-width:160px">&nbsp;</td>'
-        + '</tr>';
+      return '<tr style="border-bottom:1px solid #e2e8f0' + rowBg + '">' + '<td style="padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap">' + resource + ' ' + statusBadge + '</td>' + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNow.wo || '--') + '</td>' + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNow.descr || liveNow.part || '--') + '</td>' + '<td style="padding:7px 8px;font-size:11px;white-space:nowrap;color:' + timeColor + '">' + remainStr + '</td>' + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNext ? liveNext.wo : '--') + '</td>' + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNext ? (liveNext.descr || liveNext.part || '--') : '--') + '</td>' + '<td style="padding:7px 8px;white-space:nowrap">' + makePills(liveNext, nextOvr) + '</td>' + '<td style="padding:7px 8px;border:1px solid #e2e8f0;min-width:160px">&nbsp;</td>' + '</tr>';
     }).filter(Boolean).join("");
     const timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const labourStr = lastLabourUpdate ? (" - Labour at " + lastLabourUpdate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) : "";
