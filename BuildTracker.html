@@ -2516,7 +2516,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                 >
                   <span className="text-xs md:text-sm font-semibold text-slate-900 truncate flex-1" title={line.resource}>{line.resource}</span>
                   {downEntry && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " � " + downEntry.notes : ""} (by ${downEntry.by || "�"})`}>DOWN</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white" title={`Down: ${downEntry.reason}${downEntry.notes ? " � " + downEntry.notes : ""} (by ${downEntry.by || "--"})`}>DOWN</span>
                   )}
 
                   {!downEntry && hasWip && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-200 text-amber-900">RUN</span>}
@@ -2546,7 +2546,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
                       ) : (
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                       )}
-                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "�"}</span>
+                      <span className="font-mono text-[10px] md:text-[11px] text-slate-700 truncate flex-1">{r.wo || "--"}</span>
 
                       {r._override && <Pencil className="w-2.5 h-2.5 text-slate-400 shrink-0" />}
                     </div>
@@ -2705,11 +2705,11 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
     const toolHeader = kind === "tool" || kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Tool ID</th>" : "";
             const statusHeader = kind === "setups" ? "<th style='padding:5px 8px;text-align:left'>Status</th>" : "";
     const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed � ${buLabel}</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>${meta.label} Needed - ${buLabel}</title>
       <style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 4px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}</style>
     </head><body>
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-        <div><h2>${meta.label} Needed in Next 36h � ${buLabel}</h2>
+        <div><h2>${meta.label} Needed in Next 36h - ${buLabel}</h2>
         <p>${entries.length} WOs across ${byResource.length} lines � Generated ${new Date().toLocaleString()}</p></div>
         <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
       </div>
@@ -2841,7 +2841,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Next WOs Summary ({rows.length})</h2>
-            <p className="text-xs text-slate-500">All NEXT slot WOs � click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` � Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
+            <p className="text-xs text-slate-500">All NEXT slot WOs — click Tool / Labels / Kit to toggle readiness{lastLabourUpdate ? ` � Times from labour upload at ${lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}` : ""}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -2849,7 +2849,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
           {nowZeroQtyList && nowZeroQtyList.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">? NOW � Running but 0 qty produced</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">⚠ NOW — Running but 0 qty produced</span>
                 <span className="text-[10px] text-amber-500">{nowZeroQtyList.length} line{nowZeroQtyList.length !== 1 ? "s" : ""}</span>
               </div>
               {nowZeroQtyList.map((r, i) => {
@@ -2869,7 +2869,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[11px] font-semibold text-amber-700">{r.resource}</span>
-                        {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">? Ready</span>}
+                        {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       </div>
                       <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                       <div className="text-xs text-slate-500 truncate">{r.descr || r.part}</div>
@@ -2921,7 +2921,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{liveRow.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">? Ready</span>}
+                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       {checks.find(c => c.key === "tool")?.isChangeover && !checks.find(c => c.key === "tool")?.auto && !checks.find(c => c.key === "tool")?.na && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-white">SetUp</span>}
                       {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>? ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
                     </div>
@@ -2990,7 +2990,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 </tr>`;
               }).join("");
               const zeroSection_html = (nowZeroQtyList || []).length > 0
-                ? `<tr><td colspan="5" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">? NOW � Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
+                ? `<tr><td colspan="5" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">⚠ NOW — Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
                 : "";
               const rows_html = sorted.map(r => {
                 const liveRow = getLiveRow(r);
@@ -3019,8 +3019,8 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 const isToolChangeover = !ready.tool?.auto && !ready.tool?.na && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) && r._nowToolId !== undefined && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) !== r._nowToolId;
                 const coBadge = isToolChangeover ? '<span style="background:#f59e0b;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">SetUp</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
-                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">? Ready</span>' : '';
-                const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">? ~${nowHrs.toFixed(0)}h left</span>` : '';
+                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
+                const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">~${nowHrs.toFixed(0)}h left</span>` : '';
                 return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
                   <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${coBadge}${readyBadge}${timeHtml}</td>
                   <td style="padding:6px 8px;font-family:monospace;font-size:12px;font-weight:700">${liveRow.wo}</td>
@@ -3075,7 +3075,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
               <AlertTriangle className="w-5 h-5 text-rose-600" fill="currentColor" />
               Next WOs Not Ready ({rows.length})
             </h2>
-            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness � sorted by urgency</p>
+            <p className="text-xs text-slate-500">NEXT slot WOs missing readiness — sorted by urgency</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded"><X className="w-5 h-5" /></button>
         </div>
@@ -3214,7 +3214,7 @@ function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
                   className="px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-rose-500 bg-white">
                   {DURATIONS.map(d => <option key={d} value={d}>{d}h</option>)}
                 </select>
-                <span className="text-xs text-slate-500">Default 8h (full shift) � adjust if partial</span>
+                <span className="text-xs text-slate-500">Default 8h (full shift) — adjust if partial</span>
               </div>
             </div>
           )}
@@ -3266,7 +3266,7 @@ function InitialsModal({ current, onSave, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome � who are you?</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Welcome — who are you?</h2>
         <p className="text-sm text-slate-600 mb-4">Enter your initials so we can track who logged what during the shift.</p>
         <input
           type="text"
@@ -3487,7 +3487,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
   };
   const copyReport = () => {
     const lines = [];
-    lines.push(`SHIFT REPORT � ${buName(selectedLeader)}`);
+    lines.push(`SHIFT REPORT — ${buName(selectedLeader)}`);
     lines.push(`${dateLabel} � ${meta.label} (${meta.time})`);
     lines.push("=".repeat(60));
     lines.push("");
@@ -3508,7 +3508,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           const effStr  = entry.eff  != null ? ` � Eff ${entry.eff.toFixed(1)}%` : "";
           const hrsStr  = entry.hrs  > 0 ? ` � ${entry.hrs.toFixed(1)}h worked` : "";
           const lostStr = entry.lost !== 0 ? ` � ${entry.lost.toFixed(1)}h lost` : "";
-          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} � total ${row.comp_qty}/${row.start_qty} � ${entry.by || "�"}`);
+          lines.push(`    +${entry.qty} units${effStr}${hrsStr}${lostStr} � total ${row.comp_qty}/${row.start_qty} � ${entry.by || "—"}`);
           if (entry.reason) lines.push(`    Reason: ${entry.reason}`);
           if (entry.notes) lines.push(`    Notes: ${entry.notes}`);
         }
@@ -3521,7 +3521,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     if (reportData.downLines.length > 0) {
       lines.push("LINES DOWN THIS SHIFT:");
       for (const d of reportData.downLines) {
-        lines.push(`  ${d.resource} � ${d.reason}${d.notes ? " � " + d.notes : ""} (by ${d.by || "�"})`);
+        lines.push(`  ${d.resource} — ${d.reason}${d.notes ? " � " + d.notes : ""} (by ${d.by || "—"})`);
       }
       lines.push("");
     }
@@ -3533,7 +3533,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       alert("Report copied to clipboard. Paste into email or document.");
-    }).catch(() => alert("Copy failed � try again or print instead."));
+    }).catch(() => alert("Copy failed — try again or print instead."));
   };
 
   const saveReport = async () => {
@@ -3615,7 +3615,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="flex-1 overflow-auto p-6 print:p-0">
               {/* Print-only header */}
               <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-                <h1 className="text-xl font-bold">Shift Report � {buName(selectedLeader)}</h1>
+                <h1 className="text-xl font-bold">Shift Report — {buName(selectedLeader)}</h1>
                 <p className="text-sm">{dateLabel} � {meta.label} ({meta.time})</p>
               </div>
               {/* Summary */}
@@ -3662,10 +3662,10 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                           <div key={i} className="px-3 py-2 text-sm">
                             <div className="flex items-baseline justify-between gap-2">
                               <span className="font-semibold text-slate-900">{d.resource}</span>
-                              <div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "�"}</span></div>
+                              <div className="flex items-center gap-1.5">{d.reason !== "Not Scheduled" && d.duration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{d.duration}h</span>}<span className="text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">{d.reason || "—"}</span></div>
                             </div>
                             {d.notes && <div className="text-[12px] text-slate-700 mt-1 leading-snug">{d.notes}</div>}
-                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "�"}</div>
+                            <div className="text-[10px] text-slate-500 mt-1">by {d.by || "—"}</div>
                           </div>
                         ))}
                       </div>
@@ -3775,7 +3775,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <button onClick={saveReport} disabled={saveState === "saving"}
                   style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
                   className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
-                  {saveState==="saving"?"Saving�":saveState==="saved"?"? Saved!":saveState==="error"?"Error � retry":existingSavedAt?"Update Report":"Save Report"}
+                  {saveState==="saving"?"Saving�":saveState==="saved"?"? Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
                 </button>
                 <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
