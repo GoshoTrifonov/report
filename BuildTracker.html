@@ -160,7 +160,7 @@
 </head>
 <body class="bg-stone-50">
   <div id="root">
-    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard�</div>
+    <div style="padding:40px;text-align:center;color:#666;font-family:system-ui">Loading dashboard...</div>
   </div>
 
   <script type="text/babel" data-presets="react">
@@ -537,8 +537,8 @@ const STATUS = {
 const POS_LABELS = ["NOW", "NEXT", "THEN"];
 const POST_PRODUCTION_STATUSES = new Set(["abr", "brs", "done"]);
 
-const fmtHrs = (n) => n == null || n === 0 ? "�" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
-const fmtNum = (n) => n == null ? "�" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
+const fmtHrs = (n) => n == null || n === 0 ? "--" : `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
+const fmtNum = (n) => n == null ? "--" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const rowKey = (row) => `${row.resource}__${row.wo || "no-wo"}`;
 const isLopro = (name) => /^lopro/i.test(name);
 
@@ -759,7 +759,7 @@ function BuildTracker() {
         // Get previous month's name
         const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
           .toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        console.log(`[Auto-export] Exporting ${prevMonth} shift reports to Google Sheets�`);
+        console.log(`[Auto-export] Exporting ${prevMonth} shift reports to Google Sheets...`);
         const token = await getGoogleAccessToken();
         const snap = await BT_SHIFT_REPORTS_REF.get();
         const docs = snap.docs
@@ -881,7 +881,7 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "build", msg: "Parsing build plan�", ok: null });
+    setUploadStatus({ type: "build", msg: "Parsing build plan...", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -921,7 +921,7 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
-    setUploadStatus({ type: "labour", msg: "Parsing labour tickets�", ok: null });
+    setUploadStatus({ type: "labour", msg: "Parsing labour tickets...", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -2050,9 +2050,9 @@ function BuildTracker() {
               <div className="text-sm font-semibold text-slate-900">Build Plan Tracker</div>
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
                 <span>{lines.length} {lines.length === 1 ? "line" : "lines"} - Bars by run hours - {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
-                {fbStatus === "loading" && <span className="text-amber-600 font-medium">- ? Connecting�</span>}
+                {fbStatus === "loading" && <span className="text-amber-600 font-medium">- Connecting...</span>}
                 {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">- 🟢 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-                {fbStatus === "error" && <span className="text-rose-600 font-medium">- ? Offline</span>}
+                {fbStatus === "error" && <span className="text-rose-600 font-medium">- Offline</span>}
                 {buildPlanRows && <span className="text-blue-600 font-medium">- 📋 Custom build plan</span>}
                 {!buildPlanRows && <span className="text-slate-400 font-medium">- using baked-in build plan</span>}
               </div>
@@ -2094,7 +2094,7 @@ function BuildTracker() {
                 <button
                   onClick={() => labourInputRef.current && labourInputRef.current.click()}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
-                  title="Upload Labour Tickets � updates comp_qty on all matched WOs"
+                  title="Upload Labour Tickets -- updates comp_qty on all matched WOs"
                 >
                   📂 Labour Tickets
                 </button>
@@ -3081,7 +3081,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
         </div>
         <div className="max-h-[60vh] overflow-auto divide-y divide-stone-100">
           {sorted.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready ✅</div>
+            <div className="px-5 py-8 text-center text-sm text-slate-500 italic">All NEXT WOs are ready �...</div>
           ) : sorted.map((r, i) => {
             const ready = r.readiness || {};
             const toolId = WO_TOOL_MAP[r.wo] || r.tool_id || null;
@@ -3931,7 +3931,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Resource / Line</label>
                 <select value={resource} onChange={e => setResource(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-blue-400 bg-white">
-                  <option value="">� Select resource �</option>
+                  <option value="">-- Select resource --</option>
                   {resources.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
