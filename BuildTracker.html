@@ -2033,6 +2033,7 @@ function BuildTracker() {
     );
   }
 
+
   const printHandoff = (allRows, overrides, selectedLeader, lineDown, lastLabourUpdate) => {
     const now = new Date();
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
@@ -2040,81 +2041,83 @@ function BuildTracker() {
     const shiftNow = hr < 7 ? "S3" : hr < 15 ? "S1" : hr < 23 ? "S2" : "S3";
     const shiftNext = shiftNow === "S1" ? "S2" : shiftNow === "S2" ? "S3" : "S1";
     const dateStr = now.toLocaleDateString("en-CA", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-    const seen = new Set(); const lines = [];
+    const seen = new Set();
+    const lines = [];
     for (const r of allRows) {
       if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
       if (!seen.has(r.resource)) { seen.add(r.resource); lines.push(r.resource); }
     }
     const makePills = (row, ovr) => {
-      if (!row) return "<span style=\"color:#94a3b8\">--</span>";
+      if (!row) return '<span style="color:#94a3b8">--</span>';
       const ready = Object.assign({}, row.readiness || {}, (ovr || {}).readiness || {});
       const toolId = WO_TOOL_MAP[row.wo] || row.tool_id || null;
-      return ["tool","labels","kit"].map(k => {
+      return ["tool","labels","kit"].map(function(k) {
         const rd = ready[k] || {};
         const bg = rd.ok ? (rd.na ? "#64748b" : rd.auto ? "#0ea5e9" : "#16a34a") : "#fff";
-        const border = rd.ok ? "none" : "2px solid #ef4444";
-        const color = rd.ok ? "#fff" : "#f87171";
+        const br = rd.ok ? "none" : "2px solid #ef4444";
+        const col = rd.ok ? "#fff" : "#f87171";
         const lbl = k === "tool" ? "Tool" : k === "labels" ? "Labels" : "Kit";
         const badge = rd.na ? " N/A" : rd.auto ? " AUTO" : "";
         const extra = (k === "tool" && toolId && rd.ok) ? (" - " + toolId) : "";
-        return "<span style=\"background:" + bg + ";border:" + border + ";color:" + color + ";padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px\">" + lbl + badge + extra + "</span>";
+        return '<span style="background:' + bg + ';border:' + br + ';color:' + col + ';padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px">' + lbl + badge + extra + '</span>';
       }).join("");
     };
-    const rows_html = lines.map(resource => {
-      const rRows = allRows.filter(r => r.resource === resource);
-      const nowRow = rRows.find(r => r.status === "wip") || rRows.find(r => r.status === "todo");
+    const rows_html = lines.map(function(resource) {
+      const rRows = allRows.filter(function(r) { return r.resource === resource; });
+      const nowRow = rRows.find(function(r) { return r.status === "wip"; }) || rRows.find(function(r) { return r.status === "todo"; });
       if (!nowRow) return "";
-      const nextRow = rRows.filter(r => r !== nowRow && (r.status === "todo" || r.status === "wip"))[0] || null;
+      const nextRow = rRows.filter(function(r) { return r !== nowRow && (r.status === "todo" || r.status === "wip"); })[0] || null;
       const ovr = overrides[rowKey(nowRow)] || {};
       const nextOvr = nextRow ? (overrides[rowKey(nextRow)] || {}) : null;
       const liveNow = Object.assign({}, nowRow, ovr);
       const liveNext = nextRow ? Object.assign({}, nextRow, nextOvr || {}) : null;
       const isDown = lineDown[resource] && lineDown[resource].isDown;
       const statusBadge = isDown
-        ? "<span style=\"background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700\">DOWN</span>"
-        : "<span style=\"background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700\">RUN</span>";
+        ? '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">DOWN</span>'
+        : '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">RUN</span>';
       const labHrs = parseFloat(liveNow.labr_hrs) || 0;
       const startQty = parseFloat(liveNow.start_qty) || 1;
       const compQty = parseFloat(liveNow.comp_qty) || 0;
       const remainHrs = labHrs > 0 ? (Math.max(0, startQty - compQty) / startQty) * labHrs : null;
       const remainStr = remainHrs !== null ? (remainHrs < 1 ? Math.round(remainHrs * 60) + "m" : remainHrs.toFixed(1) + "h") : "";
       const timeColor = (remainHrs !== null && remainHrs < 4) ? "#dc2626" : "#0f172a";
-      return "<tr style=\"border-bottom:1px solid #e2e8f0\">"
-        + "<td style=\"padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap\">" + resource + " " + statusBadge + "</td>"
-        + "<td style=\"padding:7px 8px;font-family:monospace;font-size:11px\">" + (liveNow.wo || "--") + "</td>"
-        + "<td style=\"padding:7px 8px;font-size:11px;color:#475569\">" + (liveNow.descr || liveNow.part || "--") + "</td>"
-        + "<td style=\"padding:7px 8px;font-size:11px;white-space:nowrap;color:" + timeColor + "\">" + remainStr + "</td>"
-        + "<td style=\"padding:7px 8px;font-family:monospace;font-size:11px\">" + (liveNext ? liveNext.wo : "--") + "</td>"
-        + "<td style=\"padding:7px 8px;font-size:11px;color:#475569\">" + (liveNext ? (liveNext.descr || liveNext.part || "--") : "--") + "</td>"
-        + "<td style=\"padding:7px 8px;white-space:nowrap\">" + makePills(liveNext, nextOvr) + "</td>"
-        + "<td style=\"padding:7px 8px;border:1px solid #e2e8f0;min-width:160px\">&nbsp;</td>"
-        + "</tr>";
+      return '<tr style="border-bottom:1px solid #e2e8f0">'
+        + '<td style="padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap">' + resource + " " + statusBadge + '</td>'
+        + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNow.wo || "--") + '</td>'
+        + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNow.descr || liveNow.part || "--") + '</td>'
+        + '<td style="padding:7px 8px;font-size:11px;white-space:nowrap;color:' + timeColor + '">' + remainStr + '</td>'
+        + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNext ? liveNext.wo : "--") + '</td>'
+        + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNext ? (liveNext.descr || liveNext.part || "--") : "--") + '</td>'
+        + '<td style="padding:7px 8px;white-space:nowrap">' + makePills(liveNext, nextOvr) + '</td>'
+        + '<td style="padding:7px 8px;border:1px solid #e2e8f0;min-width:160px">&nbsp;</td>'
+        + '</tr>';
     }).filter(Boolean).join("");
     const timeStr = now.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
     const labourStr = lastLabourUpdate ? (" - Labour at " + lastLabourUpdate.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})) : "";
-    const html = "<!DOCTYPE html><html><head><title>Shift Handoff</title>"
-      + "<style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 2px;font-size:18px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}@page{size:landscape;margin:15mm}</style>"
-      + "</head><body>"
-      + "<div style=\"display:flex;justify-content:space-between;align-items:start;margin-bottom:14px\">"
-      + "<div><h2>Shift Handoff - " + buLabel + "</h2>"
-      + "<p>" + dateStr + " - " + shiftNow + " to " + shiftNext + " - Printed " + timeStr + labourStr + "</p></div>"
-      + "<button onclick=\"window.print()\" style=\"padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px\">Print</button>"
-      + "</div>"
-      + "<table><thead><tr style=\"background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em\">"
-      + "<th style=\"padding:6px 8px;text-align:left\">Resource</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Current WO</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Description</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Time Left</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Next WO</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Next Description</th>"
-      + "<th style=\"padding:6px 8px;text-align:left\">Readiness</th>"
-      + "<th style=\"padding:6px 8px;text-align:left;min-width:160px\">Notes / Issues</th>"
-      + "</tr></thead><tbody>" + rows_html + "</tbody></table>"
-      + "</body></html>";
+    const html = '<!DOCTYPE html><html><head><title>Shift Handoff</title>'
+      + '<style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 2px;font-size:18px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}@page{size:landscape;margin:15mm}</style>'
+      + '</head><body>'
+      + '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">'
+      + '<div><h2>Shift Handoff - ' + buLabel + '</h2>'
+      + '<p>' + dateStr + ' - ' + shiftNow + ' to ' + shiftNext + ' - Printed ' + timeStr + labourStr + '</p></div>'
+      + '<button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">Print</button>'
+      + '</div>'
+      + '<table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">'
+      + '<th style="padding:6px 8px;text-align:left">Resource</th>'
+      + '<th style="padding:6px 8px;text-align:left">Current WO</th>'
+      + '<th style="padding:6px 8px;text-align:left">Description</th>'
+      + '<th style="padding:6px 8px;text-align:left">Time Left</th>'
+      + '<th style="padding:6px 8px;text-align:left">Next WO</th>'
+      + '<th style="padding:6px 8px;text-align:left">Next Description</th>'
+      + '<th style="padding:6px 8px;text-align:left">Readiness</th>'
+      + '<th style="padding:6px 8px;text-align:left;min-width:160px">Notes / Issues</th>'
+      + '</tr></thead><tbody>' + rows_html + '</tbody></table>'
+      + '</body></html>';
     const win = window.open("", "_blank");
     win.document.write(html);
     win.document.close();
   };
+
 
   return (
     <div className="min-h-screen bg-stone-50 text-slate-900" style={{ fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
