@@ -2096,8 +2096,10 @@ function BuildTracker() {
       const remainHrs = labHrs > 0 ? (Math.max(0, startQty - compQty) / startQty) * labHrs : null;
       const remainStr = remainHrs !== null ? (remainHrs < 1 ? Math.round(remainHrs * 60) + "m" : remainHrs.toFixed(1) + "h") : "";
       const timeColor = (remainHrs !== null && remainHrs < 4) ? "#dc2626" : "#0f172a";
-      const allReady = liveNext && ['tool','labels','kit'].every(function(k) { var rd = Object.assign({}, (liveNext.readiness || {}), ((nextOvr || {}).readiness || {}))[k] || {}; return rd.ok; });
-      return '<tr style="border-bottom:1px solid #e2e8f0' + (allReady ? ';background:#f0fdf4' : '') + '">'
+      const allReady = !isDown && liveNext && ['tool','labels','kit'].every(function(k) { var rd = Object.assign({}, (liveNext.readiness || {}), ((nextOvr || {}).readiness || {}))[k] || {}; return rd.ok; });
+      const rowBg = isDown ? ';background:#fef2f2' : allReady ? ';background:#f0fdf4' : '';
+      if (isDown) { return '<tr style="border-bottom:1px solid #e2e8f0;background:#fef2f2"><td style="padding:7px 8px;font-weight:700;font-size:12px">' + resource + ' ' + statusBadge + '</td><td style="padding:7px 8px;font-family:monospace;font-size:11px;color:#94a3b8">' + (liveNow.wo || '--') + '</td><td style="padding:7px 8px;font-size:11px;color:#94a3b8">' + (liveNow.descr || liveNow.part || '--') + '</td><td></td><td colspan="3" style="padding:7px 8px;color:#dc2626;font-size:11px;font-style:italic">Line is DOWN</td><td style="padding:7px 8px;border:1px solid #e2e8f0;min-width:160px">&nbsp;</td></tr>'; }
+      return '<tr style="border-bottom:1px solid #e2e8f0' + rowBg + '">
         + '<td style="padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap">' + resource + " " + statusBadge + '</td>'
         + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNow.wo || "--") + '</td>'
         + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNow.descr || liveNow.part || "--") + '</td>'
@@ -3411,7 +3413,7 @@ function GotoDropdown({ dark }) {
   return (
     <div className="relative shrink-0" style={{ display: "inline-block" }}>
       <button onClick={() => setOpen(o => !o)} className={btnClass} style={dark ? btnStyle : {}}>
-         — Go to ▾
+        �— Go to ▾
       </button>
       {open && (
         <>
