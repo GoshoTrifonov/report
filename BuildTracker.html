@@ -3,7 +3,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SMI Build Plan Tracker</title>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
@@ -2005,7 +2004,7 @@ function BuildTracker() {
 
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0f172a", padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6, zIndex: 40 }}>
           <button onClick={() => labourInputRef.current?.click()}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Labour</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📂 Labour</button>
           <button onClick={() => setMaterialsModal("setups")}
             style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? SetUps {stats.nextSetupsList?.length || 0}</button>
           <button onClick={() => setShowNextSummary(v => !v)}
@@ -2013,14 +2012,14 @@ function BuildTracker() {
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>? {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
-            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Shift Report</button>
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <GotoDropdown dark />
           <button onClick={() => setShowLogModal("plantwide")}
             style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>Plantwide</button>
           <button onClick={() => setShowLogModal("safety")}
-            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Safety</button>
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ Safety</button>
           <button onClick={() => setShowLogModal("nc")}
-            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? NC</button>
+            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔴 NC</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -2227,8 +2226,8 @@ function BuildTracker() {
           <FileCheck2 className="w-3 h-3" /> Shift Report
         </button>
         <button onClick={() => setShowLogModal("plantwide")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-violet-700 hover:bg-violet-800 font-semibold text-white">Plantwide</button>
-        <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">?? Safety</button>
-        <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">?? NC</button>
+        <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">⚠️ Safety</button>
+        <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">🔴 NC</button>
         {overrideCount > 0 && (
           <>
             <button onClick={exportOverrides} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600"><Download className="w-3 h-3" /> Export CSV</button>
@@ -2712,7 +2711,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
         <div><h2>${meta.label} Needed in Next 36h � ${buLabel}</h2>
         <p>${entries.length} WOs across ${byResource.length} lines � Generated ${new Date().toLocaleString()}</p></div>
-        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
+        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
       </div>
       <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase">
         <th style="padding:5px 8px;text-align:left">Resource</th>
@@ -2808,7 +2807,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
           <span className="text-[10px] text-slate-500 italic flex-1">Click a WO to open its detail panel</span>
           <button onClick={onClose} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Close</button>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">
-            ?? Print
+            🖨 Print
           </button>
         </div>
       </div>
@@ -3036,7 +3035,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
                   <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker � Printed ${now}${lastLabourUpdate ? ' � Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
-                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
+                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
                 </div>
                 <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">
                   <th style="padding:6px 8px;text-align:left">Resource</th>
@@ -3050,7 +3049,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
           >
-            ?? Print
+            🖨 Print
           </button>
         </div>
       </div>
@@ -3298,8 +3297,8 @@ function InitialsModal({ current, onSave, onCancel }) {
 }
 
 const GOTO_APPS = [
-  { label: "?? Production Report", href: "https://goshotrifonov.github.io/report/index.html" },
-  { label: "?? VER Build Plan",     href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
+  { label: "📊 Production Report", href: "https://goshotrifonov.github.io/report/index.html" },
+  { label: "🟢 VER Build Plan",     href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
   { label: "Daily Manpower",        href: "https://goshotrifonov.github.io/report/DailyManpower.html" },
   { label: "Shift Assignment",      href: "BetaApp.html" },
   { label: "? Shift Readiness",    href: "ShiftReadiness.html" },
@@ -3313,7 +3312,7 @@ function GotoDropdown({ dark }) {
   return (
     <div className="relative shrink-0" style={{ display: "inline-block" }}>
       <button onClick={() => setOpen(o => !o)} className={btnClass} style={dark ? btnStyle : {}}>
-        ?? Go to ?
+        🔗 Go to ▾
       </button>
       {open && (
         <>
