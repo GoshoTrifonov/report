@@ -557,15 +557,15 @@ const readyCount = (row) => {
 
 // ============ Shifts ============
 // Shift schedule:
-//   1: 11pm�7am (overnight) � wall-clock window [23, 24) ? [0, 7)
-//   2: 7am�3pm (day)
-//   3: 3pm�11pm (evening)
+//   1: 11pm-7am (overnight) � wall-clock window [23, 24) ? [0, 7)
+//   2: 7am-3pm (day)
+//   3: 3pm-11pm (evening)
 // Grace window: 1 hour past end of a shift, the system still defaults to that ended shift
 // (lets supervisors log the shift they just finished).
 const SHIFTS = [
-  { id: 1, label: "Shift 1", time: "11pm�7am" },
-  { id: 2, label: "Shift 2", time: "7am�3pm" },
-  { id: 3, label: "Shift 3", time: "3pm�11pm" },
+  { id: 1, label: "Shift 1", time: "11pm-7am" },
+  { id: 2, label: "Shift 2", time: "7am-3pm" },
+  { id: 3, label: "Shift 3", time: "3pm-11pm" },
 ];
 // Returns { shiftId, shiftDate } where shiftDate is the calendar date that "owns" this shift.
 // (For Shift 1 in early-morning hours, the shift began the previous evening.)
@@ -573,9 +573,9 @@ const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
   // 1-hour grace: shift "just ended" still defaults to that shift
   // Active windows + grace:
-  // Shift 1 active: 23:00�06:59, grace until 07:59
-  // Shift 2 active: 07:00�14:59, grace until 15:59
-  // Shift 3 active: 15:00�22:59, grace until 23:59 (already covers full window)
+  // Shift 1 active: 23:00-06:59, grace until 07:59
+  // Shift 2 active: 07:00-14:59, grace until 15:59
+  // Shift 3 active: 15:00-22:59, grace until 23:59 (already covers full window)
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
   if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 active or just ended
@@ -1102,7 +1102,7 @@ function BuildTracker() {
           }
 
           // Write each report doc � fetch existing first to preserve manually-added WO notes
-          const shiftMetas = { 1: { label: "Shift 1", time: "11pm�7am" }, 2: { label: "Shift 2", time: "7am�3pm" }, 3: { label: "Shift 3", time: "3pm�11pm" } };
+          const shiftMetas = { 1: { label: "Shift 1", time: "11pm-7am" }, 2: { label: "Shift 2", time: "7am-3pm" }, 3: { label: "Shift 3", time: "3pm-11pm" } };
           const writes = await Promise.all(Object.entries(reportMap).map(async ([, entry]) => {
             const sMeta = shiftMetas[entry.shiftId] || shiftMetas[2];
             const totalEff = entry.totalHrs > 0 ? Math.round((entry.totalEarned / entry.totalHrs * 100) * 10) / 10 : null;
@@ -1225,7 +1225,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `? Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
+        setUploadStatus({ type: "labour", msg: `✓ Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -4498,7 +4498,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
               )}
               {(row.readiness?.tool?.na === true) && (
                 <div className="text-[10px] text-slate-500 mt-2 italic">
-                  ? No tool required for this WO � Tool check auto-cleared.
+                  No tool required for this WO - Tool check auto-cleared.
                 </div>
               )}
               {(row.readiness?.tool?.auto === true && !row.readiness?.tool?.na) && (
