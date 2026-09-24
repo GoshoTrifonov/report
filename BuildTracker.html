@@ -2090,13 +2090,14 @@ function BuildTracker() {
       const downBadge = '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">DOWN</span>';
       const runBadge = '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">RUN</span>';
       const statusBadge = isDown ? downBadge : runBadge;
-      const labHrs = parseFloat(liveNow.labr_hrs) || 0;
+      const labHrs = parseFloat(liveNow.run_hrs) || 0;
       const startQty = parseFloat(liveNow.start_qty) || 1;
       const compQty = parseFloat(liveNow.comp_qty) || 0;
       const remainHrs = labHrs > 0 ? (Math.max(0, startQty - compQty) / startQty) * labHrs : null;
       const remainStr = remainHrs !== null ? (remainHrs < 1 ? Math.round(remainHrs * 60) + "m" : remainHrs.toFixed(1) + "h") : "";
       const timeColor = (remainHrs !== null && remainHrs < 4) ? "#dc2626" : "#0f172a";
-      return '<tr style="border-bottom:1px solid #e2e8f0">'
+      const allReady = liveNext && ['tool','labels','kit'].every(function(k) { var rd = Object.assign({}, (liveNext.readiness || {}), ((nextOvr || {}).readiness || {}))[k] || {}; return rd.ok; });
+      return '<tr style="border-bottom:1px solid #e2e8f0' + (allReady ? ';background:#f0fdf4' : '') + '">'
         + '<td style="padding:7px 8px;font-weight:700;font-size:12px;white-space:nowrap">' + resource + " " + statusBadge + '</td>'
         + '<td style="padding:7px 8px;font-family:monospace;font-size:11px">' + (liveNow.wo || "--") + '</td>'
         + '<td style="padding:7px 8px;font-size:11px;color:#475569">' + (liveNow.descr || liveNow.part || "--") + '</td>'
