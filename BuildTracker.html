@@ -1934,7 +1934,7 @@ function BuildTracker() {
             <span>{lines.length} lines</span>
             <span>? {stats.wip} WIP</span>
             {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>? {stats.nextNotReady} not ready</span>}
-            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>?? {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+            {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>🟢 {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
           </div>
         </div>
 
@@ -2004,15 +2004,15 @@ function BuildTracker() {
 
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#0f172a", padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6, zIndex: 40 }}>
           <button onClick={() => labourInputRef.current?.click()}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Labour</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📋 Labour</button>
           <button onClick={() => setMaterialsModal("setups")}
-            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? SetUps {stats.nextSetupsList?.length || 0}</button>
+            style={{ background: stats.nextSetupsList?.length > 0 ? "#f59e0b" : "#334155", color: stats.nextSetupsList?.length > 0 ? "#1c1917" : "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔧 SetUps {stats.nextSetupsList?.length || 0}</button>
           <button onClick={() => setShowNextSummary(v => !v)}
-            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Next {stats.nextAllList?.length || 0}</button>
+            style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⏭ Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>? {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
-            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Shift Report</button>
+            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <GotoDropdown dark />
           
             <button
@@ -2026,9 +2026,9 @@ function BuildTracker() {
           <button onClick={() => setShowLogModal("plantwide")}
             style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>Plantwide</button>
           <button onClick={() => setShowLogModal("safety")}
-            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? Safety</button>
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔴 Safety</button>
           <button onClick={() => setShowLogModal("nc")}
-            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>?? NC</button>
+            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🟠 NC</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
@@ -2062,6 +2062,24 @@ function BuildTracker() {
       if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
       if (!seen.has(r.resource)) { seen.add(r.resource); resourceList.push(r.resource); }
     }
+    const { shiftId: _sortShiftId, shiftDate: _sortShiftDate } = getCurrentShift(now);
+    resourceList.sort(function(a, b) {
+      const aDown = !!((lineDown[a] || []).find(function(e) { return shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
+      const bDown = !!((lineDown[b] || []).find(function(e) { return shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
+      if (aDown !== bDown) return aDown ? 1 : -1;
+      const getRemain = function(resource) {
+        const rRows = allRows.filter(function(r) { return r.resource === resource; });
+        const nowRow = rRows.find(function(r) { return r.status === "wip"; }) || rRows.find(function(r) { return r.status === "todo"; });
+        if (!nowRow) return Infinity;
+        const ovr = overrides[rowKey(nowRow)] || {};
+        const live = Object.assign({}, nowRow, ovr);
+        const labHrs = parseFloat(live.run_hrs) || 0;
+        const startQty = parseFloat(live.start_qty) || 1;
+        const compQty = parseFloat(live.comp_qty) || 0;
+        return labHrs > 0 ? (Math.max(0, startQty - compQty) / startQty) * labHrs : Infinity;
+      };
+      return getRemain(a) - getRemain(b);
+    });
     const makePills = function(row, ovr) {
       if (!row) return '<span style="color:#94a3b8">--</span>';
       const ready = Object.assign({}, row.readiness || {}, (ovr || {}).readiness || {});
@@ -2138,9 +2156,9 @@ function BuildTracker() {
               <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
                 <span>{lines.length} {lines.length === 1 ? "line" : "lines"} - Bars by run hours - {selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader)}</span>
                 {fbStatus === "loading" && <span className="text-amber-600 font-medium">- Connecting...</span>}
-                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">- ?? Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+                {fbStatus === "live" && lastSync && <span className="text-emerald-600 font-medium">- 🟢 Live {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
                 {fbStatus === "error" && <span className="text-rose-600 font-medium">- Offline</span>}
-                {buildPlanRows && <span className="text-blue-600 font-medium">- ?? Custom build plan</span>}
+                {buildPlanRows && <span className="text-blue-600 font-medium">- 📌 Custom build plan</span>}
                 {!buildPlanRows && <span className="text-slate-400 font-medium">- using baked-in build plan</span>}
               </div>
             </div>
@@ -2173,7 +2191,7 @@ function BuildTracker() {
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
                   title="Upload new Build Plan Excel (Database Query sheet)"
                 >
-                  ?? Build Plan
+                  📂 Build Plan
                 </button>
                 {lastBuildPlanUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastBuildPlanUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
               </div>
@@ -2183,7 +2201,7 @@ function BuildTracker() {
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-slate-700 text-[11px] font-semibold"
                   title="Upload Labour Tickets -- updates comp_qty on all matched WOs"
                 >
-                  ?? Labour Tickets
+                  🎫 Labour Tickets
                 </button>
                 {lastLabourUpdate && <span className="text-[9px] text-slate-400 pl-1">Updated {lastLabourUpdate.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
               </div>
@@ -2201,7 +2219,7 @@ function BuildTracker() {
               title="Presentation / TV Mode"
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-stone-300 hover:border-slate-900 hover:bg-slate-900 hover:text-white bg-white text-slate-700 text-[11px] font-semibold transition-colors"
             >
-              ?? TV Mode
+              📺 TV Mode
             </button>
 
             <button
@@ -2319,8 +2337,8 @@ function BuildTracker() {
           <FileCheck2 className="w-3 h-3" /> Shift Report
         </button>
         <button onClick={() => setShowLogModal("plantwide")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-violet-700 hover:bg-violet-800 font-semibold text-white">Plantwide</button>
-        <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">?? Safety</button>
-        <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">?? NC</button>
+        <button onClick={() => setShowLogModal("safety")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 font-semibold text-white">🔴 Safety</button>
+        <button onClick={() => setShowLogModal("nc")} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-orange-600 hover:bg-orange-700 font-semibold text-white">🟠 NC</button>
         {overrideCount > 0 && (
           <>
             <button onClick={exportOverrides} className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600"><Download className="w-3 h-3" /> Export CSV</button>
@@ -2804,7 +2822,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
         <div><h2>${meta.label} Needed in Next 36h - ${buLabel}</h2>
         <p>${entries.length} WOs across ${byResource.length} lines · Generated ${new Date().toLocaleString()}</p></div>
-        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
+        <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
       </div>
       <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase">
         <th style="padding:5px 8px;text-align:left">Resource</th>
@@ -2900,7 +2918,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
           <span className="text-[10px] text-slate-500 italic flex-1">Click a WO to open its detail panel</span>
           <button onClick={onClose} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Close</button>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">
-            ?? Print
+            🖨 Print
           </button>
         </div>
       </div>
@@ -3128,7 +3146,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
               </head><body>
                 <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
                   <div><h2>Next WOs Summary (${sorted.length})</h2><p>Build Plan Tracker · Printed ${now}${lastLabourUpdate ? ' · Times from labour upload at ' + lastLabourUpdate.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ''}</p></div>
-                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">?? Print</button>
+                  <button onclick="window.print()" style="padding:6px 14px;background:#0f172a;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">🖨 Print</button>
                 </div>
                 <table><thead><tr style="background:#0f172a;color:white;font-size:10px;text-transform:uppercase;letter-spacing:0.05em">
                   <th style="padding:6px 8px;text-align:left">Resource</th>
@@ -3142,7 +3160,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
           >
-            ?? Print
+            🖨 Print
           </button>
         </div>
       </div>
@@ -3390,8 +3408,8 @@ function InitialsModal({ current, onSave, onCancel }) {
 }
 
 const GOTO_APPS = [
-  { label: "?? Production Report", href: "https://goshotrifonov.github.io/report/index.html" },
-  { label: "?? VER Build Plan",     href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
+  { label: "🔗 Production Report", href: "https://goshotrifonov.github.io/report/index.html" },
+  { label: "🔗 VER Build Plan",     href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
   { label: "Daily Manpower",        href: "https://goshotrifonov.github.io/report/DailyManpower.html" },
   { label: "Shift Assignment",      href: "BetaApp.html" },
   { label: "? Shift Readiness",    href: "ShiftReadiness.html" },
@@ -4400,7 +4418,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 {entry.downtimeReason && (
                   <div className="mt-1 flex items-center gap-1">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">?? Down: {entry.downtimeReason}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 border border-rose-200">⚠️ Down: {entry.downtimeReason}</span>
                     {entry.downtimeDuration > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-800">{entry.downtimeDuration}h</span>}
                   </div>
                 )}
@@ -4409,7 +4427,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 )}
                 <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
                   {isLabour
-                    ? <span className="text-slate-400">?? Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    ? <span className="text-slate-400">🎫 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     : entry.by
                       ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
                       : null
