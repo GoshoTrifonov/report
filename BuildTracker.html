@@ -2091,7 +2091,7 @@ function BuildTracker() {
         const col = rd.ok ? "#fff" : "#f87171";
         const lbl = k === "tool" ? "Tool" : k === "labels" ? "Labels" : "Kit";
         const badge = rd.na ? " N/A" : rd.auto ? " AUTO" : "";
-        const extra = (k === "tool" && toolId && rd.ok) ? (" - " + toolId) : "";
+        const extra = (k === "tool" && toolId) ? (" - " + toolId) : "";
         return '<span style="background:' + bg + ';border:' + br + ';color:' + col + ';padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px">' + lbl + badge + extra + '</span>';
       }).join("");
     };
