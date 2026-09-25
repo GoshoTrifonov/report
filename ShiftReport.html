@@ -520,7 +520,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
           {/* Lines down */}
           {filterLines(selected.linesDown, docBU(selected)).length>0 && (
             <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden mb-4">
-              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">? Lines down ({filterLines(selected.linesDown, docBU(selected)).length})</div>
+              <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">🔴 Lines down ({filterLines(selected.linesDown, docBU(selected)).length})</div>
               {filterLines(selected.linesDown, docBU(selected)).map((d,i)=>(
                 <div key={i} className="px-3 py-2 text-sm border-t border-rose-200 first:border-t-0">
                   <div className="flex items-baseline justify-between">
@@ -568,7 +568,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
                       {w.reason && <div className="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{w.reason}</div>}
                       {w.downtimeReason && (
                         <div className="mt-1 flex items-center gap-1">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">? {w.downtimeReason}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">💬 {w.downtimeReason}</span>
                           {w.downtimeDuration>0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">{w.downtimeDuration}h</span>}
                         </div>
                       )}
@@ -711,7 +711,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
                   {r.resourceCount>0 && <span className="text-[10px] text-slate-500">{r.resourceCount} lines</span>}
                   {r.totalHrs>0  && <span className="text-[10px] text-slate-500">{r.totalHrs.toFixed(1)}h worked</span>}
                   {r.totalLost!==0 && <span className="text-[10px] text-slate-500 font-semibold">{r.totalLost.toFixed(1)}h {r.totalLost<0?"lost":"earned"}</span>}
-                  {filterLines(r.linesDown, docBU(r)).length>0 && <span className="text-[10px] font-semibold text-rose-600">? {filterLines(r.linesDown, docBU(r)).length} down</span>}
+                  {filterLines(r.linesDown, docBU(r)).length>0 && <span className="text-[10px] font-semibold text-rose-600">🔴 {filterLines(r.linesDown, docBU(r)).length} down</span>}
                 </div>
               </div>
             );
@@ -929,7 +929,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <span className="text-[10px] text-orange-400">incident{ncCount!==1?"s":""}</span>
                         </span>
                       )}
-                      <span className="ml-auto text-[11px] text-slate-400 font-semibold">{logsOpen?"? hide":"? details"}</span>
+                      <span className="ml-auto text-[11px] text-slate-400 font-semibold">{logsOpen?"▲ hide":"▼ details"}</span>
                     </button>
                     {logsOpen && (
                       <div className="mt-2 space-y-2">
@@ -991,7 +991,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <th key={col.key} onClick={()=>{ if(sortCol===col.key){setSortDir(d=>d==="asc"?"desc":"asc");}else{setSortCol(col.key);setSortDir(col.key==="resource"?"asc":"asc");} }}
                             className={"px-3 py-2 text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none hover:bg-stone-200 transition-colors "+(col.align==="right"?"text-right":"text-left")}
                             style={{color:sortCol===col.key?"#1e3a5f":"#64748b"}}>
-                            {col.label} {sortCol===col.key ? (sortDir==="asc"?"?":"?") : <span className="text-slate-300">?</span>}
+                            {col.label} {sortCol===col.key ? (sortDir==="asc"?"▲":"▼") : <span className="text-slate-300">⇅</span>}
                           </th>
                         ))}
                       </tr>
@@ -1030,7 +1030,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                   </table>
                 </div>
                 {resources.filter(r=>r.eff!=null&&r.eff<TARGET).length===0 && (
-                  <div className="text-center text-xs text-emerald-600 font-semibold mt-2">? All resources at or above target</div>
+                  <div className="text-center text-xs text-emerald-600 font-semibold mt-2"✅ All resources at or above target</div>
                 )}
               </div>
 
@@ -1246,7 +1246,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
         <button onClick={copyPrompt} disabled={!data}
           className="px-4 py-1.5 rounded text-[11px] font-bold disabled:opacity-50 flex items-center gap-1.5"
           style={{backgroundColor: copied ? "#16a34a" : "#f0f9ff", color: copied ? "white" : "#1e3a5f"}}>
-          {copied ? "? Copied!" : "? Copy prompt ? paste into Claude"}
+          {copied ? "✓ Copied!" : "◆ Copy prompt → paste into Claude"}
         </button>
       </div>
       <div className="px-4 py-5 bg-blue-50 text-center">
@@ -1353,7 +1353,7 @@ function ShiftReportApp() {
                 value={initials} onChange={e=>setInitials(e.target.value.toUpperCase())}
                 onKeyDown={e=>{ if(e.key==="Enter") saveInitials(initials); if(e.key==="Escape") setShowInitials(false); }}
                 maxLength={4} placeholder="ABC"/>
-              <button onClick={()=>saveInitials(initials)} className="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold">?</button>
+              <button onClick={()=>saveInitials(initials)} className="px-2 py-1 text-xs bg-blue-500 text-white rounded font-semibold">✓</button>
             </div>
           ) : (
             <button onClick={()=>setShowInitials(true)}
@@ -1401,8 +1401,8 @@ function ShiftReportApp() {
         {loading && (
           <div className="flex items-center justify-center h-full text-slate-400">
             <div className="text-center">
-              <div className="text-2xl mb-2">?</div>
-              <div className="text-sm">Loading shift reports�</div>
+              <div className="text-2xl mb-2">📊</div>
+              <div className="text-sm">Loading shift reports…</div>
             </div>
           </div>
         )}
