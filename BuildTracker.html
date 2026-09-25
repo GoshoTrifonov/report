@@ -1753,13 +1753,13 @@ function BuildTracker() {
         <button onClick={() => setPresentationMode(false)}
           style={{ position: "fixed", top: 8, right: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
           onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
-        >? Exit (Esc)</button>
+        >✕ Exit (Esc)</button>
 
         {/* Config button */}
         <button onClick={() => setShowTvConfig(v => !v)}
           style={{ position: "fixed", top: 8, left: 8, zIndex: 50, opacity: 0.1, padding: "2px 8px", background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
           onMouseEnter={e => e.target.style.opacity = 0.8} onMouseLeave={e => e.target.style.opacity = 0.1}
-        >? Lines</button>
+        >☰ Lines</button>
 
         {/* Line exclusion config panel */}
         {showTvConfig && (
@@ -1932,7 +1932,7 @@ function BuildTracker() {
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{lines.length} lines</span>
-            <span>? {stats.wip} WIP</span>
+            <span>▶ {stats.wip} WIP</span>
             {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>⚠️ {stats.nextNotReady} not ready</span>}
             {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>🟢 {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
           </div>
@@ -3107,7 +3107,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 </tr>`;
               }).join("");
               const zeroSection_html = (nowZeroQtyList || []).length > 0
-                ? `<tr><td colspan="5" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">? NOW — Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
+                ? `<tr><td colspan="5" style="padding:6px 8px;background:#fef3c7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e">⚠️ NOW — Running but 0 qty produced (${nowZeroQtyList.length} line${nowZeroQtyList.length!==1?'s':''})</td></tr>${zeroRows_html}`
                 : "";
               const rows_html = sorted.map(r => {
                 const liveRow = getLiveRow(r);
@@ -3773,7 +3773,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <div className="space-y-4">
                   {reportData.downLines.length > 0 && (
                     <div className="border-2 border-rose-300 bg-rose-50 rounded-md overflow-hidden">
-                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">? Lines down this shift ({reportData.downLines.length})</div>
+                      <div className="bg-rose-600 text-white px-3 py-2 font-semibold text-sm">🔴 Lines down this shift ({reportData.downLines.length})</div>
                       <div className="divide-y divide-rose-200">
                         {reportData.downLines.map((d, i) => (
                           <div key={i} className="px-3 py-2 text-sm">
@@ -3815,7 +3815,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h {item.entry.lost > 0 ? "earned" : "lost"}</div>}
                               </div>
                             )}
-                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">? {item.entry.reason}</div>}
+                            {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">💬 {item.entry.reason}</div>}
                             {item.entry.notes && (
                               <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
                                 {item.entry.by && <span className="font-semibold text-slate-500 text-[10px] mr-1">{item.entry.by}:</span>}
@@ -4282,7 +4282,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
       {(isShort || isOver) && (
         <div className="mb-2.5 p-2.5 rounded-md bg-amber-50 border-2 border-amber-300">
           <label className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block mb-1.5">
-            {isOver ? "? Above target   pick a reason" : "? Below target   pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
+            {isOver ? "📈 Above target   pick a reason" : "📉 Below target   pick a reason"} <span className="text-amber-700">({enteredQty} vs ~{expectedShift} expected)</span>
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {REASONS.map(r => (
@@ -4420,7 +4420,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                   </div>
                 )}
                 {entry.reason && (
-                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">? {entry.reason}</div>
+                  <div className="mt-1.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">💬 {entry.reason}</div>
                 )}
                 {entry.downtimeReason && (
                   <div className="mt-1 flex items-center gap-1">
