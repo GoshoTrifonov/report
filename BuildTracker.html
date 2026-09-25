@@ -901,9 +901,9 @@ function BuildTracker() {
           const pruned = { ...overrides };
           staleKeys.forEach(k => delete pruned[k]);
           await saveOverrides(pruned);
-          setUploadStatus({ type: "build", msg: `? Build plan saved · ${rows.length} WOs · ${staleKeys.length} stale overrides pruned · reload to apply`, ok: true });
+          setUploadStatus({ type: "build", msg: `📂 Build plan saved · ${rows.length} WOs · ${staleKeys.length} stale overrides pruned · reload to apply`, ok: true });
         } else {
-          setUploadStatus({ type: "build", msg: `? Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
+          setUploadStatus({ type: "build", msg: `📂 Build plan saved · ${rows.length} WOs · reload to apply`, ok: true });
         }
       } catch(err) {
         setUploadStatus({ type: "build", msg: "Error: " + err.message, ok: false });
@@ -1225,7 +1225,7 @@ function BuildTracker() {
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
 
-        setUploadStatus({ type: "labour", msg: `? Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
+        setUploadStatus({ type: "labour", msg: `🎫 Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
         setUploadStatus({ type: "labour", msg: "Error: " + err.message, ok: false });
       }
@@ -2853,7 +2853,7 @@ function MaterialsNeededModal({ kind, entries, selectedLeader, onSelect, onClose
         <div style={{ overflowY: "auto", flex: 1 }}>
           {entries.length === 0 ? (
             <div className="text-center py-8 text-sm text-slate-500 italic px-5">
-              ? All {meta.label.toLowerCase()} are ready for WOs starting in the next 36 hours.
+              ✅ All {meta.label.toLowerCase()} are ready for WOs starting in the next 36 hours.
             </div>
           ) : (
             <div className="p-5">
@@ -3412,7 +3412,7 @@ const GOTO_APPS = [
   { label: "🔗 VER Build Plan",     href: "https://goshotrifonov.github.io/report/VERBuildPlan.html" },
   { label: "Daily Manpower",        href: "https://goshotrifonov.github.io/report/DailyManpower.html" },
   { label: "Shift Assignment",      href: "BetaApp.html" },
-  { label: "? Shift Readiness",    href: "ShiftReadiness.html" },
+  { label: "🔗 Shift Readiness",    href: "ShiftReadiness.html" },
 ];
 function GotoDropdown({ dark }) {
   const [open, setOpen] = React.useState(false);
@@ -3423,7 +3423,7 @@ function GotoDropdown({ dark }) {
   return (
     <div className="relative shrink-0" style={{ display: "inline-block" }}>
       <button onClick={() => setOpen(o => !o)} className={btnClass} style={dark ? btnStyle : {}}>
-        ?— Go to ?
+        🔗— Go to 🔗
       </button>
       {open && (
         <>
@@ -3875,7 +3875,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
             <div className="px-4 py-3 border-t border-stone-200 bg-stone-50 flex-shrink-0 print:hidden">
               {existingSavedAt && (
                 <div className="text-[11px] text-emerald-700 text-center bg-emerald-50 border border-emerald-200 rounded px-2 py-1 mb-2">
-                  ? Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  💾 Auto-saved from last upload · {new Date(existingSavedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </div>
               )}
               {!existingSavedAt && (
@@ -3886,7 +3886,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <button onClick={saveReport} disabled={saveState === "saving"}
                   style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
                   className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
-                  {saveState==="saving"?"Saving ":saveState==="saved"?"? Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
+                  {saveState==="saving"?"Saving ":saveState==="saved"?"✅ Saved!":saveState==="error"?"Error — retry":existingSavedAt?"Update Report":"Save Report"}
                 </button>
                 <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
