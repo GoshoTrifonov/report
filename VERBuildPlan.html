@@ -147,6 +147,18 @@ function App() {
   const [actuals, setActuals] = useState({}); // { "part_id": { "2026-08-24": qty, ... } }
   const [actualsLoading, setActualsLoading] = useState(true);
 
+  // Load build plan data from Firestore on mount
+  useEffect(() => {
+    const PLAN_REF = db.collection('production_data').doc('ver_build_plan');
+    PLAN_REF.get().then(snap => {
+      if (!snap.exists) { console.warn('[VERBuildPlan] ver_build_plan does not exist, using INITIAL_DATA'); return; }
+      const d = snap.data();
+      if (d.rows && d.rows.length > 0) { setData(d.rows); }
+      if (d.dataDate) { setDataDate(d.dataDate); }
+      console.log('[VERBuildPlan] Build plan loaded from Firestore:', (d.rows||[]).length, 'rows');
+    }).catch(err => { console.error('[VERBuildPlan] Error loading build plan:', err); });
+  }, []);
+
   // Load actuals from Firestore on mount
   useEffect(() => {
     const DOC_REF = db.collection('production_data').doc('ver_actuals');
@@ -218,8 +230,11 @@ function App() {
     try {
       const parsed = await parseXlsm(file);
       if (parsed.length === 0) throw new Error('No Build Plan rows found.');
+      const newDate = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      // Save to Firestore so it persists across reloads
+      await db.collection('production_data').doc('ver_build_plan').set({ rows: parsed, dataDate: newDate, updatedAt: new Date().toISOString() });
       setData(parsed);
-      setDataDate(new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
+      setDataDate(newDate);
       setSelectedWeek(''); setSelectedResources(new Set());
     } catch(err) { setUploadError(err.message || 'Failed to parse file.'); }
     finally { setUploading(false); }
@@ -247,12 +262,12 @@ function App() {
         </div>
         <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#ffffff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
           onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
-          {uploading ? 'Parsing�' : '? Update File'}
+          {uploading ? 'Parsing⏳' : 📂 Update File}
           <input type="file" accept=".xlsm,.xlsx" style={{display:'none'}} onChange={onFileInput}/>
         </label>
       </div>
 
-      {uploadError && <div style={{background:'#fee2e2',borderBottom:'1px solid #fca5a5',color:'#991b1b',padding:'8px 20px',fontSize:13}}>? {uploadError}</div>}
+      {uploadError && <div style={{background:'#fee2e2',borderBottom:'1px solid #fca5a5',color:'#991b1b',padding:'8px 20px',fontSize:13}}>⚠️ {uploadError}</div>}
 
       {/* Resource filter bar */}
       <div style={{background:'#f1f5f9',borderBottom:'1px solid #e2e8f0',padding:'8px 20px',overflowX:'auto'}}>
@@ -366,10 +381,10 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
       <div style={{color:'#64748b',fontSize:13,marginBottom:14,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
         <span><span style={{color:'#0f172a',fontWeight:600}}>{rows.length}</span> parts � <span style={{color:'#0f172a',fontWeight:600}}>{total.toLocaleString()}</span> planned units</span>
         {actualsLoading
-          ? <span style={{color:'#94a3b8',fontSize:12}}>? Loading actuals�</span>
-          : <span style={{color:'#64748b',fontSize:12}}>? Actuals from labour tickets</span>}
+          ? <span style={{color:'#94a3b8',fontSize:12}}>⏳ Loading actuals…</span>
+          : <span style={{color:'#64748b',fontSize:12}}>📋 Actuals from labour tickets</span>}
         <button onClick={toggleAll} style={{marginLeft:'auto',fontSize:12,color:'#1e40af',background:'transparent',border:'1px solid #c4d4e8',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontWeight:500}}>
-          {allAreCollapsed ? '? Expand All' : '? Collapse All'}
+          {allAreCollapsed ? '⊕ Expand All' : '⊖ Collapse All'}
         </button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:16}}>
@@ -448,7 +463,7 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
                         </div>
                         <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
                           <span style={{fontSize:9,color:'#94a3b8'}}>{pct}% complete</span>
-                          {actual >= planned && <span style={{fontSize:9,color:'#16a34a',fontWeight:700}}>? Done</span>}
+                          {actual >= planned && <span style={{fontSize:9,color:'#16a34a',fontWeight:700}}>✓ Done</span>}
                           {actual > 0 && planned - actual > 0 && <span style={{fontSize:9,color:'#94a3b8'}}>{(planned-actual).toLocaleString()} left</span>}
                         </div>
                       </>
@@ -495,7 +510,7 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
         </div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={toggleAll} style={{fontSize:12,color:'#1e40af',background:'transparent',border:'1px solid #c4d4e8',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontWeight:500}}>
-            {allCollapsed ? '? Expand All' : '? Collapse All'}
+            {allCollapsed ? '⊕ Expand All' : '⊖ Collapse All'}
           </button>
           <button onClick={()=>setShowAll(v=>!v)} style={{fontSize:12,color:'#2563eb',background:'transparent',border:'1px solid #cbd5e1',borderRadius:7,padding:'5px 12px',cursor:'pointer'}}>
             {showAll ? 'Near-term only' : `All ${allWeeks.length} weeks`}
