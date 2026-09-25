@@ -262,7 +262,7 @@ function App() {
         </div>
         <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',background:'#2563eb',color:'#ffffff',fontSize:13,fontWeight:500,padding:'7px 14px',borderRadius:7}}
           onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
-          {uploading ? 'Parsing⏳' : 📂 Update File}
+          {uploading ? 'Parsing⏳' : '⬆ Update File'}
           <input type="file" accept=".xlsm,.xlsx" style={{display:'none'}} onChange={onFileInput}/>
         </label>
       </div>
