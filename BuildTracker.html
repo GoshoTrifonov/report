@@ -1793,7 +1793,7 @@ function BuildTracker() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>{stats.wip} WIP</span>
-            {stats.nextNotReady > 0 && <span style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>? {stats.nextNotReady} Not Ready</span>}
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171", fontWeight: 700, fontSize: 15 }}>⚠️ {stats.nextNotReady} Not Ready</span>}
             <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "monospace" }}>{now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}</span>
           </div>
         </div>
@@ -1838,7 +1838,7 @@ function BuildTracker() {
                   <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                     {isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>DOWN</span>}
                     {hasWip && !isDown && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#d97706", color: "#1c1917" }}>RUN</span>}
-                    {hasNotReady && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>?</span>}
+                    {hasNotReady && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#dc2626", color: "white" }}>⚠️</span>}
                   </div>
                 </div>
 
@@ -1933,7 +1933,7 @@ function BuildTracker() {
           <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{lines.length} lines</span>
             <span>? {stats.wip} WIP</span>
-            {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>? {stats.nextNotReady} not ready</span>}
+            {stats.nextNotReady > 0 && <span style={{ color: "#f87171" }}>⚠️ {stats.nextNotReady} not ready</span>}
             {fbStatus === "live" && lastSync && <span style={{ color: "#86efac" }}>🟢 {lastSync.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
           </div>
         </div>
@@ -2010,7 +2010,7 @@ function BuildTracker() {
           <button onClick={() => setShowNextSummary(v => !v)}
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⏭ Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
-            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>? {stats.nextNotReady}</button>}
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ {stats.nextNotReady}</button>}
           <button onClick={() => setShowShiftReport(true)}
             style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
           <GotoDropdown dark />
@@ -2986,7 +2986,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[11px] font-semibold text-amber-700">{r.resource}</span>
-                        {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">? Ready</span>}
+                        {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       </div>
                       <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                       <div className="text-xs text-slate-500 truncate">{r.descr || r.part}</div>
@@ -3038,9 +3038,9 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{liveRow.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">? Ready</span>}
+                      {allReady && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300">✓ Ready</span>}
                       {checks.find(c => c.key === "tool")?.isChangeover && !checks.find(c => c.key === "tool")?.auto && !checks.find(c => c.key === "tool")?.na && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-white">SetUp</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>? ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-400"}`}>⏱ ~{nowHrs.toFixed(0)}h left ({(() => { const base = lastLabourUpdate ? lastLabourUpdate.getTime() : Date.now(); const d = new Date(base + nowHrs * 3600000); return d.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); })()})</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{liveRow.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{liveRow.descr || liveRow.part}</div>
@@ -3136,7 +3136,7 @@ function NextSummaryModal({ rows, nowZeroQtyList, allRows, lastLabourUpdate, onS
                 const isToolChangeover = !ready.tool?.auto && !ready.tool?.na && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) && r._nowToolId !== undefined && (WO_TOOL_MAP[liveRow.wo] || liveRow.tool_id) !== r._nowToolId;
                 const coBadge = isToolChangeover ? '<span style="background:#f59e0b;color:white;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px;-webkit-print-color-adjust:exact">SetUp</span>' : '';
                 const timeHtml = timeStr ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">${timeStr}</span>` : '';
-                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">? Ready</span>' : '';
+                const readyBadge = allReady ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">✓ Ready</span>' : '';
                 const timeLeft = nowHrs > 0 ? `<span style="color:#94a3b8;font-size:10px;margin-left:8px">~${nowHrs.toFixed(0)}h left</span>` : '';
                 return `<tr style="border-bottom:1px solid #e2e8f0;${isUrgent ? "background:#fff1f2;" : ""}">
                   <td style="padding:6px 8px;font-size:11px;color:#64748b;white-space:nowrap">${liveRow.resource}${urgentBadge}${coBadge}${readyBadge}${timeHtml}</td>
@@ -3217,7 +3217,7 @@ function NextNotReadyModal({ rows, onSelect, onClose }) {
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-slate-500">{r.resource}</span>
                       {isUrgent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">URGENT</span>}
-                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>? ~{nowHrs.toFixed(0)}h left</span>}
+                      {nowHrs > 0 && <span className={`text-[10px] font-semibold ${isUrgent ? "text-rose-700" : "text-slate-500"}`}>⏱ ~{nowHrs.toFixed(0)}h left</span>}
                     </div>
                     <div className="font-mono text-sm font-bold text-slate-900">{r.wo}</div>
                     <div className="text-xs text-slate-600 truncate">{r.descr || r.part}</div>
