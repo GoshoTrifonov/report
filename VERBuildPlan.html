@@ -231,9 +231,31 @@ function App() {
       const parsed = await parseXlsm(file);
       if (parsed.length === 0) throw new Error('No Build Plan rows found.');
       const newDate = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      // Save to Firestore so it persists across reloads
-      await db.collection('production_data').doc('ver_build_plan').set({ rows: parsed, dataDate: newDate, updatedAt: new Date().toISOString() });
-      setData(parsed);
+
+      // Merge: keep existing weeks from Firebase, overlay new weeks from uploaded file
+      const PLAN_REF = db.collection('production_data').doc('ver_build_plan');
+      const snap = await PLAN_REF.get();
+      const existingRows = (snap.exists && snap.data().rows) ? snap.data().rows : [];
+
+      // Build lookup of existing rows by resource+part_id
+      const existingMap = {};
+      existingRows.forEach(r => { existingMap[r.resource + '||' + r.part_id] = r; });
+
+      // Merge parsed rows into existing
+      const mergedMap = { ...existingMap };
+      parsed.forEach(newRow => {
+        const key = newRow.resource + '||' + newRow.part_id;
+        if (mergedMap[key]) {
+          // Keep existing weeks, overlay new weeks on top
+          mergedMap[key] = { ...mergedMap[key], weeks: { ...mergedMap[key].weeks, ...newRow.weeks }, description: newRow.description };
+        } else {
+          mergedMap[key] = newRow;
+        }
+      });
+      const merged = Object.values(mergedMap);
+
+      await PLAN_REF.set({ rows: merged, dataDate: newDate, updatedAt: new Date().toISOString() });
+      setData(merged);
       setDataDate(newDate);
       setSelectedWeek(''); setSelectedResources(new Set());
     } catch(err) { setUploadError(err.message || 'Failed to parse file.'); }
