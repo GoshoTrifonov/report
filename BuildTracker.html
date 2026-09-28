@@ -881,6 +881,11 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
+    const nameCheck = file.name.toLowerCase();
+    if (!nameCheck.includes("week") || !nameCheck.includes("build plan")) {
+      setUploadStatus({ type: "build", msg: `⚠️ Wrong file: "${file.name}" — expected a file containing "Week" and "Build Plan" in the name. Please check and try again.`, ok: false });
+      e.target.value = ""; return;
+    }
     setUploadStatus({ type: "build", msg: "Parsing build plan...", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -921,6 +926,11 @@ function BuildTracker() {
     const file = e.target.files[0];
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
+    const nameCheck = file.name.toLowerCase();
+    if (!nameCheck.includes("build tracker labour tickets")) {
+      setUploadStatus({ type: "labour", msg: `⚠️ Wrong file: "${file.name}" — expected "build tracker labour tickets". Please check and try again.`, ok: false });
+      e.target.value = ""; return;
+    }
     setUploadStatus({ type: "labour", msg: "Parsing labour tickets...", ok: null });
     const reader = new FileReader();
     reader.onload = async (evt) => {
