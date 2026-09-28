@@ -232,7 +232,12 @@ function App() {
       if (parsed.length === 0) throw new Error('No Build Plan rows found.');
       const newDate = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
-      // Merge: keep existing weeks from Firebase, overlay new weeks from uploaded file
+      // Figure out the start of the current week (Sunday)
+      const today = new Date(); today.setHours(0,0,0,0);
+      const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay());
+      const startOfWeekStr = startOfWeek.toISOString().slice(0,10);
+
+      // Load existing rows from Firestore
       const PLAN_REF = db.collection('production_data').doc('ver_build_plan');
       const snap = await PLAN_REF.get();
       const existingRows = (snap.exists && snap.data().rows) ? snap.data().rows : [];
@@ -241,18 +246,41 @@ function App() {
       const existingMap = {};
       existingRows.forEach(r => { existingMap[r.resource + '||' + r.part_id] = r; });
 
-      // Merge parsed rows into existing
-      const mergedMap = { ...existingMap };
-      parsed.forEach(newRow => {
-        const key = newRow.resource + '||' + newRow.part_id;
-        if (mergedMap[key]) {
-          // Keep existing weeks, overlay new weeks on top
-          mergedMap[key] = { ...mergedMap[key], weeks: { ...mergedMap[key].weeks, ...newRow.weeks }, description: newRow.description };
-        } else {
-          mergedMap[key] = newRow;
+      // Build lookup of new rows by resource+part_id
+      const newMap = {};
+      parsed.forEach(r => { newMap[r.resource + '||' + r.part_id] = r; });
+
+      // Collect all keys from both existing and new
+      const allKeys = new Set([...Object.keys(existingMap), ...Object.keys(newMap)]);
+
+      const merged = [];
+      allKeys.forEach(key => {
+        const existing = existingMap[key];
+        const newRow = newMap[key];
+
+        // Start with existing past weeks (weeks before start of current week)
+        const pastWeeks = {};
+        if (existing) {
+          Object.entries(existing.weeks || {}).forEach(([week, qty]) => {
+            if (week < startOfWeekStr) pastWeeks[week] = qty;
+          });
+        }
+
+        // Current + future weeks come ONLY from the new file (if part exists there)
+        const futureWeeks = {};
+        if (newRow) {
+          Object.entries(newRow.weeks || {}).forEach(([week, qty]) => {
+            if (week >= startOfWeekStr) futureWeeks[week] = qty;
+          });
+        }
+
+        const allWeeks = { ...pastWeeks, ...futureWeeks };
+        // Only include the part if it has any weeks at all
+        if (Object.keys(allWeeks).length > 0) {
+          const base = newRow || existing;
+          merged.push({ resource: base.resource, part_id: base.part_id, description: base.description, weeks: allWeeks });
         }
       });
-      const merged = Object.values(mergedMap);
 
       await PLAN_REF.set({ rows: merged, dataDate: newDate, updatedAt: new Date().toISOString() });
       setData(merged);
