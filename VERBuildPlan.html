@@ -447,7 +447,10 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
         const resActual = parts.reduce((s,r)=>s+((actuals[r.part_id]||{})[week]||0),0);
         const resPct = resPlanned > 0 ? Math.min(100, Math.round(resActual/resPlanned*100)) : 0;
         const color = '#1e40af';
-        const barColor = resPct>=100?'#16a34a': resPct>=50?'#f59e0b':color;
+        // Day-of-week threshold: Mon=0,Tue=1,Wed=2,Thu=3,Fri=4 (relative to week start Sun)
+        const todayDow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+        const resThreshold = todayDow === 1 ? 0 : todayDow === 2 ? 26 : todayDow === 3 ? 46 : todayDow === 4 ? 66 : todayDow === 5 ? 86 : 96;
+        const barColor = resPct >= resThreshold && (resPct > 0 || resThreshold === 0) ? '#16a34a' : resPct > 0 ? '#f59e0b' : color;
         const collapsed = collapsedCards.has(res);
         return (
           <div key={res} style={{background:'#d8e4f0',border:'1px solid #c4d4e8',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
@@ -459,7 +462,7 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
                   {!actualsLoading && resPlanned > 0 && (
                     <span style={{fontSize:14,fontWeight:800,color:barColor}}>{resPct}%</span>
                   )}
-                  <span style={{fontSize:14,color:'#94a3b8',lineHeight:1}}>{collapsed ? '?' : '?'}</span>
+                  <span style={{fontSize:12,color:'#94a3b8',lineHeight:1}}>{collapsed ? '▼' : '▲'}</span>
                 </div>
               </div>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
@@ -488,7 +491,7 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
                 const planned = r.weeks[week] || 0;
                 const actual = ((actuals[r.part_id]||{})[week]||0);
                 const pct = planned > 0 ? Math.min(100, Math.round(actual/planned*100)) : 0;
-                const pBarColor = pct>=100?'#16a34a': pct>=50?'#f59e0b':'#1e40af';
+                const pBarColor = pct>=96?'#16a34a': pct>=76?'#1e40af':'#f59e0b';
                 return (
                   <div key={r.part_id} style={{background:'#eef3f8',borderRadius:8,padding:'10px 12px'}}>
                     <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:!actualsLoading&&planned>0?7:0}}>
