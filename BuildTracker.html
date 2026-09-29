@@ -2063,8 +2063,11 @@ function BuildTracker() {
     const now = new Date();
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const hr = now.getHours();
-    const shiftNow = hr < 7 ? "S3" : hr < 15 ? "S1" : hr < 23 ? "S2" : "S3";
-    const shiftNext = shiftNow === "S1" ? "S2" : shiftNow === "S2" ? "S3" : "S1";
+    const SHIFT_LABELS = { S1: "MID (11pm-7:30am)", S2: "DAY (7am-3:30pm)", S3: "AFT (3pm-11:30pm)" };
+    const shiftNowId = hr < 7 ? "S3" : hr < 15 ? "S1" : hr < 23 ? "S2" : "S3";
+    const shiftNextId = shiftNowId === "S1" ? "S2" : shiftNowId === "S2" ? "S3" : "S1";
+    const shiftNow = SHIFT_LABELS[shiftNowId];
+    const shiftNext = SHIFT_LABELS[shiftNextId];
     const dateStr = now.toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const seen = new Set();
     const resourceList = [];
