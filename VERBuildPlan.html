@@ -236,6 +236,9 @@ function App() {
       const today = new Date(); today.setHours(0,0,0,0);
       const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay());
       const startOfWeekStr = startOfWeek.toISOString().slice(0,10);
+      // Only keep 3 weeks of history (3 weeks back from start of current week)
+      const historyLimit = new Date(startOfWeek); historyLimit.setDate(startOfWeek.getDate() - 21);
+      const historyLimitStr = historyLimit.toISOString().slice(0,10);
 
       // Load existing rows from Firestore
       const PLAN_REF = db.collection('production_data').doc('ver_build_plan');
@@ -258,11 +261,11 @@ function App() {
         const existing = existingMap[key];
         const newRow = newMap[key];
 
-        // Start with existing past weeks (weeks before start of current week)
+        // Keep past weeks within 3-week history window only
         const pastWeeks = {};
         if (existing) {
           Object.entries(existing.weeks || {}).forEach(([week, qty]) => {
-            if (week < startOfWeekStr) pastWeeks[week] = qty;
+            if (week >= historyLimitStr && week < startOfWeekStr) pastWeeks[week] = qty;
           });
         }
 
@@ -347,7 +350,7 @@ function App() {
           {selectedResources.size > 0 && (
             <button onClick={() => setSelectedResources(new Set())}
               style={{padding:'4px 10px',borderRadius:20,fontSize:11,cursor:'pointer',border:'1px solid #fca5a5',background:'#fee2e2',color:'#dc2626',flexShrink:0,marginLeft:4}}>
-              ? Clear
+              ✕ Clear
             </button>
           )}
         </div>
@@ -654,7 +657,7 @@ function AvgView({ rows, weeks, allResources }) {
     <div>
       <div style={{color:'#94a3b8',fontSize:13,marginBottom:16}}>
         Average weekly build plan per resource � next <span style={{color:'#0f172a',fontWeight:600}}>{weeks.length}</span> weeks
-        ({weeks.length > 0 ? fmtWeek(weeks[0]) + ' � ' + fmtWeek(weeks[weeks.length-1]) : '�'})
+        ({weeks.length > 0 ? fmtWeek(weeks[0]) + ' � ' + fmtWeek(weeks[weeks.length-1]) : '–'})
       </div>
       <div style={{display:'grid',gap:10}}>
         {resourceStats.sort((a,b) => b.avg - a.avg).map(({ res, parts, weekTotals, totalUnits, avg, avgActive, activeWeeks, maxWeek, maxVal }) => {
@@ -671,11 +674,11 @@ function AvgView({ rows, weeks, allResources }) {
                 </div>
                 <div style={{display:'flex',gap:20,flexShrink:0}}>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:24,fontWeight:800,color}}>{avg > 0 ? fmtQty(avg) : '�'}</div>
+                    <div style={{fontSize:24,fontWeight:800,color}}>{avg > 0 ? fmtQty(avg) : '–'}</div>
                     <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg / week (all 8)</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:18,fontWeight:600,color:'#1e293b'}}>{avgActive > 0 ? fmtQty(avgActive) : '�'}</div>
+                    <div style={{fontSize:18,fontWeight:600,color:'#1e293b'}}>{avgActive > 0 ? fmtQty(avgActive) : '–'}</div>
                     <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>avg on active weeks</div>
                   </div>
                   <div style={{textAlign:'right'}}>
@@ -700,7 +703,7 @@ function AvgView({ rows, weeks, allResources }) {
                       borderRadius:7,padding:'6px 8px',textAlign:'center'}}>
                       <div style={{fontSize:10,color:'#94a3b8',marginBottom:3}}>{fmtWeek(w)}</div>
                       <div style={{fontSize:13,fontWeight:val>0?700:400,color: isMax ? color : val>0 ? '#1e293b' : '#cbd5e1'}}>
-                        {val > 0 ? fmtQty(val) : '�'}
+                        {val > 0 ? fmtQty(val) : '–'}
                       </div>
                     </div>
                   );
@@ -710,7 +713,7 @@ function AvgView({ rows, weeks, allResources }) {
               {/* Active weeks note */}
               {activeWeeks < weeks.length && (
                 <div style={{marginTop:8,fontSize:11,color:'#94a3b8'}}>
-                  Active {activeWeeks}/{weeks.length} weeks � peak {maxVal > 0 ? fmtQty(maxVal) + ' on ' + fmtWeek(maxWeek) : '�'}
+                  Active {activeWeeks}/{weeks.length} weeks � peak {maxVal > 0 ? fmtQty(maxVal) + ' on ' + fmtWeek(maxWeek) : '–'}
                 </div>
               )}
             </div>
