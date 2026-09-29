@@ -2063,11 +2063,15 @@ function BuildTracker() {
     const now = new Date();
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const hr = now.getHours();
-    const SHIFT_LABELS = { S1: "MID (11pm-7:30am)", S2: "DAY (7am-3:30pm)", S3: "AFT (3pm-11:30pm)" };
-    const shiftNowId = hr < 7 ? "S3" : hr < 15 ? "S1" : hr < 23 ? "S2" : "S3";
-    const shiftNextId = shiftNowId === "S1" ? "S2" : shiftNowId === "S2" ? "S3" : "S1";
-    const shiftNow = SHIFT_LABELS[shiftNowId];
-    const shiftNext = SHIFT_LABELS[shiftNextId];
+    // Shift detection based on actual shift hours:
+    // MID: 11pm - 7:30am  (23:00 - 07:30)
+    // DAY: 7am  - 3:30pm  (07:00 - 15:30)
+    // AFT: 3pm  - 11:30pm (15:00 - 23:30)
+    const mins = hr * 60 + now.getMinutes();
+    const shiftNowId = (mins >= 7*60 && mins < 15*60+30) ? "DAY" : (mins >= 15*60 && mins < 23*60+30) ? "AFT" : "MID";
+    const shiftNextId = shiftNowId === "MID" ? "DAY" : shiftNowId === "DAY" ? "AFT" : "MID";
+    const shiftNow = shiftNowId;
+    const shiftNext = shiftNextId;
     const dateStr = now.toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const seen = new Set();
     const resourceList = [];
