@@ -597,7 +597,7 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
                     </td>
                     {resRows.map((total,i) => (
                       <td key={i} style={{padding:'7px 10px',textAlign:'center',borderBottom:'1px solid #cbd5e1',whiteSpace:'nowrap'}}>
-                        {total > 0 ? <span style={{color,fontWeight:700,fontSize:12}}>{fmtQty(total)}</span> : <span style={{color:'#cbd5e1'}}>�</span>}
+                        {total > 0 ? <span style={{color,fontWeight:700,fontSize:12}}>{fmtQty(total)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                       </td>
                     ))}
                   </tr>
@@ -611,7 +611,7 @@ function TableView({ rows, weeks, allWeeks, allResources }) {
                         const qty = r.weeks[w];
                         return (
                           <td key={w} style={{padding:'8px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                            {qty != null ? <span style={{color:'#1d4ed8',fontWeight:600}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>�</span>}
+                            {qty != null ? <span style={{color:'#1d4ed8',fontWeight:600}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                           </td>
                         );
                       })}
@@ -734,14 +734,18 @@ function CameraView({ rows, weeks, allWeeks }) {
   const displayWeeks = showAll ? allWeeks : weeks.slice(0, 7);
   const showAvg = !showAll;
 
+  const [expanded, setExpanded] = React.useState({});
+  const toggleExpand = (cam) => setExpanded(prev => ({ ...prev, [cam]: !prev[cam] }));
+
   const cameraData = useMemo(() => {
     const map = {};
-    CAMERA_ORDER.forEach(c => { map[c] = { weekTotals: {}, parts: new Set() }; });
+    CAMERA_ORDER.forEach(c => { map[c] = { weekTotals: {}, parts: new Set(), partRows: {} }; });
     rows.forEach(r => {
       const cam = CAMERA_MAP[r.part_id];
       if (!cam) return;
-      if (!map[cam]) map[cam] = { weekTotals: {}, parts: new Set() };
+      if (!map[cam]) map[cam] = { weekTotals: {}, parts: new Set(), partRows: {} };
       map[cam].parts.add(r.part_id);
+      map[cam].partRows[r.part_id] = { description: r.description, weeks: r.weeks };
       Object.entries(r.weeks).forEach(([w, qty]) => {
         map[cam].weekTotals[w] = (map[cam].weekTotals[w] || 0) + qty;
       });
@@ -750,6 +754,7 @@ function CameraView({ rows, weeks, allWeeks }) {
       camera: cam,
       weekTotals: map[cam] ? map[cam].weekTotals : {},
       partCount: map[cam] ? map[cam].parts.size : 0,
+      partRows: map[cam] ? map[cam].partRows : {},
     })).filter(d => d.partCount > 0);
   }, [rows]);
 
@@ -788,34 +793,66 @@ function CameraView({ rows, weeks, allWeeks }) {
             </tr>
           </thead>
           <tbody>
-            {cameraData.map(({ camera, weekTotals, partCount }) => {
+            {cameraData.map(({ camera, weekTotals, partCount, partRows }) => {
               const color = CAMERA_COLORS[camera] || '#64748b';
               const wa = weekAvg(weekTotals);
+              const isExpanded = !!expanded[camera];
               return (
-                <tr key={camera} style={{borderBottom:'1px solid #e2e8f0'}}>
-                  <td style={{position:'sticky',left:0,zIndex:5,background:'#ffffff',padding:'11px 16px',borderRight:'1px solid #e2e8f0'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <div style={{width:4,height:20,borderRadius:2,background:color,flexShrink:0}}/>
-                      <div>
-                        <div style={{color,fontWeight:700,fontSize:13}}>{camera}</div>
-                        <div style={{color:'#94a3b8',fontSize:11,marginTop:1}}>{partCount} part{partCount!==1?'s':''}</div>
+                <React.Fragment key={camera}>
+                  {/* Camera group header row */}
+                  <tr style={{borderBottom: isExpanded ? 'none' : '1px solid #e2e8f0', cursor:'pointer', background: isExpanded ? color+'08' : '#fff'}}
+                      onClick={() => toggleExpand(camera)}>
+                    <td style={{position:'sticky',left:0,zIndex:5,background: isExpanded ? color+'08' : '#ffffff',padding:'11px 16px',borderRight:'1px solid #e2e8f0'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{width:4,height:20,borderRadius:2,background:color,flexShrink:0}}/>
+                        <div style={{flex:1}}>
+                          <div style={{color,fontWeight:700,fontSize:13}}>{camera}</div>
+                          <div style={{color:'#94a3b8',fontSize:11,marginTop:1}}>{partCount} part{partCount!==1?'s':''}</div>
+                        </div>
+                        <span style={{color:'#94a3b8',fontSize:11,flexShrink:0}}>{isExpanded ? '▲' : '▼'}</span>
                       </div>
-                    </div>
-                  </td>
-                  {displayWeeks.map(w => {
-                    const qty = weekTotals[w] || 0;
-                    return (
-                      <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',background: qty > 0 ? color+'0d' : '#ffffff'}}>
-                        {qty > 0 ? <span style={{color,fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>�</span>}
+                    </td>
+                    {displayWeeks.map(w => {
+                      const qty = weekTotals[w] || 0;
+                      return (
+                        <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',background: qty > 0 ? color+'0d' : '#ffffff'}}>
+                          {qty > 0 ? <span style={{color,fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
+                        </td>
+                      );
+                    })}
+                    {showAvg && (
+                      <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
+                        {wa > 0 ? <span style={{color:'#1e40af',fontWeight:800}}>{fmtQty(wa)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                       </td>
+                    )}
+                  </tr>
+                  {/* Expanded part rows */}
+                  {isExpanded && Object.entries(partRows).map(([partId, part]) => {
+                    const partWa = weekAvg(part.weeks);
+                    return (
+                      <tr key={partId} style={{borderBottom:'1px solid #f1f5f9',background:color+'05'}}>
+                        <td style={{position:'sticky',left:0,zIndex:5,background:color+'05',padding:'7px 16px 7px 32px',borderRight:'1px solid #e2e8f0'}}>
+                          <div style={{fontSize:12,color:'#334155',fontWeight:500}}>{part.description || partId}</div>
+                          <div style={{fontSize:10,color:'#94a3b8',marginTop:1,fontFamily:'monospace'}}>{partId}</div>
+                        </td>
+                        {displayWeeks.map(w => {
+                          const qty = part.weeks[w] || 0;
+                          return (
+                            <td key={w} style={{padding:'7px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
+                              {qty > 0 ? <span style={{color:'#475569',fontWeight:600,fontSize:12}}>{fmtQty(qty)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
+                            </td>
+                          );
+                        })}
+                        {showAvg && (
+                          <td style={{padding:'7px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#f8faff'}}>
+                            {partWa > 0 ? <span style={{color:'#6b7280',fontWeight:600,fontSize:12}}>{fmtQty(partWa)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
+                          </td>
+                        )}
+                      </tr>
                     );
                   })}
-                  {showAvg && (
-                    <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
-                      {wa > 0 ? <span style={{color:'#1e40af',fontWeight:800}}>{fmtQty(wa)}</span> : <span style={{color:'#cbd5e1'}}>�</span>}
-                    </td>
-                  )}
-                </tr>
+                  {isExpanded && <tr style={{borderBottom:'1px solid #e2e8f0'}}><td colSpan={displayWeeks.length + 1 + (showAvg?1:0)} style={{padding:0}}></td></tr>}
+                </React.Fragment>
               );
             })}
             <tr style={{background:'#f8fafc',borderTop:'2px solid #e2e8f0'}}>
@@ -827,7 +864,7 @@ function CameraView({ rows, weeks, allWeeks }) {
                 const qty = grandTotals[w] || 0;
                 return (
                   <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                    {qty > 0 ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>�</span>}
+                    {qty > 0 ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                   </td>
                 );
               })}
@@ -844,7 +881,7 @@ function CameraView({ rows, weeks, allWeeks }) {
       </div>
       {rows.some(r => !CAMERA_MAP[r.part_id]) && (
         <div style={{marginTop:12,fontSize:12,color:'#94a3b8'}}>
-          ? Some parts in the current view have no camera type assigned and are excluded from this summary.
+          ⚠️ Some parts in the current view have no camera type assigned and are excluded from this summary.
         </div>
       )}
     </div>
