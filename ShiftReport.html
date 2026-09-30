@@ -114,7 +114,7 @@
 </script>
 </head>
 <body>
-<div id="root"><div style="padding:40px;text-align:center;color:#888;font-family:system-ui">Loading�</div></div>
+<div id="root"><div style="padding:40px;text-align:center;color:#888;font-family:system-ui">Loading…</div></div>
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo, useRef } = React;
@@ -266,7 +266,7 @@ function StatCard({ label, value, accent="slate", big=false }) {
 }
 
 function EffBadge({ eff, size="md" }) {
-  if (eff==null) return <span className="text-slate-400 text-xs">�</span>;
+  if (eff==null) return <span className="text-slate-400 text-xs">–</span>;
   const color = eff>=90?"text-emerald-700":eff>=76.5?"text-amber-700":"text-rose-700";
   const sz = size==="lg"?"text-2xl font-bold":size==="sm"?"text-[11px] font-semibold":"text-sm font-bold";
   return <span className={`tabular-nums ${color} ${sz}`}>{eff.toFixed(1)}%</span>;
@@ -417,7 +417,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
           </button>
           <span className="text-slate-300">|</span>
           <span className="text-sm font-semibold text-slate-700">{selected.shiftLabel||sMeta.label}</span>
-          <span className="text-slate-300">�</span>
+          <span className="text-slate-300">–</span>
           <span className="text-sm text-slate-600">{dateStr}</span>
           <span className="text-xs text-slate-400">{selected.shiftTime||sMeta.time}</span>
           <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
@@ -429,8 +429,8 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
         <div className="flex-1 overflow-auto p-4">
           {/* Print header */}
           <div className="hidden print:block mb-4 pb-3 border-b-2 border-slate-900">
-            <h1 className="text-xl font-bold">Shift Report � {docBU(selected)}</h1>
-            <p className="text-sm">{dateStr} � {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
+            <h1 className="text-xl font-bold">Shift Report ◆ {docBU(selected)}</h1>
+            <p className="text-sm">{dateStr} ◆ {selected.shiftLabel||sMeta.label} ({selected.shiftTime||sMeta.time})</p>
           </div>
 
           <div className="grid grid-cols-4 gap-2 mb-3">
@@ -694,7 +694,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
                       {docBU(r)}
                     </span>
                     <span className="text-sm font-semibold text-slate-800">{dateStr}</span>
-                    <span className="text-xs font-semibold" style={{color:shiftTextColor}}>{r.shiftLabel||sMeta.label} � {r.shiftTime||sMeta.time}</span>
+                    <span className="text-xs font-semibold" style={{color:shiftTextColor}}>{r.shiftLabel||sMeta.label} ◆ {r.shiftTime||sMeta.time}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.totalEff!=null && (
@@ -703,7 +703,7 @@ function HistoryTab({ allDocs, shiftLogsRef, buResourceMap={}, allLogsSnap=null 
                       </span>
                     )}
                     <span className="text-sm font-bold text-emerald-700 tabular-nums">{(r.totalUnits||0).toLocaleString()}</span>
-                    <span className="text-slate-300 text-xs">�</span>
+                    <span className="text-slate-300 text-xs">–</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -867,7 +867,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics�</div>}
+        {loading && <div className="text-center py-12 text-sm text-slate-400">Loading analytics…</div>}
         {!loading && !data && <div className="text-center py-12 text-sm text-slate-400 italic">No data</div>}
         {!loading && data && (() => {
           const { thisEff, prevEff, thisUnits, thisLost, thisHrs, byShift, resources, reasonCount, TARGET, safetyCount, ncCount, logEntries, totalDowntimeHrs, dailyEffSorted } = data;
@@ -951,7 +951,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                                   {log.wo && <span className="text-[10px] text-slate-500 font-mono">{log.wo}</span>}
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <div className="text-[10px] text-slate-400">{log.shiftDate} � S{log.shiftId}</div>
+                                  <div className="text-[10px] text-slate-400">{log.shiftDate} ◆ S{log.shiftId}</div>
                                   {log.by && <div className="text-[10px] font-semibold text-slate-500">{log.by}</div>}
                                 </div>
                               </div>
@@ -1021,7 +1021,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                             </td>
                             <td className="px-3 py-2 text-right text-xs text-slate-600 tabular-nums">{r.units.toLocaleString()}</td>
                             <td className="px-3 py-2 text-xs text-slate-500">
-                              {r.topReason ? <span className="italic">{r.topReason}</span> : <span className="text-slate-300">�</span>}
+                              {r.topReason ? <span className="italic">{r.topReason}</span> : <span className="text-slate-300">–</span>}
                             </td>
                           </tr>
                         );
@@ -1086,7 +1086,7 @@ function AnalyticsTab({ allDocs, allLogsSnap }) {
                           <div className="flex-1 bg-stone-100 rounded-full h-2 overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full" style={{width:pct+"%"}} />
                           </div>
-                          <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{d.lost.toFixed(1)}h � {d.count}x</div>
+                          <div className="text-[11px] text-slate-500 tabular-nums shrink-0 w-16 text-right">{d.lost.toFixed(1)}h ◆ {d.count}x</div>
                         </div>
                       );
                     })}
@@ -1241,7 +1241,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
       <div className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-900 to-blue-700">
         <div>
           <div className="text-white font-bold text-sm">AI Production Summary</div>
-          <div className="text-blue-200 text-[10px]">{buLabel} � {rangeLabel}</div>
+          <div className="text-blue-200 text-[10px]">{buLabel} ◆ {rangeLabel}</div>
         </div>
         <button onClick={copyPrompt} disabled={!data}
           className="px-4 py-1.5 rounded text-[11px] font-bold disabled:opacity-50 flex items-center gap-1.5"
@@ -1251,7 +1251,7 @@ function AISummaryPanel({ data, rangeF, buFilter }) {
       </div>
       <div className="px-4 py-5 bg-blue-50 text-center">
         <div className="text-slate-600 text-sm font-semibold mb-1">Paste into Claude or ChatGPT to generate a management summary</div>
-        <div className="text-slate-400 text-[11px]">Includes efficiency, downtime, shift breakdown and WO notes for {buLabel} � {rangeLabel}.</div>
+        <div className="text-slate-400 text-[11px]">Includes efficiency, downtime, shift breakdown and WO notes for {buLabel} ◆ {rangeLabel}.</div>
       </div>
     </div>
   );
