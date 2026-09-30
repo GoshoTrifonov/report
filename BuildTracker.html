@@ -273,6 +273,14 @@ function checkAuth() {
   if (pw !== null) alert("Incorrect password.");
   return false;
 }
+const RESET_AUTH_KEY = "bt_reset_authed";
+function checkResetAuth() {
+  if (sessionStorage.getItem(RESET_AUTH_KEY) === "1") return true;
+  const pw = prompt("Enter reset password:");
+  if (pw === "chepelare") { sessionStorage.setItem(RESET_AUTH_KEY, "1"); return true; }
+  if (pw !== null) alert("Incorrect reset password.");
+  return false;
+}
 async function fbSave(ref, data) {
   await ref.set({ data: JSON.stringify(data), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
 }
@@ -1658,12 +1666,12 @@ function BuildTracker() {
   };
 
   const resetAllOverrides = () => {
-    if (!checkAuth()) return;
+    if (!checkResetAuth()) return;
     if (confirm(`Reset all ${Object.keys(overrides).length} updates? This clears data for ALL users.`)) saveOverrides({});
   };
 
   const resetResourceOverrides = () => {
-    if (!checkAuth()) return;
+    if (!checkResetAuth()) return;
     const res = prompt("Enter resource name to reset (e.g. 43, 45, Camera Printing):");
     if (!res || !res.trim()) return;
     const resName = res.trim();
