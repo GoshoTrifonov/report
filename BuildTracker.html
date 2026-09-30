@@ -2137,7 +2137,8 @@ function BuildTracker() {
       const isSetup = !!(nowToolId && nextToolId && nextToolId !== nowToolId);
       const nowDescr = (liveNow.descr || liveNow.part || '').trim().toLowerCase();
       const nextDescr = liveNext ? (liveNext.descr || liveNext.part || '').trim().toLowerCase() : '';
-      const isMaterial = !!(liveNext && nowToolId && nextToolId && nowToolId === nextToolId && nowDescr && nextDescr && nowDescr !== nextDescr);
+      const isQCLine = resource.toString().toUpperCase().includes('QC');
+      const isMaterial = !!(isQCLine && liveNext && nowToolId && nextToolId && nowToolId === nextToolId && nowDescr && nextDescr && nowDescr !== nextDescr);
       const setupBadgeHtml = isSetup ? '<span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap;display:inline-block">🔧 SETUP</span>' : '';
       const materialBadgeHtml = isMaterial ? '<span style="background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap;display:inline-block;margin-top:3px">📦 MATERIAL</span>' : '';
       const materialBadgeInline = isMaterial ? ' <span style="background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">📦</span>' : '';
@@ -2151,7 +2152,7 @@ function BuildTracker() {
     const timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const labourStr = lastLabourUpdate ? (" - Labour at " + lastLabourUpdate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) : "";
     const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Shift Handoff</title>'
-      + '<style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 2px;font-size:18px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}}@page{size:landscape;margin:15mm}</style>'
+      + '<style>body{font-family:ui-sans-serif,system-ui,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}h2{margin:0 0 2px;font-size:18px}p{margin:0 0 12px;color:#64748b;font-size:12px}@media print{button{display:none}body{zoom:0.7;-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{size:landscape;margin:10mm}</style>'
       + '</head><body>'
       + '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">'
       + '<div><h2>Shift Handoff - ' + buLabel + '</h2>'
