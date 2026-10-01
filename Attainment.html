@@ -97,6 +97,29 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .resource-block { border-bottom: 2px solid var(--border); }
 .resource-block:last-child { border-bottom: none; }
 
+/* Resource header row — spans full width, sits above the 21 shift rows */
+.resource-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px 7px 14px;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
+  border-left: 4px solid var(--accent);
+}
+.resource-header-row .rh-name {
+  font-size: 13px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;
+}
+.resource-header-row .rh-bu {
+  font-size: 11px; color: var(--text-muted); margin-left: 8px;
+}
+.resource-header-row .rh-plan {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+}
+.resource-header-row .rh-plan-val {
+  font-size: 13px; font-weight: 700; color: #334155;
+  font-family: var(--mono);
+}
+
 /* Day group header */
 .day-header {
   display: grid;
@@ -526,6 +549,20 @@ function App() {
 
               return (
                 <div key={r.id} className="resource-block">
+                  {/* Resource header row */}
+                  <div className="resource-header-row">
+                    <div style={{display:"flex", alignItems:"center"}}>
+                      <span className="rh-name">{r.name}</span>
+                      <span className="rh-bu">{r.bu}</span>
+                    </div>
+                    {r.plan > 0 && (
+                      <div className="rh-plan">
+                        <span>Week plan:</span>
+                        <span className="rh-plan-val">{r.plan.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+
                   {dates.map((date, di) => {
                     const dow = DAYS_OF_WEEK[di];
                     const dayjsDate = dayjs(date);
@@ -536,27 +573,20 @@ function App() {
                       const effVal  = a.hrs > 0 ? (a.earned||0) / a.hrs * 100 : null;
                       const rowCls  = !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const commKey = `${r.id}|${date}|${sid}`;
-                      const isFirstRow = di===0 && si===0;
                       const isFirstShiftOfDay = si===0;
 
                       return (
                         <div key={commKey} className={`shift-row ${rowCls}`}>
-                          {/* Resource name — only on very first row */}
-                          <div className="cell left" style={{paddingLeft:8}}>
-                            {isFirstRow ? <span className="res-name-cell">{r.name}</span> : null}
-                          </div>
                           {/* Day label — only on first shift of the day */}
-                          <div className="cell left" style={{fontSize:11, color:"var(--text-muted)"}}>
+                          <div className="cell left" style={{paddingLeft:8, fontSize:11, color:"var(--text-muted)", gridColumn:"1 / span 2"}}>
                             {isFirstShiftOfDay ? dateLabel : ""}
                           </div>
                           {/* Shift badge */}
                           <div className="cell">
                             <span className={`shift-badge ${SHIFT_CSS[sid]}`}>{SHIFT_CODES[sid]}</span>
                           </div>
-                          {/* Plan — only on first row */}
-                          <div className="cell muted">
-                            {isFirstRow && r.plan > 0 ? r.plan.toLocaleString() : ""}
-                          </div>
+                          {/* Plan column — empty, plan is in resource header */}
+                          <div className="cell muted"></div>
                           {/* Actual */}
                           <div className="cell">{hasData ? (a.qty||0).toLocaleString() : <span className="dim">—</span>}</div>
                           {/* Hrs */}
@@ -580,14 +610,14 @@ function App() {
 
                   {/* Week totals row */}
                   <div className="totals-row">
-                    <div className="cell left" style={{paddingLeft:8, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)"}}>Week total</div>
-                    <div/><div/>
+                    {/* spans Resource+Day cols */}
+                    <div className="cell left" style={{paddingLeft:10, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)", gridColumn:"1 / span 2"}}>Week total</div>
+                    <div/>
                     <div className="cell"><AttBadge actual={wActual} plan={r.plan}/></div>
                     <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
                     <div className="cell muted">{wHrs > 0 ? wHrs.toFixed(1) : "—"}</div>
                     <div className="cell"><EffBadge earned={wEarned} hrs={wHrs}/></div>
                     <div/><div/>
-                    {/* PPH shown in comments column on totals row */}
                     <div className="cell left" style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>
                       {wHrs > 0 ? <span>PPH: <PPHBadge actual={wActual} hrs={wHrs}/></span> : ""}
                     </div>
