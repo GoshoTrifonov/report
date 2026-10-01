@@ -73,19 +73,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .summary-card .value.amber { color: #b45309; }
 .summary-card .value.red   { color: #dc2626; }
 
-/* TABLE */
-.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+/* TABLE — no overflow:hidden and no border-radius here; both break position:sticky */
+.table-outer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.table-wrap  { background: var(--surface); }
 
-/* Column headers — sticky so they stay visible while scrolling */
+/* Column headers — sticky just below the app header (52px tall) */
 .col-headers {
   display: grid;
   grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
-  padding: 7px 12px; background: #e2e8f0;
-  border-bottom: 2px solid var(--border-light); gap: 4px;
+  padding: 8px 12px; background: #dde3ed;
+  border-bottom: 2px solid #b6c2d4; gap: 4px;
   position: sticky; top: 52px; z-index: 50;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
-.col-h { font-size: 10px; font-weight: 700; color: #475569;
-  letter-spacing: 0.06em; text-transform: uppercase; text-align: right; }
+.col-h { font-size: 10px; font-weight: 700; color: #334155;
+  letter-spacing: 0.07em; text-transform: uppercase; text-align: right; }
 .col-h.left { text-align: left; }
 
 /* Resource block */
@@ -107,7 +109,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
   display: grid;
   grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
   padding: 5px 12px; align-items: center; gap: 4px;
-  border-bottom: 1px solid rgba(46,50,72,0.5); transition: background 0.1s;
+  border-bottom: 1px solid #e2e8f0; transition: background 0.1s;
 }
 .shift-row:hover { background: #f8fafc; }
 .shift-row.green-row { background: rgba(22,163,74,0.06); }
@@ -138,14 +140,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .att-red   { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
 .att-none  { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
 
-/* Totals row */
+/* Totals row — visually distinct from shift rows */
 .totals-row {
   display: grid;
   grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
-  padding: 7px 12px; align-items: center; gap: 4px;
-  background: #f1f5f9; border-top: 1px solid var(--border-light);
+  padding: 9px 12px; align-items: center; gap: 4px;
+  background: #e8edf5;
+  border-top: 2px solid #b6c2d4;
+  border-left: 4px solid var(--accent);
 }
-.totals-row .cell { font-weight: 700; }
+.totals-row .cell { font-weight: 700; color: #0f172a; font-size: 13px; }
 
 /* Comment textarea */
 .comment-cell { width: 100%; background: transparent; border: 1px solid transparent; color: var(--text);
@@ -464,11 +468,11 @@ function App() {
 
         {/* Table */}
         {loading ? (
-          <div className="table-wrap"><div className="state-msg"><div className="big">&#9203;</div>Loading&hellip;</div></div>
+          <div className="table-outer"><div className="table-wrap"><div className="state-msg"><div className="big">&#9203;</div>Loading&hellip;</div></div></div>
         ) : filteredResources.length === 0 ? (
-          <div className="table-wrap"><div className="state-msg"><div className="big">&#128203;</div>No data for {selectedBU} &mdash; {fmtWeek(currentDay)}</div></div>
+          <div className="table-outer"><div className="table-wrap"><div className="state-msg"><div className="big">&#128203;</div>No data for {selectedBU} &mdash; {fmtWeek(currentDay)}</div></div></div>
         ) : (
-          <div className="table-wrap">
+          <div className="table-outer"><div className="table-wrap">
             {/* Column headers */}
             <div className="col-headers">
               <div className="col-h left">Resource / Line</div>
@@ -483,7 +487,7 @@ function App() {
               <div className="col-h left">Comments</div>
             </div>
 
-            {filteredResources.map(r => {
+            {filteredResources.map((r) => {
               // compute week totals for this resource
               let wActual=0, wHrs=0, wEarned=0;
               dates.forEach(date => [1,2,3].forEach(sid => {
@@ -547,7 +551,7 @@ function App() {
 
                   {/* Week totals row */}
                   <div className="totals-row">
-                    <div className="cell left" style={{paddingLeft:8, fontSize:10, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>Week total</div>
+                    <div className="cell left" style={{paddingLeft:8, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)"}}>Week total</div>
                     <div/><div/>
                     <div className="cell"><AttBadge actual={wActual} plan={r.plan}/></div>
                     <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
@@ -562,7 +566,7 @@ function App() {
                 </div>
               );
             })}
-          </div>
+          </div></div>
         )}
       </div>
 
