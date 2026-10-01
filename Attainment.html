@@ -73,9 +73,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .summary-card .value.amber { color: #b45309; }
 .summary-card .value.red   { color: #dc2626; }
 
-/* TABLE */
-.table-outer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.table-wrap  { background: var(--surface); }
+/* TABLE — no overflow:hidden; it breaks position:sticky on resource headers */
+.table-outer { border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap  { background: var(--surface); border-radius: 10px; }
+/* Round the very first and very last visible rows to fake overflow:hidden corners */
+.resource-block:first-child .resource-header-row { border-radius: 6px 6px 0 0; }
+.resource-block:last-child .totals-row { border-radius: 0 0 10px 10px; }
 
 /* Column headers — sticky to the page, not inside a scroll container.
    They live OUTSIDE .table-outer so overflow:hidden doesn't trap them. */
@@ -97,27 +100,31 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .resource-block { border-bottom: 2px solid var(--border); }
 .resource-block:last-child { border-bottom: none; }
 
-/* Resource header row — spans full width, sits above the 21 shift rows */
+/* Resource header row — sticky, blue, grid-aligned with data columns */
 .resource-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px 7px 14px;
-  background: #f1f5f9;
-  border-bottom: 1px solid var(--border-light);
-  border-left: 4px solid var(--accent);
+  display: grid;
+  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  align-items: center; gap: 4px;
+  padding: 8px 12px;
+  background: #1e40af;
+  border-bottom: 1px solid #1d3a9e;
+  border-left: 4px solid #93c5fd;
+  position: sticky; top: 88px; z-index: 40;  /* 52px app header + 36px col-headers */
 }
 .resource-header-row .rh-name {
-  font-size: 13px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;
+  font-size: 13px; font-weight: 700; color: #fff;
+  grid-column: 1 / span 2; padding-left: 2px;
 }
 .resource-header-row .rh-bu {
-  font-size: 11px; color: var(--text-muted); margin-left: 8px;
-}
-.resource-header-row .rh-plan {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text-muted);
+  font-size: 10px; color: #93c5fd; font-weight: 500;
+  display: block; margin-top: 1px;
 }
 .resource-header-row .rh-plan-val {
-  font-size: 13px; font-weight: 700; color: #334155;
-  font-family: var(--mono);
+  font-size: 13px; font-weight: 700; color: #fff;
+  font-family: var(--mono); text-align: right;
+}
+.resource-header-row .rh-plan-label {
+  font-size: 10px; color: #93c5fd; text-align: right; font-weight: 500;
 }
 
 /* Day group header */
@@ -549,18 +556,26 @@ function App() {
 
               return (
                 <div key={r.id} className="resource-block">
-                  {/* Resource header row */}
+                  {/* Resource header row — sticky, blue, grid-aligned */}
                   <div className="resource-header-row">
-                    <div style={{display:"flex", alignItems:"center"}}>
+                    {/* Col 1+2: name + bu */}
+                    <div style={{gridColumn:"1 / span 2"}}>
                       <span className="rh-name">{r.name}</span>
                       <span className="rh-bu">{r.bu}</span>
                     </div>
-                    {r.plan > 0 && (
-                      <div className="rh-plan">
-                        <span>Week plan:</span>
-                        <span className="rh-plan-val">{r.plan.toLocaleString()}</span>
-                      </div>
-                    )}
+                    {/* Col 3: Shift — empty */}
+                    <div/>
+                    {/* Col 4: Plan */}
+                    <div>
+                      {r.plan > 0 ? (
+                        <>
+                          <div className="rh-plan-label">Week plan</div>
+                          <div className="rh-plan-val">{r.plan.toLocaleString()}</div>
+                        </>
+                      ) : <div/>}
+                    </div>
+                    {/* Remaining cols empty */}
+                    <div/><div/><div/><div/><div/><div/>
                   </div>
 
                   {dates.map((date, di) => {
