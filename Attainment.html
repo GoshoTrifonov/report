@@ -73,18 +73,21 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .summary-card .value.amber { color: #b45309; }
 .summary-card .value.red   { color: #dc2626; }
 
-/* TABLE — no overflow:hidden and no border-radius here; both break position:sticky */
+/* TABLE */
 .table-outer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .table-wrap  { background: var(--surface); }
 
-/* Column headers — sticky just below the app header (52px tall) */
+/* Column headers — sticky to the page, not inside a scroll container.
+   They live OUTSIDE .table-outer so overflow:hidden doesn't trap them. */
 .col-headers {
   display: grid;
   grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
   padding: 8px 12px; background: #dde3ed;
-  border-bottom: 2px solid #b6c2d4; gap: 4px;
+  border: 1px solid #b6c2d4; border-radius: 8px 8px 0 0;
+  gap: 4px;
   position: sticky; top: 52px; z-index: 50;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+  margin-bottom: -1px; /* merge visually with table-outer border */
 }
 .col-h { font-size: 10px; font-weight: 700; color: #334155;
   letter-spacing: 0.07em; text-transform: uppercase; text-align: right; }
@@ -466,6 +469,22 @@ function App() {
           ))}
         </div>
 
+        {/* Sticky column header — outside table-outer so overflow:hidden doesn't trap it */}
+        {!loading && filteredResources.length > 0 && (
+          <div className="col-headers">
+            <div className="col-h left">Resource / Line</div>
+            <div className="col-h left">Day</div>
+            <div className="col-h">Shift</div>
+            <div className="col-h">Plan</div>
+            <div className="col-h">Actual</div>
+            <div className="col-h">Hrs</div>
+            <div className="col-h">Eff %</div>
+            <div className="col-h left">SKU / WO</div>
+            <div className="col-h left">Notes</div>
+            <div className="col-h left">Comments</div>
+          </div>
+        )}
+
         {/* Table */}
         {loading ? (
           <div className="table-outer"><div className="table-wrap"><div className="state-msg"><div className="big">&#9203;</div>Loading&hellip;</div></div></div>
@@ -473,19 +492,6 @@ function App() {
           <div className="table-outer"><div className="table-wrap"><div className="state-msg"><div className="big">&#128203;</div>No data for {selectedBU} &mdash; {fmtWeek(currentDay)}</div></div></div>
         ) : (
           <div className="table-outer"><div className="table-wrap">
-            {/* Column headers */}
-            <div className="col-headers">
-              <div className="col-h left">Resource / Line</div>
-              <div className="col-h left">Day</div>
-              <div className="col-h">Shift</div>
-              <div className="col-h">Plan</div>
-              <div className="col-h">Actual</div>
-              <div className="col-h">Hrs</div>
-              <div className="col-h">Eff %</div>
-              <div className="col-h left">SKU / WO</div>
-              <div className="col-h left">Notes</div>
-              <div className="col-h left">Comments</div>
-            </div>
 
             {filteredResources.map((r) => {
               // compute week totals for this resource
