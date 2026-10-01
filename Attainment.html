@@ -209,6 +209,21 @@ const { useState, useEffect, useRef, useCallback } = React;
 // ── Constants ──────────────────────────────────────────────────────────────
 const PPH_TARGET = 4;
 
+// Maps VER Build Plan resource names → Labour ticket resource names
+// Only lines in this map get planned quantities
+const VER_PLAN_TO_LABOUR = {
+  "LPS3 HDMI":  "LoPro S3 HDMI",
+  "QCS3":       "Lopro QC S3",
+  "QC MAC3":    "Lopro QC Mac 3",
+  "QC MAC4":    "Lopro QC Mac 4",
+  "LPS4 HDMI":  "LoPro S4 HDMI",
+  "QCS4":       "Lopro QC S4",
+  "HDMI MIX":   "Lopro HDMI Mix",
+  "QC MIX":     "Lopro QC Mix",
+  "SU Stylet":  "Multivac 2",
+  "Multivac":   "Multivac",
+};
+
 const ALL_BU_KEYS = [
   "BU Verathon","BU Molding",
   "BU Tier 1","BU Tier 1 - Respiratory","BU Tier 1 - Blades",
@@ -297,21 +312,28 @@ function App() {
       const planSnap = await db.collection("production_data").doc("ver_build_plan").get();
       const planRows = planSnap.exists ? (planSnap.data().rows || []) : [];
 
-      // Sum qty per resource for this week's Monday
-      const planMap = {}; // resourceName -> { plan, description }
+      // Sum qty per resource for this week's Monday, translating VER plan names → labour names
+      const planMap = {}; // labourName -> { plan, description }
       planRows.forEach(row => {
-        const name = (row.resource||"").trim();
-        if (!name) return;
+        const verName = (row.resource||"").trim();
+        if (!verName) return;
+        const labourName = VER_PLAN_TO_LABOUR[verName];
+        if (!labourName) return; // skip resources not in the mapping
         const qty = Number((row.weeks||{})[mondayKey] || 0);
-        if (!planMap[name]) planMap[name] = { plan:0, description: row.description||"" };
-        planMap[name].plan += qty;
-        if (!planMap[name].description && row.description) planMap[name].description = row.description;
+        if (!planMap[labourName]) planMap[labourName] = { plan:0, description: row.description||"" };
+        planMap[labourName].plan += qty;
+        if (!planMap[labourName].description && row.description) planMap[labourName].description = row.description;
       });
 
-      // Build resource list from plan (only resources with plan > 0 this week)
-      const verResources = Object.entries(planMap)
-        .filter(([,v]) => v.plan > 0)
-        .map(([name, v]) => ({ id: name, name, bu: "BU Verathon", plan: v.plan, description: v.description }));
+      // Build resource list from plan — keyed by labour ticket name, BU Verathon
+      // Include all 10 mapped lines even if plan is 0 this week (so they always show)
+      const verResources = Object.values(VER_PLAN_TO_LABOUR).map(labourName => ({
+        id: labourName,
+        name: labourName,
+        bu: "BU Verathon",
+        plan: planMap[labourName] ? planMap[labourName].plan : 0,
+        description: planMap[labourName] ? planMap[labourName].description : "",
+      }));
 
       // 2. Shift reports for this week's date range
       // dates[0] = Monday, dates[6] = Sunday
@@ -342,8 +364,9 @@ function App() {
           actualsMap[key].earned += Number(w.earned || 0);
           actualsMap[key].sku    = w.wo || w.descr || actualsMap[key].sku;
           actualsMap[key].notes  = w.notes || actualsMap[key].notes;
-          // Track non-VER resources
-          if (!planMap[res] && bu) {
+          // Track non-VER resources (skip any that are already in our VER mapped set)
+          const isVerLine = Object.values(VER_PLAN_TO_LABOUR).includes(res);
+          if (!isVerLine && bu) {
             if (!extraResources[res]) extraResources[res] = { bu };
           }
         });
