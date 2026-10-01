@@ -69,8 +69,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
   border-radius: 8px; padding: 10px 16px; min-width: 120px; }
 .summary-card .label { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-bottom: 3px; }
 .summary-card .value { font-size: 20px; font-weight: 700; font-family: var(--mono); color: var(--text); }
-.summary-card .value.green { color: var(--green); }
-.summary-card .value.red { color: var(--red); }
+.summary-card .value.green { color: #15803d; }
+.summary-card .value.amber { color: #b45309; }
+.summary-card .value.red   { color: #dc2626; }
 
 /* TABLE */
 .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
@@ -126,8 +127,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .pph-badge { display: inline-flex; align-items: center; justify-content: center;
   padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;
   font-family: var(--mono); min-width: 48px; }
-.pph-green { background: var(--green-bg); color: var(--green); }
-.pph-red   { background: var(--red-bg); color: var(--red); }
+.pph-green { background: rgba(22,163,74,0.10);  color: #15803d; }
+.pph-amber { background: rgba(217,119,6,0.12);  color: #b45309; }
+.pph-red   { background: rgba(220,38,38,0.08);  color: #dc2626; }
 .pph-none  { background: #f1f5f9; color: var(--text-dim); }
 
 .att-badge { display: inline-flex; align-items: center; padding: 2px 8px;
@@ -240,15 +242,14 @@ function weekMonday(day) {
 }
 
 // ── PPH & Attainment badges ────────────────────────────────────────────────
-// Eff% uses earned hours from shift_reports (w.earned). Since we don't store earned
-// separately in our actuals map, we approximate: Eff% = (qty / hrs) / PPH_TARGET * 100
-// i.e. if you hit PPH_TARGET you are at 100% efficiency. Green >= 85%.
-const EFF_TARGET = 85;
-function EffBadge({ actual, hrs }) {
+// Eff% = earned hours / hours worked * 100. Target 90%. Amber >= 76.5%, red < 76.5%.
+const EFF_TARGET = 90;
+const EFF_AMBER  = 76.5;
+function EffBadge({ earned, hrs }) {
   if (!hrs || hrs === 0) return <span className="pph-badge pph-none">—</span>;
-  const eff = (actual / hrs / PPH_TARGET) * 100;
-  const ok  = eff >= EFF_TARGET;
-  return <span className={`pph-badge ${ok?"pph-green":"pph-red"}`}>{eff.toFixed(1)}%</span>;
+  const eff = earned / hrs * 100;
+  const cls = eff >= EFF_TARGET ? "pph-green" : eff >= EFF_AMBER ? "pph-amber" : "pph-red";
+  return <span className={`pph-badge ${cls}`}>{eff.toFixed(1)}%</span>;
 }
 function PPHBadge({ actual, hrs }) {
   if (!hrs || hrs === 0) return <span style={{fontSize:11,color:"var(--text-dim)"}}>—</span>;
@@ -327,12 +328,13 @@ function App() {
           if (!res) return;
           const key = `${res}|${d.date}|${shiftId}`;
           if (!actualsMap[key]) {
-            actualsMap[key] = { qty:0, hrs:0, sku:"", notes:"", bu };
+            actualsMap[key] = { qty:0, hrs:0, earned:0, sku:"", notes:"", bu };
           }
-          actualsMap[key].qty  += Number(w.qty  || 0);
-          actualsMap[key].hrs  += Number(w.hrs  || 0);
-          actualsMap[key].sku   = w.wo || w.descr || actualsMap[key].sku;
-          actualsMap[key].notes = w.notes || actualsMap[key].notes;
+          actualsMap[key].qty    += Number(w.qty    || 0);
+          actualsMap[key].hrs    += Number(w.hrs    || 0);
+          actualsMap[key].earned += Number(w.earned || 0);
+          actualsMap[key].sku    = w.wo || w.descr || actualsMap[key].sku;
+          actualsMap[key].notes  = w.notes || actualsMap[key].notes;
           // Track non-VER resources
           if (!planMap[res] && bu) {
             if (!extraResources[res]) extraResources[res] = { bu };
@@ -385,17 +387,18 @@ function App() {
     : resources.filter(r => r.bu === selectedBU || r.bu.startsWith(selectedBU + " - "));
 
   // ── Week-level totals ────────────────────────────────────────────────────
-  let totalPlan=0, totalActual=0, totalHrs=0;
+  let totalPlan=0, totalActual=0, totalHrs=0, totalEarned=0;
   filteredResources.forEach(r => {
     totalPlan += r.plan || 0;
     dates.forEach(date => {
       [1,2,3].forEach(sid => {
         const a = actuals[`${r.id}|${date}|${sid}`];
-        if (a) { totalActual += a.qty||0; totalHrs += a.hrs||0; }
+        if (a) { totalActual += a.qty||0; totalHrs += a.hrs||0; totalEarned += a.earned||0; }
       });
     });
   });
   const overallPPH = totalHrs > 0 ? (totalActual/totalHrs).toFixed(2) : null;
+  const overallEff = totalHrs > 0 ? (totalEarned/totalHrs*100).toFixed(1) : null;
   const overallAtt = totalPlan > 0 ? Math.round(totalActual/totalPlan*100) : null;
 
   // ── Navigation ───────────────────────────────────────────────────────────
@@ -449,7 +452,7 @@ function App() {
             { label:"Week actual", val: totalActual.toLocaleString(), cls:"" },
             { label:"Attainment",  val: overallAtt!=null ? overallAtt+"%" : "—", cls: overallAtt==null?"":overallAtt>=100?"green":"red" },
             { label:"Total hours", val: totalHrs.toFixed(1), cls:"" },
-            { label:"Overall Eff%", val: overallPPH!=null ? ((parseFloat(overallPPH)/PPH_TARGET)*100).toFixed(1)+"%" : "—", cls: overallPPH==null?"":parseFloat(overallPPH)>=PPH_TARGET?"green":"red" },
+            { label:"Overall Eff%", val: overallEff!=null ? overallEff+"%" : "—", cls: overallEff==null?"":parseFloat(overallEff)>=EFF_TARGET?"green":parseFloat(overallEff)>=EFF_AMBER?"amber":"red" },
             { label:"Lines",       val: filteredResources.length, cls:"" },
           ].map(c => (
             <div key={c.label} className="summary-card">
@@ -482,10 +485,10 @@ function App() {
 
             {filteredResources.map(r => {
               // compute week totals for this resource
-              let wActual=0, wHrs=0;
+              let wActual=0, wHrs=0, wEarned=0;
               dates.forEach(date => [1,2,3].forEach(sid => {
                 const a = actuals[`${r.id}|${date}|${sid}`];
-                if (a) { wActual += a.qty||0; wHrs += a.hrs||0; }
+                if (a) { wActual += a.qty||0; wHrs += a.hrs||0; wEarned += a.earned||0; }
               }));
 
               return (
@@ -495,11 +498,10 @@ function App() {
                     const dayjsDate = dayjs(date);
                     const dateLabel = `${dow} ${dayjsDate.format("MMM D")}`;
                     return [1,2,3].map((sid, si) => {
-                      const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, sku:"", notes:"" };
+                      const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, earned:0, sku:"", notes:"" };
                       const hasData = (a.qty||0) > 0 || (a.hrs||0) > 0;
-                      const effVal  = a.hrs > 0 ? (a.qty/a.hrs/PPH_TARGET)*100 : null;
-                      const effOk   = effVal !== null && effVal >= EFF_TARGET;
-                      const rowCls  = hasData ? (effOk ? "green-row" : "red-row") : "";
+                      const effVal  = a.hrs > 0 ? (a.earned||0) / a.hrs * 100 : null;
+                      const rowCls  = !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const commKey = `${r.id}|${date}|${sid}`;
                       const isFirstRow = di===0 && si===0;
                       const isFirstShiftOfDay = si===0;
@@ -527,7 +529,7 @@ function App() {
                           {/* Hrs */}
                           <div className="cell muted">{hasData ? (a.hrs||0) : <span className="dim">—</span>}</div>
                           {/* Eff% */}
-                          <div className="cell"><EffBadge actual={a.qty||0} hrs={a.hrs||0}/></div>
+                          <div className="cell"><EffBadge earned={a.earned||0} hrs={a.hrs||0}/></div>
                           {/* SKU */}
                           <div className="cell left"><span className="sku-text">{a.sku||""}</span></div>
                           {/* Notes */}
@@ -550,7 +552,7 @@ function App() {
                     <div className="cell"><AttBadge actual={wActual} plan={r.plan}/></div>
                     <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
                     <div className="cell muted">{wHrs > 0 ? wHrs.toFixed(1) : "—"}</div>
-                    <div className="cell"><EffBadge actual={wActual} hrs={wHrs}/></div>
+                    <div className="cell"><EffBadge earned={wEarned} hrs={wHrs}/></div>
                     <div/><div/>
                     {/* PPH shown in comments column on totals row */}
                     <div className="cell left" style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>
