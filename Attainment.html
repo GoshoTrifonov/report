@@ -11,673 +11,419 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/isoWeek.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/weekOfYear.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+  --border: #2e3248; --border-light: #3a3f5c;
+  --text: #e8eaf0; --text-muted: #7b82a0; --text-dim: #4a5070;
+  --accent: #4f6ef7; --accent-dim: rgba(79,110,247,0.15);
+  --green: #22c55e; --green-bg: rgba(34,197,94,0.12);
+  --red: #ef4444; --red-bg: rgba(239,68,68,0.12);
+  --mono: 'JetBrains Mono', monospace; --sans: 'Inter', sans-serif;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
 
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3248;
-    --border-light: #3a3f5c;
-    --text: #e8eaf0;
-    --text-muted: #7b82a0;
-    --text-dim: #4a5070;
-    --accent: #4f6ef7;
-    --accent-dim: rgba(79,110,247,0.15);
-    --green: #22c55e;
-    --green-bg: rgba(34,197,94,0.12);
-    --red: #ef4444;
-    --red-bg: rgba(239,68,68,0.12);
-    --amber: #f59e0b;
-    --amber-bg: rgba(245,158,11,0.12);
-    --pink-row: rgba(239,68,68,0.07);
-    --green-row: rgba(34,197,94,0.06);
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Inter', sans-serif;
-  }
+/* HEADER */
+.header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 52px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100; gap: 12px;
+}
+.hub-link { display: flex; flex-direction: column; align-items: center; line-height: 1;
+  text-decoration: none; cursor: pointer; background: none; border: none;
+  padding: 4px 8px; border-radius: 6px; transition: background 0.15s; flex-shrink: 0; }
+.hub-link:hover { background: var(--surface2); }
+.hub-link .logo-text { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 2px; }
+.smi-logo { font-size: 18px; font-weight: 700; color: var(--accent); font-family: var(--mono); }
+.app-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.app-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.header-center { display: flex; align-items: center; gap: 6px; }
+.week-nav-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; flex-shrink: 0; }
+.week-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.week-display { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 6px;
+  cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
+  font-family: var(--sans); min-width: 190px; text-align: center; }
+.week-display:hover { border-color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.bu-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  font-size: 12px; padding: 5px 8px; border-radius: 6px; cursor: pointer;
+  font-family: var(--sans); outline: none; min-width: 150px; }
+.bu-select:focus { border-color: var(--accent); }
+.refresh-btn { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent);
+  font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 6px;
+  cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+.refresh-btn:hover { background: var(--accent); color: #fff; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  display: inline-block; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+/* SUMMARY BAR */
+.main { padding: 16px 20px 48px; }
+.week-summary { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.summary-card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 16px; min-width: 120px; }
+.summary-card .label { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-bottom: 3px; }
+.summary-card .value { font-size: 20px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.summary-card .value.green { color: var(--green); }
+.summary-card .value.red { color: var(--red); }
 
-  /* HEADER */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-left { display: flex; align-items: center; gap: 16px; }
-  .hub-link {
-    display: flex; flex-direction: column; align-items: center; line-height: 1;
-    text-decoration: none; cursor: pointer; background: none; border: none;
-    padding: 6px 10px; border-radius: 6px; transition: background 0.15s;
-  }
-  .hub-link:hover { background: var(--surface2); }
-  .hub-link .logo-text { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 3px; }
-  .smi-logo { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--mono); }
-  .app-title { font-size: 18px; font-weight: 600; color: var(--text); }
-  .app-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+/* TABLE */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 
-  .header-center { display: flex; align-items: center; gap: 8px; }
-  .week-nav-btn {
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px;
-    display: flex; align-items: center; justify-content: center; transition: border-color 0.15s;
-  }
-  .week-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .week-display {
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px;
-    cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
-    font-family: var(--sans); min-width: 200px; text-align: center;
-  }
-  .week-display:hover { border-color: var(--accent); }
-  input[type="date"].date-jump {
-    background: var(--surface2); border: 1px solid var(--accent); color: var(--text);
-    font-size: 13px; padding: 5px 10px; border-radius: 6px; font-family: var(--sans);
-    outline: none;
-  }
+/* Column headers */
+.col-headers {
+  display: grid;
+  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  padding: 7px 12px; background: rgba(19,22,32,0.8);
+  border-bottom: 1px solid var(--border); gap: 4px;
+}
+.col-h { font-size: 10px; font-weight: 600; color: var(--text-dim);
+  letter-spacing: 0.06em; text-transform: uppercase; text-align: right; }
+.col-h.left { text-align: left; }
 
-  .header-right { display: flex; align-items: center; gap: 10px; }
-  .bu-select {
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    font-size: 13px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
-    font-family: var(--sans); outline: none; min-width: 160px;
-  }
-  .bu-select:focus { border-color: var(--accent); }
-  .refresh-btn {
-    background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent);
-    font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 6px;
-    cursor: pointer; transition: background 0.15s; font-family: var(--sans);
-  }
-  .refresh-btn:hover { background: var(--accent); color: #fff; }
+/* Resource block */
+.resource-block { border-bottom: 2px solid var(--border); }
+.resource-block:last-child { border-bottom: none; }
 
-  /* MAIN */
-  .main { padding: 20px 24px; }
+/* Day group header */
+.day-header {
+  display: grid;
+  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  padding: 5px 12px; gap: 4px; align-items: center;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--border);
+}
+.day-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
 
-  /* WEEK SUMMARY BAR */
-  .week-summary {
-    display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
-  }
-  .summary-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 18px; min-width: 140px;
-  }
-  .summary-card .label { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
-  .summary-card .value { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--text); }
-  .summary-card .value.green { color: var(--green); }
-  .summary-card .value.red { color: var(--red); }
-  .summary-card .value.amber { color: var(--amber); }
+/* Shift row */
+.shift-row {
+  display: grid;
+  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  padding: 5px 12px; align-items: center; gap: 4px;
+  border-bottom: 1px solid rgba(46,50,72,0.5); transition: background 0.1s;
+}
+.shift-row:hover { background: rgba(255,255,255,0.02); }
+.shift-row.green-row { background: rgba(34,197,94,0.06); }
+.shift-row.red-row   { background: rgba(239,68,68,0.07); }
 
-  /* TABLE */
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 24px;
-  }
-  .resource-block { border-bottom: 2px solid var(--border); }
-  .resource-block:last-child { border-bottom: none; }
+.cell { font-size: 12px; font-family: var(--mono); text-align: right; color: var(--text); }
+.cell.left { text-align: left; font-family: var(--sans); }
+.cell.muted { color: var(--text-muted); }
+.cell.dim { color: var(--text-dim); }
 
-  /* Resource header */
-  .resource-header {
-    display: grid;
-    grid-template-columns: 220px 48px 90px 90px 70px 80px 160px 1fr 200px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 12px;
-    align-items: center;
-    gap: 4px;
-  }
-  .resource-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .resource-header .col-label {
-    font-size: 10px; font-weight: 600; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 0.05em; text-align: right;
-  }
-  .resource-header .col-label.left { text-align: left; }
+.shift-badge { display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 18px; border-radius: 4px; font-size: 10px; font-weight: 700; font-family: var(--mono); }
+.s1 { background: rgba(99,102,241,0.2); color: #818cf8; }
+.s2 { background: rgba(245,158,11,0.2); color: #fbbf24; }
+.s3 { background: rgba(168,85,247,0.2); color: #c084fc; }
 
-  /* Shift rows */
-  .shift-row {
-    display: grid;
-    grid-template-columns: 220px 48px 90px 90px 70px 80px 160px 1fr 200px;
-    padding: 7px 12px;
-    align-items: center;
-    gap: 4px;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.1s;
-  }
-  .shift-row:last-of-type { border-bottom: none; }
-  .shift-row:hover { background: rgba(255,255,255,0.02); }
-  .shift-row.green-row { background: var(--green-row); }
-  .shift-row.red-row { background: var(--pink-row); }
+.pph-badge { display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  font-family: var(--mono); min-width: 48px; }
+.pph-green { background: var(--green-bg); color: var(--green); }
+.pph-red   { background: var(--red-bg); color: var(--red); }
+.pph-none  { background: var(--surface2); color: var(--text-dim); }
 
-  .cell { font-size: 13px; font-family: var(--mono); text-align: right; color: var(--text); }
-  .cell.left { text-align: left; font-family: var(--sans); }
-  .cell.muted { color: var(--text-muted); }
-  .cell.dim { color: var(--text-dim); }
+.att-badge { display: inline-flex; align-items: center; padding: 2px 8px;
+  border-radius: 4px; font-size: 11px; font-weight: 700; font-family: var(--mono); }
+.att-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+.att-red   { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.att-none  { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
 
-  .shift-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 26px; height: 20px; border-radius: 4px; font-size: 11px; font-weight: 700;
-    font-family: var(--mono);
-  }
-  .shift-M { background: rgba(79,110,247,0.2); color: #818cf8; }
-  .shift-D { background: rgba(245,158,11,0.2); color: #fbbf24; }
-  .shift-A { background: rgba(168,85,247,0.2); color: #c084fc; }
+/* Totals row */
+.totals-row {
+  display: grid;
+  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  padding: 7px 12px; align-items: center; gap: 4px;
+  background: var(--surface2); border-top: 1px solid var(--border-light);
+}
+.totals-row .cell { font-weight: 700; }
 
-  .pph-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;
-    font-family: var(--mono); min-width: 54px;
-  }
-  .pph-green { background: var(--green-bg); color: var(--green); }
-  .pph-red { background: var(--red-bg); color: var(--red); }
-  .pph-none { background: var(--surface2); color: var(--text-dim); }
+/* Comment textarea */
+.comment-cell { width: 100%; background: transparent; border: none; color: var(--text);
+  font-size: 11px; font-family: var(--sans); padding: 2px 4px; border-radius: 4px;
+  outline: none; resize: none; transition: background 0.15s; line-height: 1.4; }
+.comment-cell:hover { background: var(--surface2); }
+.comment-cell:focus { background: var(--surface2); border: 1px solid var(--border-light); }
+.comment-cell::placeholder { color: var(--text-dim); }
 
-  /* Totals row */
-  .totals-row {
-    display: grid;
-    grid-template-columns: 220px 48px 90px 90px 70px 80px 160px 1fr 200px;
-    padding: 8px 12px;
-    align-items: center;
-    gap: 4px;
-    background: var(--surface2);
-    border-top: 1px solid var(--border-light);
-  }
-  .totals-row .cell { font-weight: 700; }
+.sku-text  { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+.notes-text{ font-size: 10px; color: var(--text-muted); font-family: var(--sans); line-height: 1.4; }
 
-  .attainment-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 10px; border-radius: 5px; font-size: 13px; font-weight: 700;
-    font-family: var(--mono);
-  }
-  .att-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
-  .att-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
-  .att-none { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+.state-msg { padding: 48px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.state-msg .big { font-size: 28px; margin-bottom: 10px; }
 
-  /* Additional comment input */
-  .comment-cell {
-    width: 100%; background: transparent; border: none; color: var(--text);
-    font-size: 12px; font-family: var(--sans); padding: 3px 6px;
-    border-radius: 4px; outline: none; resize: none;
-    transition: background 0.15s;
-  }
-  .comment-cell:hover { background: var(--surface2); }
-  .comment-cell:focus { background: var(--surface2); border: 1px solid var(--border-light); }
-  .comment-cell::placeholder { color: var(--text-dim); }
+/* Date picker overlay */
+.date-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+  display: flex; align-items: flex-start; justify-content: center; padding-top: 72px; }
+.date-picker-box { background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: 10px; padding: 18px; min-width: 240px; }
+.date-picker-box label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+.date-picker-box input[type="date"] { width: 100%; background: var(--surface2); border: 1px solid var(--border-light);
+  color: var(--text); font-size: 13px; padding: 7px 10px; border-radius: 6px;
+  font-family: var(--sans); outline: none; margin-bottom: 10px; }
+.date-picker-box input[type="date"]:focus { border-color: var(--accent); }
+.dp-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.dp-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; font-family: var(--sans); }
+.dp-btn.cancel  { background: var(--surface2); color: var(--text-muted); }
+.dp-btn.confirm { background: var(--accent); color: #fff; }
 
-  /* SKU text */
-  .sku-text { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
-
-  /* Notes text */
-  .notes-text { font-size: 11px; color: var(--text-muted); font-family: var(--sans); line-height: 1.4; }
-
-  /* Loading / empty */
-  .state-msg {
-    padding: 60px; text-align: center; color: var(--text-muted); font-size: 14px;
-  }
-  .state-msg .big { font-size: 32px; margin-bottom: 12px; }
-
-  /* Status dot */
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  /* Date picker overlay */
-  .date-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
-    display: flex; align-items: flex-start; justify-content: center; padding-top: 80px;
-  }
-  .date-picker-box {
-    background: var(--surface); border: 1px solid var(--border-light);
-    border-radius: 10px; padding: 20px; min-width: 260px;
-  }
-  .date-picker-box label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px; }
-  .date-picker-box input[type="date"] {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border-light);
-    color: var(--text); font-size: 14px; padding: 8px 12px; border-radius: 6px;
-    font-family: var(--sans); outline: none; margin-bottom: 12px;
-  }
-  .date-picker-box input[type="date"]:focus { border-color: var(--accent); }
-  .dp-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .dp-btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: var(--sans); }
-  .dp-btn.cancel { background: var(--surface2); color: var(--text-muted); }
-  .dp-btn.confirm { background: var(--accent); color: #fff; }
-
-  /* Column header row (top of table) */
-  .col-headers {
-    display: grid;
-    grid-template-columns: 220px 48px 90px 90px 70px 80px 160px 1fr 200px;
-    padding: 8px 12px;
-    background: #13162080;
-    border-bottom: 1px solid var(--border);
-    gap: 4px;
-  }
-  .col-h {
-    font-size: 10px; font-weight: 600; color: var(--text-dim);
-    letter-spacing: 0.06em; text-transform: uppercase; text-align: right;
-  }
-  .col-h.left { text-align: left; }
-
-  /* No data placeholder */
-  .empty-shift { color: var(--text-dim); font-size: 12px; font-family: var(--mono); }
-
-  @media (max-width: 1100px) {
-    .header { flex-wrap: wrap; height: auto; padding: 10px 16px; gap: 8px; }
-    .main { padding: 12px 16px; }
-    .resource-header, .shift-row, .totals-row, .col-headers {
-      grid-template-columns: 160px 44px 80px 80px 64px 74px 130px 1fr 160px;
-    }
-  }
+/* resource name only on first day-shift */
+.res-name-cell { font-size: 12px; font-weight: 600; color: var(--text); }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
-    authDomain: "smi-production-report.firebaseapp.com",
-    projectId: "smi-production-report",
-    storageBucket: "smi-production-report.firebasestorage.app",
-    messagingSenderId: "934983410817",
-    appId: "1:934983410817:web:77a10c77b6ee36c9ded980"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+const firebaseConfig = {
+  apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
+  authDomain: "smi-production-report.firebaseapp.com",
+  projectId: "smi-production-report",
+  storageBucket: "smi-production-report.firebasestorage.app",
+  messagingSenderId: "934983410817",
+  appId: "1:934983410817:web:77a10c77b6ee36c9ded980"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 </script>
 <script type="text/babel">
 dayjs.extend(dayjs_plugin_isoWeek);
-dayjs.extend(dayjs_plugin_weekOfYear);
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const SHIFTS = ['M','D','A'];
-const SHIFT_LABEL = { M:'Morning', D:'Day', A:'Afternoon' };
-const PPH_TARGET = 4;
-const BUS = [
-  'All BUs',
-  'BU Verathon',
-  'BU Molding',
-  'BU Tier 1',
-  'BU Tier 1 - Respiratory',
-  'BU Tier 1 - Blades',
-  'BU Tier 2',
-  'BU Tier 2 - DNA',
-  'BU Tier 2 - FLEX',
-  'BU Bell Farm',
-];
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function getWeekBounds(d) {
-  const start = d.isoWeekday(1); // Monday
-  return { start, end: start.add(6,'day') };
-}
-function fmtWeek(d) {
-  const { start, end } = getWeekBounds(d);
-  return `Wk ${d.isoWeek()} · ${start.format('MMM D')} – ${end.format('MMM D, YYYY')}`;
-}
-function fmtPPH(actual, hrs) {
-  if (!hrs || hrs === 0) return null;
-  return (actual / hrs).toFixed(2);
-}
-
-// ─── LEADER → BU MAP (mirrors BuildTracker) ───────────────────────────────────
-const LEADER_TO_BU = {
-  "George":                  "BU Verathon",
-  "Andrew B.":               "BU Molding",
-  "Mark P.":                 "BU Tier 1",
-  "Lori F.":                 "BU Tier 2",
-  "Rob S.":                  "BU Bell Farm",
-  "BU Verathon":             "BU Verathon",
-  "BU Molding":              "BU Molding",
-  "BU Tier 1":               "BU Tier 1",
-  "BU Tier 1 - Respiratory": "BU Tier 1 - Respiratory",
-  "BU Tier 1 - Blades":      "BU Tier 1 - Blades",
-  "BU Tier 2":               "BU Tier 2",
-  "BU Tier 2 - DNA":         "BU Tier 2 - DNA",
-  "BU Tier 2 - FLEX":        "BU Tier 2 - FLEX",
-  "BU Bell Farm":            "BU Bell Farm",
-  "BU Bellfarm":             "BU Bell Farm",
-};
-
-// Map shift index/label from shift_reports to M/D/A
-// shift_reports use shiftNumber 1/2/3 or label S1/S2/S3
-function toShiftCode(raw) {
-  if (!raw) return null;
-  const s = String(raw).trim();
-  if (s==='1'||s==='S1'||s.toLowerCase()==='morning'||s==='M') return 'M';
-  if (s==='2'||s==='S2'||s.toLowerCase()==='day'||s==='D')     return 'D';
-  if (s==='3'||s==='S3'||s.toLowerCase()==='afternoon'||s==='A') return 'A';
-  return null;
-}
-
-// Extract ISO week key from a JS Date or Firestore Timestamp
-function weekKeyFromDate(d) {
-  const dt = d && d.toDate ? d.toDate() : new Date(d);
-  const day = dayjs(dt);
-  return `${day.year()}-W${String(day.isoWeek()).padStart(2,'0')}`;
-}
-
-// ─── LOAD FROM FIRESTORE ───────────────────────────────────────────────────────
-// VERBuildPlan stores: production_data/ver_build_plan → { rows: [ { resource, part_id, description, weeks: { "YYYY-MM-DD": qty } } ] }
-// Week keys are Monday dates (YYYY-MM-DD). We sum all part rows for a resource to get the weekly plan total.
-
-// Convert ISO week key (e.g. "2026-W41") → Monday date string "YYYY-MM-DD"
-function weekKeyToMonday(weekKey) {
-  const [yearStr, wStr] = weekKey.split('-W');
-  const year = parseInt(yearStr), week = parseInt(wStr);
-  // Jan 4 is always in week 1 (ISO)
-  const jan4 = new Date(year, 0, 4);
-  const jan4Day = jan4.getDay() || 7; // 1=Mon ... 7=Sun
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - (jan4Day - 1) + (week - 1) * 7);
-  return monday.toISOString().slice(0, 10);
-}
-
-async function loadFromFirestore(weekKey) {
-  // ── 1. Build plan from VERBuildPlan ──────────────────────────────────────────
-  // Collection: production_data, doc: ver_build_plan
-  // rows: [ { resource: "LPS3 HDMI", part_id: "VER1/...", description: "...", weeks: { "2026-10-05": 1050, ... } } ]
-  const mondayKey = weekKeyToMonday(weekKey); // e.g. "2026-10-06" for W41 2026
-
-  const planSnap = await db.collection('production_data').doc('ver_build_plan').get();
-  const planDoc  = planSnap.exists ? planSnap.data() : {};
-  const planRows = planDoc.rows || [];
-
-  // Aggregate plan qty per resource for this week's Monday
-  // (multiple part_id rows per resource → sum them)
-  const planMap = {}; // resourceName → { totalPlan, descriptions[] }
-  planRows.forEach(row => {
-    const name = (row.resource || '').trim();
-    if (!name) return;
-    const qty = Number((row.weeks || {})[mondayKey] || 0);
-    if (!planMap[name]) planMap[name] = { plan: 0, description: row.description || '' };
-    planMap[name].plan += qty;
-    // Keep first non-empty description as the resource description
-    if (!planMap[name].description && row.description) planMap[name].description = row.description;
-  });
-
-  // ── 2. Shift reports for this week ───────────────────────────────────────────
-  // shift_reports docs: { leader, shiftNumber, date (Timestamp), resources: [ { name, qty, hrs, sku, notes } ] }
-  const reportsSnap = await db.collection('shift_reports').get();
-  // Filter to this week client-side (avoids composite index requirement)
-  const weekReports = [];
-  reportsSnap.forEach(doc => {
-    const d = doc.data();
-    const dateField = d.date || d.shiftDate || d.ts || d.timestamp;
-    if (!dateField) return;
-    if (weekKeyFromDate(dateField) !== weekKey) return;
-    weekReports.push(d);
-  });
-
-  // ── 3. Build resource list + shift data from reports ─────────────────────────
-  // resourceMap: resourceName → { id, name, bu, plan, shifts: { M:{}, D:{}, A:{} } }
-  const resourceMap = {};
-
-  // Seed from VER build plan — all these resources are BU Verathon
-  Object.entries(planMap).forEach(([name, info]) => {
-    if (info.plan === 0) return; // skip resources with no plan this week
-    resourceMap[name] = {
-      id: name,
-      name,
-      bu: 'BU Verathon',
-      plan: info.plan,
-      description: info.description,
-      shifts: { M: null, D: null, A: null },
-    };
-  });
-
-  // Merge actuals from shift reports
-  weekReports.forEach(report => {
-    const shiftCode = toShiftCode(report.shiftNumber || report.shift || report.shiftLabel);
-    if (!shiftCode) return;
-    const bu = LEADER_TO_BU[report.leader || ''] || report.leader || '';
-    const rows = report.resources || report.lines || [];
-    rows.forEach(row => {
-      const rName = row.name || row.resource || row.line || '';
-      if (!rName) return;
-      if (!resourceMap[rName]) {
-        resourceMap[rName] = {
-          id: rName,
-          name: rName,
-          bu,
-          plan: planMap[rName] ? planMap[rName].plan : 0,
-          shifts: { M: null, D: null, A: null },
-        };
-      }
-      // Only take the best/latest entry per shift (last write wins)
-      resourceMap[rName].shifts[shiftCode] = {
-        actual: Number(row.qty || row.actual || row.units || row.quantity || 0),
-        hrs:    Number(row.hrs || row.hours || row.labourHrs || row.labr_hrs || row.labor_hrs || 0),
-        sku:    row.sku || row.part_id || row.part || row.description || planMap[rName]?.description || '',
-        notes:  row.notes || row.note || row.comments || row.comment || '',
-      };
-      // Fill in BU from report leader if missing
-      if (!resourceMap[rName].bu && bu) resourceMap[rName].bu = bu;
-    });
-  });
-
-  // Convert resourceMap to flat arrays
-  const resources = Object.values(resourceMap).sort((a,b) => a.name.localeCompare(b.name));
-
-  // Build shiftData keyed as "resourceName-shiftCode"
-  const shiftData = {};
-  resources.forEach(r => {
-    SHIFTS.forEach(s => {
-      shiftData[`${r.id}-${s}`] = r.shifts[s] || { actual:0, hrs:0, sku:'', notes:'' };
-    });
-  });
-
-  // ── 4. Load saved comments ───────────────────────────────────────────────────
-  const commentsSnap = await db.collection('attainment_comments').doc(weekKey).get();
-  const savedComments = commentsSnap.exists ? commentsSnap.data() : {};
-
-  return { resources, shiftData, savedComments };
-}
-
-// ─── COMPONENTS ───────────────────────────────────────────────────────────────
 const { useState, useEffect, useRef, useCallback } = React;
 
+// ── Constants ──────────────────────────────────────────────────────────────
+const PPH_TARGET = 4;
+
+const ALL_BU_KEYS = [
+  "BU Verathon","BU Molding",
+  "BU Tier 1","BU Tier 1 - Respiratory","BU Tier 1 - Blades",
+  "BU Tier 2","BU Tier 2 - DNA","BU Tier 2 - FLEX",
+  "BU Bell Farm",
+];
+
+const LEGACY_LEADER_TO_BU = {
+  "George":"BU Verathon","Andrew B.":"BU Molding",
+  "Mark P.":"BU Tier 1","Lori F.":"BU Tier 2","Rob S.":"BU Bell Farm",
+};
+
+const normBU = (bu) => (!bu || bu==="BU Bellfarm") ? "BU Bell Farm" : (bu||"");
+const docBU  = (r)  => normBU(r.bu) || normBU(LEGACY_LEADER_TO_BU[r.leader]) || "";
+
+// shiftId 1=S1(mid), 2=S2(day), 3=S3(aft)
+const SHIFT_CODES = { 1:"S1", 2:"S2", 3:"S3" };
+const SHIFT_CSS   = { 1:"s1", 2:"s2", 3:"s3" };
+const DAYS_OF_WEEK = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+// ── Week helpers ───────────────────────────────────────────────────────────
+function weekBounds(day) {
+  const start = day.isoWeekday(1);
+  return { start, end: start.add(6,"day") };
+}
+function fmtWeek(day) {
+  const { start, end } = weekBounds(day);
+  return `Wk ${day.isoWeek()} \u00b7 ${start.format("MMM D")} \u2013 ${end.format("MMM D, YYYY")}`;
+}
+function weekDates(day) {
+  const mon = day.isoWeekday(1);
+  return Array.from({length:7}, (_,i) => mon.add(i,"day").format("YYYY-MM-DD"));
+}
+
+// Monday of the ISO week that contains `day`
+function weekMonday(day) {
+  return day.isoWeekday(1).format("YYYY-MM-DD");
+}
+
+// ── PPH & Attainment badges ────────────────────────────────────────────────
 function PPHBadge({ actual, hrs }) {
-  const pph = fmtPPH(actual, hrs);
-  if (pph === null) return <span className="pph-badge pph-none">—</span>;
-  const ok = parseFloat(pph) >= PPH_TARGET;
-  return <span className={`pph-badge ${ok ? 'pph-green' : 'pph-red'}`}>{pph}</span>;
+  if (!hrs || hrs === 0) return <span className="pph-badge pph-none">—</span>;
+  const v = actual / hrs;
+  const ok = v >= PPH_TARGET;
+  return <span className={`pph-badge ${ok?"pph-green":"pph-red"}`}>{v.toFixed(2)}</span>;
+}
+function AttBadge({ actual, plan }) {
+  if (!plan) return <span className="att-badge att-none">—</span>;
+  const pct = Math.round(actual/plan*100);
+  return <span className={`att-badge ${pct>=100?"att-green":"att-red"}`}>{pct}%</span>;
 }
 
-function AttainmentBadge({ actual, plan }) {
-  if (!plan) return <span className="attainment-badge att-none">No plan</span>;
-  const pct = Math.round((actual / plan) * 100);
-  const ok = pct >= 100;
-  return (
-    <span className={`attainment-badge ${ok ? 'att-green' : 'att-red'}`}>
-      {pct}%
-    </span>
-  );
-}
-
-function ShiftBadge({ s }) {
-  return <span className={`shift-badge shift-${s}`}>{s}</span>;
-}
-
-function ResourceBlock({ resource, shiftData, comments, onCommentChange }) {
-  const shifts = SHIFTS.map(s => {
-    const key = `${resource.id}-${s}`;
-    return { s, key, ...(shiftData[key] || { actual:0, hrs:0, sku:'', notes:'' }) };
-  });
-
-  const totalActual = shifts.reduce((sum, r) => sum + (r.actual || 0), 0);
-  const totalHrs = shifts.reduce((sum, r) => sum + (r.hrs || 0), 0);
-
-  return (
-    <div className="resource-block">
-      {/* Shift rows */}
-      {shifts.map(({ s, key, actual, hrs, sku, notes }) => {
-        const hasData = actual > 0 || hrs > 0;
-        const pph = fmtPPH(actual, hrs);
-        const pphOk = pph !== null && parseFloat(pph) >= PPH_TARGET;
-        const rowClass = hasData ? (pphOk ? 'green-row' : 'red-row') : '';
-        return (
-          <div key={key} className={`shift-row ${rowClass}`}>
-            <div className="cell left" style={{paddingLeft: 8}}>
-              {s === 'M' ? <span className="resource-name">{resource.name}</span> : <span />}
-            </div>
-            <div className="cell"><ShiftBadge s={s}/></div>
-            <div className="cell muted">{s === 'M' ? resource.plan?.toLocaleString() ?? '—' : ''}</div>
-            <div className="cell">{hasData ? actual.toLocaleString() : <span className="empty-shift">—</span>}</div>
-            <div className="cell muted">{hasData ? hrs : <span className="empty-shift">—</span>}</div>
-            <div className="cell"><PPHBadge actual={actual} hrs={hrs}/></div>
-            <div className="cell left"><span className="sku-text">{sku || ''}</span></div>
-            <div className="cell left"><span className="notes-text">{notes || ''}</span></div>
-            <div className="cell">
-              <textarea
-                className="comment-cell"
-                rows={1}
-                placeholder="Add note…"
-                value={comments[key] || ''}
-                onChange={e => onCommentChange(key, e.target.value)}
-              />
-            </div>
-          </div>
-        );
-      })}
-      {/* Totals row */}
-      <div className="totals-row">
-        <div className="cell left" style={{paddingLeft:8, fontSize:11, color:'var(--text-muted)', fontFamily:'var(--sans)'}}>Week total</div>
-        <div></div>
-        <div className="cell"><AttainmentBadge actual={totalActual} plan={resource.plan}/></div>
-        <div className="cell" style={{color:'var(--text)', fontWeight:700}}>{totalActual.toLocaleString()}</div>
-        <div className="cell muted">{totalHrs}</div>
-        <div className="cell"><PPHBadge actual={totalActual} hrs={totalHrs}/></div>
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
-    </div>
-  );
-}
-
+// ── Main App ───────────────────────────────────────────────────────────────
 function App() {
-  const [currentDay, setCurrentDay] = useState(dayjs());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [datePickerVal, setDatePickerVal] = useState('');
-  const [selectedBU, setSelectedBU] = useState('All BUs');
-  const [loading, setLoading] = useState(false);
-  const [resources, setResources] = useState([]);
-  const [shiftData, setShiftData] = useState({});
-  const [comments, setComments] = useState({});
-  const [lastRefresh, setLastRefresh] = useState(null);
+  const [currentDay,    setCurrentDay]    = useState(dayjs());
+  const [showDatePick,  setShowDatePick]  = useState(false);
+  const [datePickVal,   setDatePickVal]   = useState("");
+  const [selectedBU,    setSelectedBU]    = useState("All BUs");
+  const [loading,       setLoading]       = useState(false);
+  const [lastRefresh,   setLastRefresh]   = useState(null);
 
-  const weekKey = `${currentDay.year()}-W${String(currentDay.isoWeek()).padStart(2,'0')}`;
+  // Data state
+  // resources: [ { id, name, bu, plan } ]
+  // actuals: { "resourceName|YYYY-MM-DD|shiftId": { qty, hrs, sku, notes } }
+  const [resources,  setResources]  = useState([]);
+  const [actuals,    setActuals]    = useState({});
+  const [comments,   setComments]   = useState({});
 
-  // Load data from Firestore
-  const loadData = useCallback(() => {
+  const dates = weekDates(currentDay); // ["2026-09-28", ..., "2026-10-04"]
+  const mondayKey = weekMonday(currentDay); // for VER plan lookup
+
+  // ── Load data ────────────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
     setLoading(true);
-    loadFromFirestore(weekKey)
-      .then(({ resources, shiftData, savedComments }) => {
-        setResources(resources);
-        setShiftData(shiftData);
-        setComments(savedComments);
-        setLastRefresh(dayjs());
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Attainment load error:', err);
-        setLoading(false);
+    try {
+      // 1. VER build plan → resource list + weekly plan qty
+      const planSnap = await db.collection("production_data").doc("ver_build_plan").get();
+      const planRows = planSnap.exists ? (planSnap.data().rows || []) : [];
+
+      // Sum qty per resource for this week's Monday
+      const planMap = {}; // resourceName -> { plan, description }
+      planRows.forEach(row => {
+        const name = (row.resource||"").trim();
+        if (!name) return;
+        const qty = Number((row.weeks||{})[mondayKey] || 0);
+        if (!planMap[name]) planMap[name] = { plan:0, description: row.description||"" };
+        planMap[name].plan += qty;
+        if (!planMap[name].description && row.description) planMap[name].description = row.description;
       });
-  }, [weekKey]);
+
+      // Build resource list from plan (only resources with plan > 0 this week)
+      const verResources = Object.entries(planMap)
+        .filter(([,v]) => v.plan > 0)
+        .map(([name, v]) => ({ id: name, name, bu: "BU Verathon", plan: v.plan, description: v.description }));
+
+      // 2. Shift reports for this week's date range
+      // dates[0] = Monday, dates[6] = Sunday
+      const fromDate = dates[0];
+      const toDate   = dates[6];
+
+      const reportsSnap = await db.collection("shift_reports").get();
+
+      // actuals map: "resource|date|shiftId" -> { qty, hrs, sku, notes, bu }
+      const actualsMap = {};
+      // Also collect non-VER resources seen in shift reports
+      const extraResources = {}; // name -> { bu }
+
+      reportsSnap.forEach(doc => {
+        const d = doc.data();
+        if (!d.date || d.date < fromDate || d.date > toDate) return;
+        const bu = docBU(d);
+        const shiftId = d.shiftId || 0;
+        (d.wos || []).forEach(w => {
+          const res = (w.resource||"").trim();
+          if (!res) return;
+          const key = `${res}|${d.date}|${shiftId}`;
+          if (!actualsMap[key]) {
+            actualsMap[key] = { qty:0, hrs:0, sku:"", notes:"", bu };
+          }
+          actualsMap[key].qty  += Number(w.qty  || 0);
+          actualsMap[key].hrs  += Number(w.hrs  || 0);
+          actualsMap[key].sku   = w.wo || w.descr || actualsMap[key].sku;
+          actualsMap[key].notes = w.notes || actualsMap[key].notes;
+          // Track non-VER resources
+          if (!planMap[res] && bu) {
+            if (!extraResources[res]) extraResources[res] = { bu };
+          }
+        });
+      });
+
+      // Build combined resource list: VER (from plan) + others (from shift reports)
+      const otherResources = Object.entries(extraResources).map(([name,v]) => ({
+        id: name, name, bu: v.bu, plan: 0, description: ""
+      }));
+
+      const allResources = [...verResources, ...otherResources]
+        .sort((a,b) => a.name.localeCompare(b.name));
+
+      // 3. Saved comments
+      const weekKey = `${currentDay.year()}-W${String(currentDay.isoWeek()).padStart(2,"0")}`;
+      const commSnap = await db.collection("attainment_comments").doc(weekKey).get();
+      const savedComments = commSnap.exists ? commSnap.data() : {};
+
+      setResources(allResources);
+      setActuals(actualsMap);
+      setComments(savedComments);
+      setLastRefresh(dayjs());
+    } catch(err) {
+      console.error("Attainment load error:", err);
+    }
+    setLoading(false);
+  }, [mondayKey, dates[0], dates[6]]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Debounced comment save to Firestore
+  // ── Comment save (debounced) ─────────────────────────────────────────────
   const saveTimer = useRef(null);
   const handleCommentChange = (key, val) => {
     const next = { ...comments, [key]: val };
     setComments(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    const weekKey = `${currentDay.year()}-W${String(currentDay.isoWeek()).padStart(2,"0")}`;
     saveTimer.current = setTimeout(() => {
-      db.collection('attainment_comments').doc(weekKey)
+      db.collection("attainment_comments").doc(weekKey)
         .set(next, { merge: true })
-        .catch(e => console.error('Comment save error:', e));
+        .catch(e => console.error("Comment save:", e));
     }, 800);
   };
 
-  // BU filter — parent BU includes subdivisions (e.g. "BU Tier 1" also shows Respiratory + Blades)
-  const filteredResources = selectedBU === 'All BUs'
+  // ── BU filter ────────────────────────────────────────────────────────────
+  const filteredResources = selectedBU === "All BUs"
     ? resources
-    : resources.filter(r => {
-        if (!r.bu) return false;
-        if (r.bu === selectedBU) return true;
-        // Parent match: "BU Tier 1" matches "BU Tier 1 - Respiratory" etc.
-        if (r.bu.startsWith(selectedBU + ' - ')) return true;
-        return false;
+    : resources.filter(r => r.bu === selectedBU || r.bu.startsWith(selectedBU + " - "));
+
+  // ── Week-level totals ────────────────────────────────────────────────────
+  let totalPlan=0, totalActual=0, totalHrs=0;
+  filteredResources.forEach(r => {
+    totalPlan += r.plan || 0;
+    dates.forEach(date => {
+      [1,2,3].forEach(sid => {
+        const a = actuals[`${r.id}|${date}|${sid}`];
+        if (a) { totalActual += a.qty||0; totalHrs += a.hrs||0; }
       });
+    });
+  });
+  const overallPPH = totalHrs > 0 ? (totalActual/totalHrs).toFixed(2) : null;
+  const overallAtt = totalPlan > 0 ? Math.round(totalActual/totalPlan*100) : null;
 
-  // Week summaries
-  const totalPlan = filteredResources.reduce((s, r) => s + (r.plan || 0), 0);
-  const totalActual = filteredResources.reduce((s, r) => {
-    return s + SHIFTS.reduce((ss, sh) => {
-      const d = shiftData[`${r.id}-${sh}`];
-      return ss + (d ? d.actual || 0 : 0);
-    }, 0);
-  }, 0);
-  const totalHrs = filteredResources.reduce((s, r) => {
-    return s + SHIFTS.reduce((ss, sh) => {
-      const d = shiftData[`${r.id}-${sh}`];
-      return ss + (d ? d.hrs || 0 : 0);
-    }, 0);
-  }, 0);
-  const overallPPH = fmtPPH(totalActual, totalHrs);
-  const overallAtt = totalPlan ? Math.round((totalActual / totalPlan) * 100) : null;
-
-  const prevWeek = () => setCurrentDay(d => d.subtract(1,'week'));
-  const nextWeek = () => setCurrentDay(d => d.add(1,'week'));
-  const openDatePicker = () => {
-    setDatePickerVal(currentDay.format('YYYY-MM-DD'));
-    setShowDatePicker(true);
-  };
-  const confirmDate = () => {
-    if (datePickerVal) setCurrentDay(dayjs(datePickerVal));
-    setShowDatePicker(false);
-  };
+  // ── Navigation ───────────────────────────────────────────────────────────
+  const prevWeek = () => setCurrentDay(d => d.subtract(1,"week"));
+  const nextWeek = () => setCurrentDay(d => d.add(1,"week"));
+  const openDatePick = () => { setDatePickVal(currentDay.format("YYYY-MM-DD")); setShowDatePick(true); };
+  const confirmDate  = () => { if (datePickVal) setCurrentDay(dayjs(datePickVal)); setShowDatePick(false); };
 
   return (
     <>
       {/* HEADER */}
       <div className="header">
-        <div className="header-left">
-          <button className="hub-link" onClick={() => window.location.href='hub.html'}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button className="hub-link" onClick={() => window.location.href="hub.html"}>
             <span className="smi-logo">SMI</span>
             <span className="logo-text">PRODUCTION HUB</span>
           </button>
           <div>
             <div className="app-title">Attainment</div>
-            <div className="app-subtitle">Weekly production vs plan</div>
+            <div className="app-sub">Weekly production vs plan</div>
           </div>
         </div>
 
         <div className="header-center">
-          <button className="week-nav-btn" onClick={prevWeek} title="Previous week">‹</button>
-          <button className="week-display" onClick={openDatePicker}>{fmtWeek(currentDay)}</button>
-          <button className="week-nav-btn" onClick={nextWeek} title="Next week">›</button>
+          <button className="week-nav-btn" onClick={prevWeek} title="Previous week">&#8249;</button>
+          <button className="week-display" onClick={openDatePick}>{fmtWeek(currentDay)}</button>
+          <button className="week-nav-btn" onClick={nextWeek} title="Next week">&#8250;</button>
         </div>
 
         <div className="header-right">
           <select className="bu-select" value={selectedBU} onChange={e => setSelectedBU(e.target.value)}>
-            {BUS.map(b => <option key={b}>{b}</option>)}
+            <option>All BUs</option>
+            {ALL_BU_KEYS.map(b => <option key={b}>{b}</option>)}
           </select>
-          <button className="refresh-btn" onClick={loadData}>↺ Refresh</button>
+          <button className="refresh-btn" onClick={loadData}>&#8635; Refresh</button>
           {lastRefresh && (
-            <span style={{fontSize:11,color:'var(--text-dim)'}}>
-              <span className="status-dot" style={{marginRight:5}}/>
-              {lastRefresh.format('HH:mm')}
+            <span style={{fontSize:10,color:"var(--text-dim)"}}>
+              <span className="status-dot" style={{marginRight:4}}/>
+              {lastRefresh.format("HH:mm")}
             </span>
           )}
         </div>
@@ -685,94 +431,132 @@ function App() {
 
       {/* MAIN */}
       <div className="main">
-
-        {/* Week summary bar */}
+        {/* Summary bar */}
         <div className="week-summary">
-          <div className="summary-card">
-            <div className="label">Week plan</div>
-            <div className="value">{totalPlan.toLocaleString()}</div>
-          </div>
-          <div className="summary-card">
-            <div className="label">Week actual</div>
-            <div className="value">{totalActual.toLocaleString()}</div>
-          </div>
-          <div className="summary-card">
-            <div className="label">Attainment</div>
-            <div className={`value ${overallAtt === null ? '' : overallAtt >= 100 ? 'green' : 'red'}`}>
-              {overallAtt !== null ? `${overallAtt}%` : '—'}
+          {[
+            { label:"Week plan",   val: totalPlan.toLocaleString(), cls:"" },
+            { label:"Week actual", val: totalActual.toLocaleString(), cls:"" },
+            { label:"Attainment",  val: overallAtt!=null ? overallAtt+"%" : "—", cls: overallAtt==null?"":overallAtt>=100?"green":"red" },
+            { label:"Total hours", val: totalHrs.toFixed(1), cls:"" },
+            { label:"Overall PPH", val: overallPPH ?? "—", cls: overallPPH==null?"":parseFloat(overallPPH)>=PPH_TARGET?"green":"red" },
+            { label:"Lines",       val: filteredResources.length, cls:"" },
+          ].map(c => (
+            <div key={c.label} className="summary-card">
+              <div className="label">{c.label}</div>
+              <div className={`value ${c.cls}`}>{c.val}</div>
             </div>
-          </div>
-          <div className="summary-card">
-            <div className="label">Total hours</div>
-            <div className="value">{totalHrs}</div>
-          </div>
-          <div className="summary-card">
-            <div className="label">Overall PPH</div>
-            <div className={`value ${overallPPH === null ? '' : parseFloat(overallPPH) >= PPH_TARGET ? 'green' : 'red'}`}>
-              {overallPPH ?? '—'}
-            </div>
-          </div>
-          <div className="summary-card">
-            <div className="label">Lines tracked</div>
-            <div className="value">{filteredResources.length}</div>
-          </div>
+          ))}
         </div>
 
         {/* Table */}
         {loading ? (
-          <div className="table-wrap">
-            <div className="state-msg">
-              <div className="big">⏳</div>
-              Loading week {weekKey}…
-            </div>
-          </div>
+          <div className="table-wrap"><div className="state-msg"><div className="big">&#9203;</div>Loading&hellip;</div></div>
         ) : filteredResources.length === 0 ? (
-          <div className="table-wrap">
-            <div className="state-msg">
-              <div className="big">📋</div>
-              No data for {selectedBU} — {fmtWeek(currentDay)}
-            </div>
-          </div>
+          <div className="table-wrap"><div className="state-msg"><div className="big">&#128203;</div>No data for {selectedBU} &mdash; {fmtWeek(currentDay)}</div></div>
         ) : (
           <div className="table-wrap">
             {/* Column headers */}
             <div className="col-headers">
               <div className="col-h left">Resource / Line</div>
+              <div className="col-h left">Day</div>
               <div className="col-h">Shift</div>
               <div className="col-h">Plan</div>
               <div className="col-h">Actual</div>
               <div className="col-h">Hrs</div>
               <div className="col-h">PPH</div>
-              <div className="col-h left">SKU</div>
+              <div className="col-h left">SKU / WO</div>
               <div className="col-h left">Notes</div>
               <div className="col-h left">Comments</div>
             </div>
-            {filteredResources.map(r => (
-              <ResourceBlock
-                key={r.id}
-                resource={r}
-                shiftData={shiftData}
-                comments={comments}
-                onCommentChange={handleCommentChange}
-              />
-            ))}
+
+            {filteredResources.map(r => {
+              // compute week totals for this resource
+              let wActual=0, wHrs=0;
+              dates.forEach(date => [1,2,3].forEach(sid => {
+                const a = actuals[`${r.id}|${date}|${sid}`];
+                if (a) { wActual += a.qty||0; wHrs += a.hrs||0; }
+              }));
+
+              return (
+                <div key={r.id} className="resource-block">
+                  {dates.map((date, di) => {
+                    const dow = DAYS_OF_WEEK[di];
+                    const dayjsDate = dayjs(date);
+                    const dateLabel = `${dow} ${dayjsDate.format("MMM D")}`;
+                    return [1,2,3].map((sid, si) => {
+                      const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, sku:"", notes:"" };
+                      const hasData = (a.qty||0) > 0 || (a.hrs||0) > 0;
+                      const pphVal  = a.hrs > 0 ? a.qty/a.hrs : null;
+                      const pphOk   = pphVal !== null && pphVal >= PPH_TARGET;
+                      const rowCls  = hasData ? (pphOk ? "green-row" : "red-row") : "";
+                      const commKey = `${r.id}|${date}|${sid}`;
+                      const isFirstRow = di===0 && si===0;
+                      const isFirstShiftOfDay = si===0;
+
+                      return (
+                        <div key={commKey} className={`shift-row ${rowCls}`}>
+                          {/* Resource name — only on very first row */}
+                          <div className="cell left" style={{paddingLeft:8}}>
+                            {isFirstRow ? <span className="res-name-cell">{r.name}</span> : null}
+                          </div>
+                          {/* Day label — only on first shift of the day */}
+                          <div className="cell left" style={{fontSize:11, color:"var(--text-muted)"}}>
+                            {isFirstShiftOfDay ? dateLabel : ""}
+                          </div>
+                          {/* Shift badge */}
+                          <div className="cell">
+                            <span className={`shift-badge ${SHIFT_CSS[sid]}`}>{SHIFT_CODES[sid]}</span>
+                          </div>
+                          {/* Plan — only on first row */}
+                          <div className="cell muted">
+                            {isFirstRow && r.plan > 0 ? r.plan.toLocaleString() : ""}
+                          </div>
+                          {/* Actual */}
+                          <div className="cell">{hasData ? (a.qty||0).toLocaleString() : <span className="dim">—</span>}</div>
+                          {/* Hrs */}
+                          <div className="cell muted">{hasData ? (a.hrs||0) : <span className="dim">—</span>}</div>
+                          {/* PPH */}
+                          <div className="cell"><PPHBadge actual={a.qty||0} hrs={a.hrs||0}/></div>
+                          {/* SKU */}
+                          <div className="cell left"><span className="sku-text">{a.sku||""}</span></div>
+                          {/* Notes */}
+                          <div className="cell left"><span className="notes-text">{a.notes||""}</span></div>
+                          {/* Comments (editable) */}
+                          <div className="cell">
+                            <textarea className="comment-cell" rows={1} placeholder="Add note…"
+                              value={comments[commKey]||""}
+                              onChange={e => handleCommentChange(commKey, e.target.value)}/>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })}
+
+                  {/* Week totals row */}
+                  <div className="totals-row">
+                    <div className="cell left" style={{paddingLeft:8, fontSize:10, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>Week total</div>
+                    <div/><div/>
+                    <div className="cell"><AttBadge actual={wActual} plan={r.plan}/></div>
+                    <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
+                    <div className="cell muted">{wHrs > 0 ? wHrs.toFixed(1) : "—"}</div>
+                    <div className="cell"><PPHBadge actual={wActual} hrs={wHrs}/></div>
+                    <div/><div/><div/>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Date picker overlay */}
-      {showDatePicker && (
-        <div className="date-overlay" onClick={() => setShowDatePicker(false)}>
+      {showDatePick && (
+        <div className="date-overlay" onClick={() => setShowDatePick(false)}>
           <div className="date-picker-box" onClick={e => e.stopPropagation()}>
-            <label>Jump to any date — snaps to that week</label>
-            <input
-              type="date"
-              value={datePickerVal}
-              onChange={e => setDatePickerVal(e.target.value)}
-              autoFocus
-            />
+            <label>Jump to any date &mdash; snaps to that week</label>
+            <input type="date" value={datePickVal} onChange={e => setDatePickVal(e.target.value)} autoFocus/>
             <div className="dp-btns">
-              <button className="dp-btn cancel" onClick={() => setShowDatePicker(false)}>Cancel</button>
+              <button className="dp-btn cancel" onClick={() => setShowDatePick(false)}>Cancel</button>
               <button className="dp-btn confirm" onClick={confirmDate}>Go to week</button>
             </div>
           </div>
@@ -782,7 +566,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
