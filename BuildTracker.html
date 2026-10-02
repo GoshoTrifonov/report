@@ -3687,7 +3687,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   const emailReport = () => {
     if (!reportData) return;
-    const meta = SHIFTS[reportShiftId] || { label: "S" + reportShiftId, time: "" };
+    const meta = SHIFTS.find(function(s) { return s.id === reportShiftId; }) || { label: "S" + reportShiftId, time: "" };
     const dateStr = reportDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const subject = `Shift Report — ${buName(selectedLeader)} — ${meta.label} — ${dateStr}`;
     const lines = [];
