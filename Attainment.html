@@ -459,6 +459,7 @@ function App() {
   const [datePickVal,   setDatePickVal]   = useState("");
   const [selectedBU,    setSelectedBU]    = useState("All BUs");
   const [selectedLines, setSelectedLines] = useState([]);
+  const [selectedDays,  setSelectedDays]  = useState([]);
   const [loading,       setLoading]       = useState(false);
   const [lastRefresh,   setLastRefresh]   = useState(null);
 
@@ -563,7 +564,7 @@ function App() {
     setLoading(false);
   }, [mondayKey, dates[0], dates[6]]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); setSelectedDays([]); }, [loadData]);
 
   // ── Comment save (debounced) ─────────────────────────────────────────────
   const saveTimer = useRef(null);
@@ -650,6 +651,12 @@ function App() {
             options={availableLines}
             selected={selectedLines}
             onChange={setSelectedLines}
+          />
+          <MultiSelect
+            label="All days"
+            options={dates.map((date, di) => `${DAYS_OF_WEEK[di]} ${dayjs(date).format("MMM D")}`)}
+            selected={selectedDays}
+            onChange={setSelectedDays}
           />
           <button className="refresh-btn" onClick={loadData}>&#8635; Refresh</button>
           {lastRefresh && (
@@ -740,6 +747,8 @@ function App() {
                     const dow = DAYS_OF_WEEK[di];
                     const dayjsDate = dayjs(date);
                     const dateLabel = `${dow} ${dayjsDate.format("MMM D")}`;
+                    // Day filter — skip this day if it's not selected
+                    if (selectedDays.length > 0 && !selectedDays.includes(dateLabel)) return null;
                     return [1,2,3].map((sid, si) => {
                       const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, earned:0, sku:"", notes:"" };
                       const hasData = (a.qty||0) > 0 || (a.hrs||0) > 0;
