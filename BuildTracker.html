@@ -3685,6 +3685,52 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     }).catch(() => alert("Copy failed — try again or print instead."));
   };
 
+  const emailReport = () => {
+    if (!reportData) return;
+    const meta = SHIFTS[reportShiftId] || { label: "S" + reportShiftId, time: "" };
+    const dateStr = reportDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const subject = `Shift Report — ${buName(selectedLeader)} — ${meta.label} — ${dateStr}`;
+    const lines = [];
+    lines.push(`SHIFT REPORT — ${buName(selectedLeader).toUpperCase()}`);
+    lines.push(`${dateStr} · ${meta.label} (${meta.time})`);
+    lines.push("");
+    lines.push(`TOTAL UNITS:     ${reportData.totalUnits.toLocaleString()}`);
+    lines.push(`HOURS WORKED:    ${reportData.totalHrs.toFixed(1)}h`);
+    lines.push(`LOST HOURS:      ${reportData.totalLost.toFixed(1)}h`);
+    lines.push(`EFFICIENCY:      ${reportData.totalEff != null ? reportData.totalEff.toFixed(1) + "%" : "—"}`);
+    lines.push(`ENTRIES:         ${reportData.totalEntries}`);
+    lines.push(`RESOURCES ACTIVE:${reportData.byResource.size}`);
+    lines.push(`LINES DOWN:      ${reportData.downLines.length}`);
+    lines.push("");
+    if (reportData.safetyItems && reportData.safetyItems.length > 0) {
+      lines.push("⚠️ SAFETY:");
+      for (const s of reportData.safetyItems) lines.push(`  ${s.type || ""} — ${s.resource || ""} — ${s.descr || ""}`);
+      lines.push("");
+    }
+    if (reportData.ncItems && reportData.ncItems.length > 0) {
+      lines.push("🟠 NC:");
+      for (const n of reportData.ncItems) lines.push(`  ${n.type || ""} — ${n.resource || ""} — ${n.descr || ""}`);
+      lines.push("");
+    }
+    for (const [res, data] of reportData.byResource.entries()) {
+      for (const { row, entry } of data.entries) {
+        const effStr = entry.eff != null ? ` · Eff ${entry.eff.toFixed(1)}%` : "";
+        const hrsStr = entry.hrs ? ` · ${entry.hrs.toFixed(1)}h worked` : "";
+        const lostStr = entry.lost ? ` · ${entry.lost.toFixed(1)}h lost` : "";
+        lines.push(`${res}  ${row.wo}  ${row.descr || row.part || ""}`);
+        lines.push(`  +${entry.qty} units${effStr}${hrsStr}${lostStr} · total ${row.comp_qty}/${row.start_qty}`);
+        if (entry.notes) lines.push(`  Notes: ${entry.notes}`);
+      }
+    }
+    if (reportData.downLines.length > 0) {
+      lines.push("");
+      lines.push("LINES DOWN:");
+      for (const d of reportData.downLines) lines.push(`  ${d.resource} — ${d.reason}${d.notes ? " · " + d.notes : ""}`);
+    }
+    const body = lines.join("\n");
+    window.location.href = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  };
+
   const saveReport = async () => {
     if (!shiftReportsRef) return;
     setSaveState("saving");
@@ -3921,6 +3967,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               )}
               <div className="flex gap-2">
                 <button onClick={copyReport} className="flex-1 px-3 py-2 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">Copy as text</button>
+                <button onClick={emailReport} className="flex-1 px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">✉ Email report</button>
                 <button onClick={saveReport} disabled={saveState === "saving"}
                   style={{backgroundColor: saveState==="saved"?"#16a34a":saveState==="error"?"#dc2626":saveState==="saving"?"#60a5fa":"#2563eb"}}
                   className="flex-1 px-3 py-2 rounded-md text-white text-sm font-semibold">
