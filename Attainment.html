@@ -671,6 +671,71 @@ function App() {
             onChange={setSelectedDays}
           />
           <button className="refresh-btn" onClick={loadData}>&#8635; Refresh</button>
+          <button className="refresh-btn" style={{background:"rgba(124,58,237,0.1)",borderColor:"#7c3aed",color:"#7c3aed"}}
+            onClick={() => {
+              // Build structured prompt from current filtered data
+              const weekLabel = fmtWeek(currentDay);
+              const buLabel = selectedBU;
+              const dayLabel = selectedDays.length > 0 ? selectedDays.join(", ") : "Full week";
+              const lineLabel = selectedLines.length > 0 ? selectedLines.join(", ") : "All lines";
+
+              let lines = [];
+              lines.push(`You are analyzing SMI (Southmedic) production attainment data. Please provide a concise but thorough analysis covering: overall performance vs plan, efficiency highlights and concerns, patterns in shift notes, any lines needing attention, and a short recommendation for next week.`);
+              lines.push(`\n--- CONTEXT ---`);
+              lines.push(`Week: ${weekLabel}`);
+              lines.push(`BU filter: ${buLabel}`);
+              lines.push(`Day filter: ${dayLabel}`);
+              lines.push(`Line filter: ${lineLabel}`);
+              lines.push(`\n--- SUMMARY ---`);
+              lines.push(`Week Plan: ${totalPlan.toLocaleString()}`);
+              lines.push(`Week Actual: ${totalActual.toLocaleString()}`);
+              lines.push(`Attainment: ${totalPlan > 0 ? Math.round(totalActual/totalPlan*100) : "—"}%`);
+              lines.push(`Total Hours: ${totalHrs.toFixed(1)}`);
+              lines.push(`Overall Eff%: ${overallEff != null ? overallEff+"%" : "—"}`);
+              lines.push(`\n--- LINES ---`);
+
+              filteredResources.forEach(r => {
+                let rActual=0, rHrs=0, rEarned=0;
+                const notesList = [];
+                visibleDates.forEach(date => {
+                  [1,2,3].forEach(sid => {
+                    const a = actuals[`${r.id}|${date}|${sid}`];
+                    if (!a) return;
+                    rActual  += a.qty    || 0;
+                    rHrs     += a.hrs    || 0;
+                    rEarned  += a.earned || 0;
+                    if (a.notes) notesList.push(`${DAYS_OF_WEEK[dates.indexOf(date)]} S${sid}: ${a.notes}`);
+                  });
+                });
+                const rPlan = selectedDays.length === 0 ? r.plan : Math.round((r.plan||0)*visibleDates.length/7);
+                const rAtt  = rPlan > 0 ? Math.round(rActual/rPlan*100)+"%" : "no plan";
+                const rEff  = rHrs > 0 ? (rEarned/rHrs*100).toFixed(1)+"%" : "—";
+                const rPPH  = rHrs > 0 ? (rActual/rHrs).toFixed(2) : "—";
+                lines.push(`\n${r.name} (${r.bu})`);
+                lines.push(`  Plan: ${rPlan > 0 ? rPlan.toLocaleString() : "—"} | Actual: ${rActual.toLocaleString()} | Attainment: ${rAtt}`);
+                lines.push(`  Hours: ${rHrs.toFixed(1)} | Eff%: ${rEff} | PPH: ${rPPH}`);
+                if (notesList.length > 0) lines.push(`  Notes: ${notesList.join("; ")}`);
+              });
+
+              const prompt = lines.join("\n");
+              navigator.clipboard.writeText(prompt).then(() => {
+                // Brief visual feedback on the button
+                const btn = document.activeElement;
+                const orig = btn.textContent;
+                btn.textContent = "✓ Copied!";
+                btn.style.background = "rgba(22,163,74,0.1)";
+                btn.style.borderColor = "#16a34a";
+                btn.style.color = "#16a34a";
+                setTimeout(() => {
+                  btn.textContent = orig;
+                  btn.style.background = "rgba(124,58,237,0.1)";
+                  btn.style.borderColor = "#7c3aed";
+                  btn.style.color = "#7c3aed";
+                }, 2000);
+              });
+            }}>
+            🤖 Analyze
+          </button>
           {lastRefresh && (
             <span style={{fontSize:10,color:"var(--text-dim)"}}>
               <span className="status-dot" style={{marginRight:4}}/>
