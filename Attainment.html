@@ -83,7 +83,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 /* ── GRID: 9 cols (DAY removed — day label now inside first col) ──────────────
    Resource/Line | Shift | Plan | Actual | Hrs | Eff% | SKU/WO | Notes | Comments */
 :root {
-  --grid: 180px 44px 80px 80px 60px 70px 130px 1fr 180px;
+  --grid: 180px 44px 80px 80px 60px 70px 200px 200px 180px;
 }
 
 /* Column headers */
@@ -185,8 +185,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .comment-cell:focus { background: #ffffff; border-color: var(--accent); }
 .comment-cell::placeholder { color: var(--text-dim); }
 
-.sku-text  { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-.notes-text{ font-size: 10px; color: var(--text-muted); font-family: var(--sans); line-height: 1.4; }
+.sku-text  { font-size: 11px; color: #334155; font-family: var(--sans);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.notes-text{ font-size: 11px; color: var(--text-muted); font-family: var(--sans);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
 .state-msg { padding: 48px; text-align: center; color: var(--text-muted); font-size: 14px; }
 .state-msg .big { font-size: 28px; margin-bottom: 10px; }
