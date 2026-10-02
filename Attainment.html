@@ -83,7 +83,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 /* ── GRID: 9 cols (DAY removed — day label now inside first col) ──────────────
    Resource/Line | Shift | Plan | Actual | Hrs | Eff% | SKU/WO | Notes | Comments */
 :root {
-  --grid: 180px 44px 80px 80px 60px 70px 200px 200px 180px;
+  --grid: 180px 44px 80px 80px 60px 70px 260px 1fr 150px;
 }
 
 /* Column headers */
@@ -128,7 +128,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 /* Shift row — day label baked into first cell */
 .shift-row {
   display: grid; grid-template-columns: var(--grid);
-  padding: 5px 12px; align-items: center; gap: 4px;
+  padding: 5px 12px; align-items: start; gap: 4px;
   border-bottom: 1px solid #e2e8f0; transition: background 0.1s;
 }
 /* Day separator: first shift of each day gets a slightly stronger top border */
@@ -142,7 +142,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .shift-row.green-row { background: rgba(22,163,74,0.06); }
 .shift-row.red-row   { background: rgba(220,38,38,0.05); }
 
-.cell { font-size: 12px; font-family: var(--mono); text-align: right; color: var(--text); }
+.cell { font-size: 12px; font-family: var(--mono); text-align: right; color: var(--text); padding-top: 2px; }
 .cell.left { text-align: left; font-family: var(--sans); }
 .cell.muted { color: var(--text-muted); }
 .cell.dim { color: var(--text-dim); }
@@ -186,9 +186,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .comment-cell::placeholder { color: var(--text-dim); }
 
 .sku-text  { font-size: 11px; color: #334155; font-family: var(--sans);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  white-space: normal; line-height: 1.4; display: block; }
 .notes-text{ font-size: 11px; color: var(--text-muted); font-family: var(--sans);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  white-space: normal; line-height: 1.4; display: block; }
 
 .state-msg { padding: 48px; text-align: center; color: var(--text-muted); font-size: 14px; }
 .state-msg .big { font-size: 28px; margin-bottom: 10px; }
