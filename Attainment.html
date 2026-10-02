@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Attainment — SMI Production Hub</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -80,17 +80,20 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .resource-block:first-child .resource-header-row { border-radius: 6px 6px 0 0; }
 .resource-block:last-child .totals-row { border-radius: 0 0 10px 10px; }
 
-/* Column headers — sticky to the page, not inside a scroll container.
-   They live OUTSIDE .table-outer so overflow:hidden doesn't trap them. */
+/* ── GRID: 9 cols (DAY removed — day label now inside first col) ──────────────
+   Resource/Line | Shift | Plan | Actual | Hrs | Eff% | SKU/WO | Notes | Comments */
+:root {
+  --grid: 180px 44px 80px 80px 60px 70px 130px 1fr 180px;
+}
+
+/* Column headers */
 .col-headers {
-  display: grid;
-  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  display: grid; grid-template-columns: var(--grid);
   padding: 8px 12px; background: #dde3ed;
-  border: 1px solid #b6c2d4; border-radius: 8px 8px 0 0;
-  gap: 4px;
+  border: 1px solid #b6c2d4; border-radius: 8px 8px 0 0; gap: 4px;
   position: sticky; top: 52px; z-index: 50;
   box-shadow: 0 3px 6px rgba(0,0,0,0.08);
-  margin-bottom: -1px; /* merge visually with table-outer border */
+  margin-bottom: -1px;
 }
 .col-h { font-size: 10px; font-weight: 700; color: #334155;
   letter-spacing: 0.07em; text-transform: uppercase; text-align: right; }
@@ -100,49 +103,40 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .resource-block { border-bottom: 2px solid var(--border); }
 .resource-block:last-child { border-bottom: none; }
 
-/* Resource header row — sticky, blue, grid-aligned with data columns */
+/* Resource header row — softer slate-blue, sticky */
 .resource-header-row {
-  display: grid;
-  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
-  align-items: center; gap: 4px;
-  padding: 8px 12px;
-  background: #1e40af;
-  border-bottom: 1px solid #1d3a9e;
-  border-left: 4px solid #93c5fd;
-  position: sticky; top: 88px; z-index: 40;  /* 52px app header + 36px col-headers */
+  display: grid; grid-template-columns: var(--grid);
+  align-items: center; gap: 4px; padding: 8px 12px;
+  background: #334155;
+  border-bottom: 1px solid #293548;
+  border-left: 4px solid #60a5fa;
+  position: sticky; top: 88px; z-index: 40;
 }
 .resource-header-row .rh-name {
-  font-size: 13px; font-weight: 700; color: #fff;
-  grid-column: 1 / span 2; padding-left: 2px;
+  font-size: 13px; font-weight: 700; color: #f1f5f9; padding-left: 2px;
 }
 .resource-header-row .rh-bu {
-  font-size: 10px; color: #93c5fd; font-weight: 500;
-  display: block; margin-top: 1px;
+  font-size: 10px; color: #94a3b8; font-weight: 500; display: block; margin-top: 1px;
 }
 .resource-header-row .rh-plan-val {
-  font-size: 13px; font-weight: 700; color: #fff;
-  font-family: var(--mono); text-align: right;
+  font-size: 13px; font-weight: 700; color: #f1f5f9; font-family: var(--mono); text-align: right;
 }
 .resource-header-row .rh-plan-label {
-  font-size: 10px; color: #93c5fd; text-align: right; font-weight: 500;
+  font-size: 10px; color: #94a3b8; text-align: right; font-weight: 500;
 }
 
-/* Day group header */
-.day-header {
-  display: grid;
-  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
-  padding: 5px 12px; gap: 4px; align-items: center;
-  background: rgba(255,255,255,0.025);
-  border-bottom: 1px solid var(--border);
-}
-.day-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-
-/* Shift row */
+/* Shift row — day label baked into first cell */
 .shift-row {
-  display: grid;
-  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  display: grid; grid-template-columns: var(--grid);
   padding: 5px 12px; align-items: center; gap: 4px;
   border-bottom: 1px solid #e2e8f0; transition: background 0.1s;
+}
+/* Day separator: first shift of each day gets a slightly stronger top border */
+.shift-row.day-start { border-top: 1px solid #cbd5e1; }
+
+/* Day label inside the Resource/Line cell */
+.day-inline {
+  font-size: 11px; color: var(--text-muted); font-family: var(--sans);
 }
 .shift-row:hover { background: #f8fafc; }
 .shift-row.green-row { background: rgba(22,163,74,0.06); }
@@ -175,8 +169,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 
 /* Totals row — visually distinct from shift rows */
 .totals-row {
-  display: grid;
-  grid-template-columns: 160px 80px 48px 80px 80px 64px 74px 140px 1fr 180px;
+  display: grid; grid-template-columns: var(--grid);
   padding: 9px 12px; align-items: center; gap: 4px;
   background: #e8edf5;
   border-top: 2px solid #b6c2d4;
@@ -197,6 +190,39 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 
 .state-msg { padding: 48px; text-align: center; color: var(--text-muted); font-size: 14px; }
 .state-msg .big { font-size: 28px; margin-bottom: 10px; }
+
+/* ── MOBILE ──────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  :root {
+    /* Mobile grid: Day+Shift | Actual | Hrs | Eff% | (hide SKU/Notes/Comments/Plan) */
+    --grid: 1fr 44px 68px 52px 64px;
+  }
+  .header { padding: 0 12px; height: 48px; gap: 8px; }
+  .app-sub { display: none; }
+  .hub-link .logo-text { display: none; }
+  .smi-logo { font-size: 16px; }
+  .app-title { font-size: 14px; }
+  .week-display { min-width: 0; font-size: 11px; padding: 5px 8px; }
+  .header-right { gap: 6px; }
+  .bu-select { min-width: 0; max-width: 110px; font-size: 11px; }
+  .refresh-btn { padding: 5px 8px; font-size: 10px; }
+  .status-dot { display: none; }
+  .main { padding: 10px 10px 40px; }
+  /* Summary: 2-column grid on mobile */
+  .week-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .summary-card { padding: 8px 12px; }
+  .summary-card .value { font-size: 17px; }
+  /* Table scrolls horizontally — hide non-essential cols */
+  .col-h.hide-mobile  { display: none; }
+  .cell.hide-mobile   { display: none; }
+  .col-headers { top: 48px; }
+  .resource-header-row { top: 84px; padding: 7px 10px; }
+  .resource-header-row .rh-name { font-size: 12px; }
+  .shift-row { padding: 5px 10px; }
+  .totals-row { padding: 7px 10px; }
+  .cell { font-size: 11px; }
+  .pph-badge { font-size: 10px; min-width: 40px; padding: 2px 4px; }
+}
 
 /* Date picker overlay */
 .date-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
@@ -526,15 +552,14 @@ function App() {
         {!loading && filteredResources.length > 0 && (
           <div className="col-headers">
             <div className="col-h left">Resource / Line</div>
-            <div className="col-h left">Day</div>
             <div className="col-h">Shift</div>
-            <div className="col-h">Plan</div>
+            <div className="col-h hide-mobile">Plan</div>
             <div className="col-h">Actual</div>
             <div className="col-h">Hrs</div>
             <div className="col-h">Eff %</div>
-            <div className="col-h left">SKU / WO</div>
-            <div className="col-h left">Notes</div>
-            <div className="col-h left">Comments</div>
+            <div className="col-h left hide-mobile">SKU / WO</div>
+            <div className="col-h left hide-mobile">Notes</div>
+            <div className="col-h left hide-mobile">Comments</div>
           </div>
         )}
 
@@ -556,26 +581,27 @@ function App() {
 
               return (
                 <div key={r.id} className="resource-block">
-                  {/* Resource header row — sticky, blue, grid-aligned */}
+                  {/* Resource header row — sticky, slate-blue */}
                   <div className="resource-header-row">
-                    {/* Col 1+2: name + bu */}
-                    <div style={{gridColumn:"1 / span 2"}}>
+                    {/* Col 1: name + bu */}
+                    <div>
                       <span className="rh-name">{r.name}</span>
                       <span className="rh-bu">{r.bu}</span>
                     </div>
-                    {/* Col 3: Shift — empty */}
+                    {/* Col 2: Shift — empty */}
                     <div/>
-                    {/* Col 4: Plan */}
-                    <div>
+                    {/* Col 3: Plan */}
+                    <div className="hide-mobile">
                       {r.plan > 0 ? (
                         <>
                           <div className="rh-plan-label">Week plan</div>
                           <div className="rh-plan-val">{r.plan.toLocaleString()}</div>
                         </>
-                      ) : <div/>}
+                      ) : null}
                     </div>
                     {/* Remaining cols empty */}
-                    <div/><div/><div/><div/><div/><div/>
+                    <div/><div/><div/>
+                    <div className="hide-mobile"/><div className="hide-mobile"/><div className="hide-mobile"/>
                   </div>
 
                   {dates.map((date, di) => {
@@ -591,29 +617,31 @@ function App() {
                       const isFirstShiftOfDay = si===0;
 
                       return (
-                        <div key={commKey} className={`shift-row ${rowCls}`}>
-                          {/* Day label — only on first shift of the day */}
-                          <div className="cell left" style={{paddingLeft:8, fontSize:11, color:"var(--text-muted)", gridColumn:"1 / span 2"}}>
-                            {isFirstShiftOfDay ? dateLabel : ""}
+                        <div key={commKey} className={`shift-row ${rowCls}${isFirstShiftOfDay && di>0 ? " day-start" : ""}`}>
+                          {/* Col 1: day label (first shift of day) + shift badge */}
+                          <div className="cell left" style={{paddingLeft:8, display:"flex", alignItems:"center", gap:6}}>
+                            {isFirstShiftOfDay
+                              ? <span className="day-inline">{dateLabel}</span>
+                              : null}
                           </div>
                           {/* Shift badge */}
                           <div className="cell">
                             <span className={`shift-badge ${SHIFT_CSS[sid]}`}>{SHIFT_CODES[sid]}</span>
                           </div>
-                          {/* Plan column — empty, plan is in resource header */}
-                          <div className="cell muted"></div>
+                          {/* Plan — hidden on mobile */}
+                          <div className="cell muted hide-mobile"></div>
                           {/* Actual */}
                           <div className="cell">{hasData ? (a.qty||0).toLocaleString() : <span className="dim">—</span>}</div>
                           {/* Hrs */}
                           <div className="cell muted">{hasData ? (a.hrs||0) : <span className="dim">—</span>}</div>
                           {/* Eff% */}
                           <div className="cell"><EffBadge earned={a.earned||0} hrs={a.hrs||0}/></div>
-                          {/* SKU */}
-                          <div className="cell left"><span className="sku-text">{a.sku||""}</span></div>
-                          {/* Notes */}
-                          <div className="cell left"><span className="notes-text">{a.notes||""}</span></div>
-                          {/* Comments (editable) */}
-                          <div className="cell">
+                          {/* SKU — hidden on mobile */}
+                          <div className="cell left hide-mobile"><span className="sku-text">{a.sku||""}</span></div>
+                          {/* Notes — hidden on mobile */}
+                          <div className="cell left hide-mobile"><span className="notes-text">{a.notes||""}</span></div>
+                          {/* Comments — hidden on mobile */}
+                          <div className="cell hide-mobile">
                             <textarea className="comment-cell" rows={1} placeholder="Add note…"
                               value={comments[commKey]||""}
                               onChange={e => handleCommentChange(commKey, e.target.value)}/>
@@ -625,15 +653,23 @@ function App() {
 
                   {/* Week totals row */}
                   <div className="totals-row">
-                    {/* spans Resource+Day cols */}
-                    <div className="cell left" style={{paddingLeft:10, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)", gridColumn:"1 / span 2"}}>Week total</div>
+                    {/* Col 1: label */}
+                    <div className="cell left" style={{paddingLeft:10, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)"}}>Week total</div>
+                    {/* Col 2: Shift — empty */}
                     <div/>
-                    <div className="cell"><AttBadge actual={wActual} plan={r.plan}/></div>
+                    {/* Col 3: Attainment badge (Plan col) */}
+                    <div className="cell hide-mobile"><AttBadge actual={wActual} plan={r.plan}/></div>
+                    {/* Col 4: Actual */}
                     <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
+                    {/* Col 5: Hrs */}
                     <div className="cell muted">{wHrs > 0 ? wHrs.toFixed(1) : "—"}</div>
+                    {/* Col 6: Eff% */}
                     <div className="cell"><EffBadge earned={wEarned} hrs={wHrs}/></div>
-                    <div/><div/>
-                    <div className="cell left" style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>
+                    {/* Col 7: Attainment on mobile (visible), SKU col on desktop */}
+                    <div className="cell hide-mobile"/>
+                    <div className="cell hide-mobile"/>
+                    {/* Col 9: PPH in comments col */}
+                    <div className="cell left hide-mobile" style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>
                       {wHrs > 0 ? <span>PPH: <PPHBadge actual={wActual} hrs={wHrs}/></span> : ""}
                     </div>
                   </div>
