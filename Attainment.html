@@ -597,11 +597,23 @@ function App() {
     ? buFiltered
     : buFiltered.filter(r => selectedLines.includes(r.name));
 
-  // ── Week-level totals ────────────────────────────────────────────────────
+  // ── Week-level totals — respect all active filters (BU + lines + days) ──
+  // Build the set of dates currently visible
+  const visibleDates = dates.filter((date, di) => {
+    if (selectedDays.length === 0) return true;
+    const label = `${DAYS_OF_WEEK[di]} ${dayjs(date).format("MMM D")}`;
+    return selectedDays.includes(label);
+  });
+
   let totalPlan=0, totalActual=0, totalHrs=0, totalEarned=0;
   filteredResources.forEach(r => {
-    totalPlan += r.plan || 0;
-    dates.forEach(date => {
+    // Plan is weekly — prorate it to the visible days when day filter is active
+    if (selectedDays.length === 0) {
+      totalPlan += r.plan || 0;
+    } else {
+      totalPlan += Math.round((r.plan || 0) * visibleDates.length / 7);
+    }
+    visibleDates.forEach(date => {
       [1,2,3].forEach(sid => {
         const a = actuals[`${r.id}|${date}|${sid}`];
         if (a) { totalActual += a.qty||0; totalHrs += a.hrs||0; totalEarned += a.earned||0; }
@@ -713,7 +725,7 @@ function App() {
             {filteredResources.map((r) => {
               // compute week totals for this resource
               let wActual=0, wHrs=0, wEarned=0;
-              dates.forEach(date => [1,2,3].forEach(sid => {
+              visibleDates.forEach(date => [1,2,3].forEach(sid => {
                 const a = actuals[`${r.id}|${date}|${sid}`];
                 if (a) { wActual += a.qty||0; wHrs += a.hrs||0; wEarned += a.earned||0; }
               }));
@@ -798,8 +810,8 @@ function App() {
                     <div className="cell left" style={{paddingLeft:10, fontSize:11, fontWeight:700, color:"#334155", fontFamily:"var(--sans)"}}>Week total</div>
                     {/* Col 2: Shift — empty */}
                     <div/>
-                    {/* Col 3: Attainment badge (Plan col) */}
-                    <div className="cell hide-mobile"><AttBadge actual={wActual} plan={r.plan}/></div>
+                    {/* Col 3: Attainment badge — prorate plan to visible days */}
+                    <div className="cell hide-mobile"><AttBadge actual={wActual} plan={selectedDays.length === 0 ? r.plan : Math.round((r.plan||0)*visibleDates.length/7)}/></div>
                     {/* Col 4: Actual */}
                     <div className="cell" style={{color:"var(--text)",fontWeight:700}}>{wActual.toLocaleString()}</div>
                     {/* Col 5: Hrs */}
