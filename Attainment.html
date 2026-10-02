@@ -418,7 +418,7 @@ function App() {
           actualsMap[key].qty    += Number(w.qty    || 0);
           actualsMap[key].hrs    += Number(w.hrs    || 0);
           actualsMap[key].earned += Number(w.earned || 0);
-          actualsMap[key].sku    = w.wo || w.descr || actualsMap[key].sku;
+          actualsMap[key].sku    = w.descr || actualsMap[key].sku;
           actualsMap[key].notes  = w.notes || actualsMap[key].notes;
           // Track non-VER resources (skip any that are already in our VER mapped set)
           const isVerLine = Object.values(VER_PLAN_TO_LABOUR).includes(res);
@@ -557,7 +557,7 @@ function App() {
             <div className="col-h">Actual</div>
             <div className="col-h">Hrs</div>
             <div className="col-h">Eff %</div>
-            <div className="col-h left hide-mobile">SKU / WO</div>
+            <div className="col-h left hide-mobile">Description</div>
             <div className="col-h left hide-mobile">Notes</div>
             <div className="col-h left hide-mobile">Comments</div>
           </div>
