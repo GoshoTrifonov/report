@@ -354,7 +354,7 @@ function App() {
             {[
               ["dashboard","📊","Dashboard"],
               ["input","✏️","Input"],
-              ["history","�—�","History"],
+              ["history","✕","History"],
               ["config","⚙️","Config"],
             ].map(([v, icon, label]) => (
               <button key={v} onClick={() => setView(v)}
@@ -441,7 +441,7 @@ function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
             <button key={s} onClick={() => setSelectedShift(s)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${selectedShift===s?"tab-active":"tab-inactive"}`}>
               {s}
-              {s === detectShift() && <span className="ml-1 text-xs opacity-70">�—�</span>}
+              {s === detectShift() && <span className="ml-1 text-xs opacity-70">✕</span>}
             </button>
           ))}
         </div>
@@ -511,7 +511,7 @@ function Dashboard({ cfg, liveData, onSaveSnapshot, onClear }) {
           <input value={snapLabel} onChange={e=>setSnapLabel(e.target.value)} placeholder="Snapshot label…"
             className="input-comment w-40 text-sm" onKeyDown={e=>e.key==="Enter"&&doSnapshot()}/>
           <button onClick={doSnapshot} disabled={saving} className="btn-primary text-sm py-2">{saving?"Saving…":"💾 Save"}</button>
-          <button onClick={onClear} className="btn-danger text-sm py-2">�—� Clear</button>
+          <button onClick={onClear} className="btn-danger text-sm py-2">✕ Clear</button>
         </div>
       </div>
 
@@ -648,7 +648,7 @@ function InputView({ cfg, liveData, onSave }) {
     <div className="max-w-lg mx-auto">
       {/* Step 1: Shift */}
       <div className="card mb-4">
-        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>1 �· Select Shift</div>
+        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>1 · Select Shift</div>
         <div className="flex gap-2">
           {SHIFTS.map(s => (
             <button key={s} onClick={() => { setShift(s); setBU(null); }}
@@ -662,7 +662,7 @@ function InputView({ cfg, liveData, onSave }) {
 
       {/* Step 2: BU */}
       <div className="card mb-4">
-        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>2 �· Select Your BU</div>
+        <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>2 · Select Your BU</div>
         <div className="grid grid-cols-2 gap-2">
           {BUS.map(b => {
             const isSubmitted = !!liveData[shift]?.[b];
@@ -682,7 +682,7 @@ function InputView({ cfg, liveData, onSave }) {
         <>
           {/* Step 3: Absent */}
           <div className="card mb-4">
-            <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>3 �· Absent Associates</div>
+            <div className="text-sm font-semibold mb-2" style={{color:"var(--text3)"}}>3 · Absent Associates</div>
             <div className="flex items-center gap-4">
               <input type="number" min="0" max="99" value={absent} onChange={e=>setAbsent(e.target.value)}
                 className="input-num text-xl" placeholder="0"/>
@@ -693,7 +693,7 @@ function InputView({ cfg, liveData, onSave }) {
           {/* Step 4: Actuals */}
           <div className="card mb-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold" style={{color:"var(--text3)"}}>4 �· Enter Actuals — <span style={{color:BU_COLORS[bu]}}>{bu}</span></div>
+              <div className="text-sm font-semibold" style={{color:"var(--text3)"}}>4 · Enter Actuals — <span style={{color:BU_COLORS[bu]}}>{bu}</span></div>
               <span className={`text-sm font-bold px-3 py-1 rounded-full ${statusClass(totalPlan,totalActual)}`}>{totalActual} / {totalPlan}</span>
             </div>
 
@@ -798,7 +798,7 @@ function HistoryView({ history, cfg }) {
             <div key={i} onClick={() => setSelected(entry)}
               className={`card cursor-pointer transition-all hover:border-blue-500 ${selected===entry?"border-blue-500":""}`}>
               <div className="font-semibold text-sm" style={{color:"var(--text)"}}>{entry.label}</div>
-              <div className="text-xs" style={{color:"var(--text3)"}}>{entry.date} �· {formatTs({toDate:()=>new Date(entry.savedAt)})}</div>
+              <div className="text-xs" style={{color:"var(--text3)"}}>{entry.date} · {formatTs({toDate:()=>new Date(entry.savedAt)})}</div>
               <div className="flex gap-2 mt-1 flex-wrap">
                 {SHIFTS.filter(s => entry.data?.[s]).map(s => (
                   <span key={s} className="text-xs px-2 py-0.5 rounded" style={{background:"var(--bg3)",color:"var(--text2)"}}>{s}</span>
@@ -1063,7 +1063,7 @@ function ConfigView({ cfg, onSave }) {
                 </button>
                 <button onClick={() => removeLine(line)}
                   style={{background:"rgba(220,38,38,0.15)",border:"1px solid rgba(220,38,38,0.3)",color:"#f87171",borderRadius:"5px",padding:"3px 8px",cursor:"pointer",fontSize:"0.75rem"}}>
-                  �—�
+                  ✕
                 </button>
               </div>
             </div>
