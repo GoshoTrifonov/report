@@ -448,7 +448,11 @@ function parseLabourTicketsForWOs(workbook) {
     const r = raw[i];
     const rawWo = String(r[COL_WO] || "").trim();
     if (!rawWo) continue;
-    const qty = parseFloat(r[COL_QTY]) || 0;
+    // Skip rows with Excel errors (#VALUE!, #REF!, #N/A, etc.)
+    if (rawWo.startsWith("#")) continue;
+    const qtyRaw = r[COL_QTY];
+    if (typeof qtyRaw === "string" && qtyRaw.startsWith("#")) continue;
+    const qty = parseFloat(qtyRaw) || 0;
     // Include zero-qty rows: prep work and rework still have hrs/earned/lost
     totals[rawWo] = (totals[rawWo] || 0) + qty;
     // Parse date
@@ -935,8 +939,8 @@ function BuildTracker() {
     if (!file) return;
     if (!checkAuth()) { e.target.value = ""; return; }
     const nameCheck = file.name.toLowerCase();
-    if (!nameCheck.includes("build tracker labour tickets")) {
-      setUploadStatus({ type: "labour", msg: `⚠️ Wrong file: "${file.name}" — expected "build tracker labour tickets". Please check and try again.`, ok: false });
+    if (!nameCheck.includes("build tracker labour tickets") && !nameCheck.includes("labour tickets")) {
+      setUploadStatus({ type: "labour", msg: `⚠️ Wrong file: "${file.name}" — expected a file containing "Labour Tickets" in the name. Please check and try again.`, ok: false });
       e.target.value = ""; return;
     }
     setUploadStatus({ type: "labour", msg: "Parsing labour tickets...", ok: null });
