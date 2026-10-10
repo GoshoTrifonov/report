@@ -2033,18 +2033,6 @@ function BuildTracker() {
             style={{ background: "#334155", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⏭ Next {stats.nextAllList?.length || 0}</button>
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ {stats.nextNotReady}</button>}
-          <button onClick={() => setShowShiftReport(true)}
-            style={{ background: "#059669", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>📊 Shift Report</button>
-          <GotoDropdown dark />
-          
-            <button
-              onClick={() => printHandoff(allRows, overrides, selectedLeader, lineDown, lastLabourUpdate)}
-              title="Print Shift Handoff Sheet"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
-            >Handoff</button>
-
-          <button onClick={() => printHandoff(allRows, overrides, selectedLeader, lineDown, lastLabourUpdate)}
-            style={{ background: "#4f46e5", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>Handoff</button>
           <button onClick={() => setShowLogModal("plantwide")}
             style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>Plantwide</button>
           <button onClick={() => setShowLogModal("safety")}
