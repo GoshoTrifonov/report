@@ -1189,6 +1189,7 @@ function BuildTracker() {
         BT_META_REF.set({ lastLabourUpload: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
         // Also save full rows to production_data/latest so Production Report auto-updates
+        console.log("[BT v2] Starting production data upload");
         try {
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
@@ -1233,28 +1234,59 @@ function BuildTracker() {
             const cutoff62ISO = cutoff62.toISOString().slice(0,10);
             const prRowsFiltered = prRows.filter(r => r.date >= cutoff62ISO);
             if (prRowsFiltered.length > 0) {
-              const _debugJson = JSON.stringify({rows: prRowsFiltered, uploadedAt:"x", fileName: file.name, rowCount: prRowsFiltered.length});
-              const _sz = _debugJson.length;
-              console.log(`[UPLOAD DEBUG] rows=${prRowsFiltered.length} jsonSize=${_sz} bytes (${(_sz/1048487*100).toFixed(1)}% of 1MB limit)`);
-              if (_sz > 900000) {
-                // Log bytes per date so we can see which date is bloating
-                const _byDate = {};
-                for (const row of prRowsFiltered) { _byDate[row.date] = (_byDate[row.date]||0) + JSON.stringify(row).length; }
-                const _sorted = Object.entries(_byDate).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                console.log("[UPLOAD DEBUG] Top dates by size:", _sorted.map(([d,b])=>`${d}: ${b}b`).join(" | "));
+              // Safety valve: keep trimming oldest dates until payload fits under 950KB
+              let uploadRows = prRowsFiltered;
+              let _sz = JSON.stringify({rows: uploadRows, uploadedAt:"x", fileName: file.name, rowCount: uploadRows.length}).length;
+              console.log(`[UPLOAD DEBUG] rows=${uploadRows.length} jsonSize=${_sz} bytes (${(_sz/1048487*100).toFixed(1)}% of 1MB limit)`);
+              while (_sz > 950000 && uploadRows.length > 0) {
+                const oldestDate = uploadRows[0].date;
+                uploadRows = uploadRows.filter(r => r.date !== oldestDate);
+                _sz = JSON.stringify({rows: uploadRows, uploadedAt:"x", fileName: file.name, rowCount: uploadRows.length}).length;
+                console.log(`[UPLOAD DEBUG] Dropped ${oldestDate}, now ${uploadRows.length} rows, ${_sz} bytes`);
               }
               await db.collection("production_data").doc("latest").set({
-                rows: prRowsFiltered,
+                rows: uploadRows,
                 uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 fileName: file.name,
-                rowCount: prRowsFiltered.length,
+                rowCount: uploadRows.length,
               });
               // Slim doc for VERBuildPlan - only part_id+qty+date, stays under 1MB
-              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: parseFloat(r[COL_QTY])||0 })).filter(r=>r.part_id&&r.date&&r.qty>0);
-              if (slimRows.length > 0) { await db.collection("production_data").doc("ver_actuals").set({ rows: slimRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() }); console.log("[VER] Saved", slimRows.length, "slim rows"); }
+              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100 })).filter(r=>r.part_id&&r.date&&r.qty>0);
+              if (slimRows.length > 0) {
+                const _verJson = JSON.stringify({rows: slimRows});
+                console.log(`[VER DEBUG] slimRows=${slimRows.length} jsonSize=${_verJson.length} bytes (${(_verJson.length/1048487*100).toFixed(1)}% of 1MB limit)`);
+                await db.collection("production_data").doc("ver_actuals").set({ rows: slimRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                console.log("[VER] Saved", slimRows.length, "slim rows");
+              }
             }
           }
         } catch(e) { console.warn("Production Report sync failed:", e); }
+
+        // Cleanup: delete shift_reports and shift_logs older than 62 days
+        try {
+          const cleanCutoff = new Date(); cleanCutoff.setDate(cleanCutoff.getDate() - 62);
+          const cleanCutoffISO = cleanCutoff.toISOString().slice(0, 10); // "YYYY-MM-DD"
+          let deletedCount = 0;
+          for (const colRef of [BT_SHIFT_REPORTS_REF, BT_SHIFT_LOGS_REF]) {
+            const snap = await colRef.get();
+            const toDelete = snap.docs.filter(d => {
+              // docId format is "YYYY-MM-DD_*" — compare date prefix
+              const datePrefix = d.id.slice(0, 10);
+              return datePrefix < cleanCutoffISO;
+            });
+            if (toDelete.length > 0) {
+              // Delete in batches of 20 (Firestore batch limit is 500, but keep it light)
+              for (let i = 0; i < toDelete.length; i += 20) {
+                const batch = db.batch();
+                toDelete.slice(i, i + 20).forEach(d => batch.delete(d.ref));
+                await batch.commit();
+              }
+              deletedCount += toDelete.length;
+              console.log(`[CLEANUP] Deleted ${toDelete.length} old docs from ${colRef.id}`);
+            }
+          }
+          if (deletedCount > 0) console.log(`[CLEANUP] Total deleted: ${deletedCount} old shift docs`);
+        } catch(e) { console.warn("Cleanup old shift docs failed:", e); }
 
         setUploadStatus({ type: "labour", msg: `🎫 Labour tickets saved · ${matchCount} WOs updated · shift reports auto-saved`, ok: true });
       } catch(err) {
