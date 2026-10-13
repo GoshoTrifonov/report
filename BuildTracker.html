@@ -1199,7 +1199,6 @@ function BuildTracker() {
             const COL_RES     = col(["RESOURCE_ID","RESOURCE"], 3);
             const COL_HRS     = col(["HOURS_WORKED","HRS","HOURS"], 4);
             const COL_QTY     = col(["GOOD_QTY","QTY","UNITS"], 7);
-            const COL_SHIFT   = col(["ID","SHIFT","SHIFT_CODE"], 11);
             const COL_EARNED  = col(["EARNED","EARNED_HRS"], 19);
             const COL_LOST    = col(["LOST","LOST_HRS"], 20);
             const COL_LEAD    = col(["BU","UNIT LEAD","UNIT_LEAD"], 46);
@@ -1223,8 +1222,7 @@ function BuildTracker() {
               const hrs = parseFloat(r[COL_HRS]) || 0;
               const lost = parseFloat(r[COL_LOST]) || 0;
               if (!unitLead && hrs === 0 && lost === 0) continue;
-              const resource = String(r[COL_RES] || "").trim() || "(No Resource)";
-              const shiftCode = String(r[COL_SHIFT] || "").trim();
+              const resource = String(r[COL_RES] || "").trim().slice(0, 50) || "(No Resource)";
               let dateVal = r[COL_DATE], dateStr = "";
               if (typeof dateVal === "number") { const d = new Date(Math.round((dateVal-25569)*86400*1000)); dateStr = d.toISOString().slice(0,10); }
               else if (dateVal) { const d = new Date(dateVal); dateStr = isNaN(d) ? String(dateVal).trim() : d.toISOString().slice(0,10); }
@@ -1235,6 +1233,16 @@ function BuildTracker() {
             const cutoff62ISO = cutoff62.toISOString().slice(0,10);
             const prRowsFiltered = prRows.filter(r => r.date >= cutoff62ISO);
             if (prRowsFiltered.length > 0) {
+              const _debugJson = JSON.stringify({rows: prRowsFiltered, uploadedAt:"x", fileName: file.name, rowCount: prRowsFiltered.length});
+              const _sz = _debugJson.length;
+              console.log(`[UPLOAD DEBUG] rows=${prRowsFiltered.length} jsonSize=${_sz} bytes (${(_sz/1048487*100).toFixed(1)}% of 1MB limit)`);
+              if (_sz > 900000) {
+                // Log bytes per date so we can see which date is bloating
+                const _byDate = {};
+                for (const row of prRowsFiltered) { _byDate[row.date] = (_byDate[row.date]||0) + JSON.stringify(row).length; }
+                const _sorted = Object.entries(_byDate).sort((a,b)=>b[1]-a[1]).slice(0,10);
+                console.log("[UPLOAD DEBUG] Top dates by size:", _sorted.map(([d,b])=>`${d}: ${b}b`).join(" | "));
+              }
               await db.collection("production_data").doc("latest").set({
                 rows: prRowsFiltered,
                 uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
