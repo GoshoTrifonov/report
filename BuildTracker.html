@@ -1235,7 +1235,8 @@ function BuildTracker() {
             const prRowsFiltered = prRows.filter(r => r.date >= cutoff62ISO);
             if (prRowsFiltered.length > 0) {
               // Safety valve: keep trimming oldest dates until payload fits under 950KB
-              let uploadRows = prRowsFiltered;
+              // Sort ascending by date so uploadRows[0] is always the oldest
+              let uploadRows = [...prRowsFiltered].sort((a, b) => a.date < b.date ? -1 : 1);
               let _sz = JSON.stringify({rows: uploadRows, uploadedAt:"x", fileName: file.name, rowCount: uploadRows.length}).length;
               console.log(`[UPLOAD DEBUG] rows=${uploadRows.length} jsonSize=${_sz} bytes (${(_sz/1048487*100).toFixed(1)}% of 1MB limit)`);
               while (_sz > 950000 && uploadRows.length > 0) {
