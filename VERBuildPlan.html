@@ -819,13 +819,13 @@ function CameraView({ rows, weeks, allWeeks }) {
                       const qty = weekTotals[w] || 0;
                       return (
                         <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',background: qty > 0 ? color+'0d' : '#ffffff'}}>
-                          {qty > 0 ? <span style={{color,fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
+                          {qty > 0 ? <span style={{color,fontWeight:700}}>{fmtQty(qty * 10)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                         </td>
                       );
                     })}
                     {showAvg && (
                       <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
-                        {wa > 0 ? <span style={{color:'#1e40af',fontWeight:800}}>{fmtQty(wa)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
+                        {wa > 0 ? <span style={{color:'#1e40af',fontWeight:800}}>{fmtQty(wa * 10)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                       </td>
                     )}
                   </tr>
@@ -842,13 +842,13 @@ function CameraView({ rows, weeks, allWeeks }) {
                           const qty = part.weeks[w] || 0;
                           return (
                             <td key={w} style={{padding:'7px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                              {qty > 0 ? <span style={{color:'#475569',fontWeight:600,fontSize:12}}>{fmtQty(qty)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
+                              {qty > 0 ? <span style={{color:'#475569',fontWeight:600,fontSize:12}}>{fmtQty(qty * 10)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
                             </td>
                           );
                         })}
                         {showAvg && (
                           <td style={{padding:'7px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#f8faff'}}>
-                            {partWa > 0 ? <span style={{color:'#6b7280',fontWeight:600,fontSize:12}}>{fmtQty(partWa)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
+                            {partWa > 0 ? <span style={{color:'#6b7280',fontWeight:600,fontSize:12}}>{fmtQty(partWa * 10)}</span> : <span style={{color:'#e2e8f0'}}>&ndash;</span>}
                           </td>
                         )}
                       </tr>
@@ -867,14 +867,14 @@ function CameraView({ rows, weeks, allWeeks }) {
                 const qty = grandTotals[w] || 0;
                 return (
                   <td key={w} style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap'}}>
-                    {qty > 0 ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
+                    {qty > 0 ? <span style={{color:'#0f172a',fontWeight:700}}>{fmtQty(qty * 10)}</span> : <span style={{color:'#cbd5e1'}}>&ndash;</span>}
                   </td>
                 );
               })}
               {showAvg && (
                 <td style={{padding:'11px 10px',textAlign:'center',whiteSpace:'nowrap',borderLeft:'2px solid #cbd5e1',background:'#eff6ff'}}>
                   <span style={{color:'#1e40af',fontWeight:800}}>
-                    {fmtQty(Math.round(displayWeeks.reduce((s,w)=>s+(grandTotals[w]||0),0)/(displayWeeks.length||1)))}
+                    {fmtQty(Math.round(displayWeeks.reduce((s,w)=>s+(grandTotals[w]||0),0)/(displayWeeks.length||1)) * 10)}
                   </span>
                 </td>
               )}
