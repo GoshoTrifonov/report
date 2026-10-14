@@ -1029,6 +1029,24 @@ function BuildTracker() {
             });
           }
         });
+        // Safety valve: trim oldest shifts per WO until overrides fit under 950KB
+        {
+          let _ovJson = JSON.stringify(nextOverrides);
+          console.log(`[OVERRIDES DEBUG] size=${_ovJson.length} bytes (${(_ovJson.length/1048487*100).toFixed(1)}% of 1MB limit), WOs=${Object.keys(nextOverrides).length}`);
+          let _cutoffDays = 62;
+          while (_ovJson.length > 950000 && _cutoffDays > 7) {
+            _cutoffDays -= 7;
+            const _cutoffISO = new Date(Date.now() - _cutoffDays * 86400000).toISOString().slice(0,10);
+            for (const key of Object.keys(nextOverrides)) {
+              const ov = nextOverrides[key];
+              if (ov.shifts && ov.shifts.length > 0) {
+                nextOverrides[key] = { ...ov, shifts: ov.shifts.filter(s => (s.shiftDateISO||"").slice(0,10) >= _cutoffISO) };
+              }
+            }
+            _ovJson = JSON.stringify(nextOverrides);
+            console.log(`[OVERRIDES DEBUG] Trimmed to ${_cutoffDays}d: size=${_ovJson.length} bytes`);
+          }
+        }
         await fbSave(BT_OVERRIDES_REF, nextOverrides);
 
         // -- Auto-save shift reports ----------------------------------------
