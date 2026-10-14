@@ -1254,10 +1254,18 @@ function BuildTracker() {
               // Slim doc for VERBuildPlan - only part_id+qty+date, stays under 1MB
               const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100 })).filter(r=>r.part_id&&r.date&&r.qty>0);
               if (slimRows.length > 0) {
-                const _verJson = JSON.stringify({rows: slimRows});
-                console.log(`[VER DEBUG] slimRows=${slimRows.length} jsonSize=${_verJson.length} bytes (${(_verJson.length/1048487*100).toFixed(1)}% of 1MB limit)`);
-                await db.collection("production_data").doc("ver_actuals").set({ rows: slimRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                console.log("[VER] Saved", slimRows.length, "slim rows");
+                // Safety valve for ver_actuals: trim oldest dates until under 950KB
+                let verRows = [...slimRows].sort((a, b) => a.date < b.date ? -1 : 1);
+                let _verJson = JSON.stringify({rows: verRows, uploadedAt:"x"});
+                console.log(`[VER DEBUG] slimRows=${verRows.length} jsonSize=${_verJson.length} bytes (${(_verJson.length/1048487*100).toFixed(1)}% of 1MB limit)`);
+                while (_verJson.length > 950000 && verRows.length > 0) {
+                  const oldestDate = verRows[0].date;
+                  verRows = verRows.filter(r => r.date !== oldestDate);
+                  _verJson = JSON.stringify({rows: verRows, uploadedAt:"x"});
+                  console.log(`[VER DEBUG] Dropped ${oldestDate}, now ${verRows.length} rows, ${_verJson.length} bytes`);
+                }
+                await db.collection("production_data").doc("ver_actuals").set({ rows: verRows, uploadedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                console.log("[VER] Saved", verRows.length, "slim rows");
               }
             }
           }
