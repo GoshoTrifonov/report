@@ -1227,10 +1227,12 @@ function BuildTracker() {
               "ASSEMBLY 1":"Midnights","ASSEMBLY 2":"Days","ASSEMBLY 3":"Afternoons",
               "EXTRUDER 1":"Midnights","EXTRUDER 2":"Days","EXTRUDER 3":"Afternoons",
               "CONT A":"Continental Days","CONT B":"Continental Days","CONT C":"Continental Nights","CONT D":"Continental Nights",
-              "CONT A- MOLD":"Continental Days","CONT B - MOLD":"Continental Days","CONT C - MOLD":"Continental Nights","CONT D - MOLD":"Continental Nights",
-              "GRINDER 1":"Midnights","GRINDER 2":"Days","GRINDER 3":"Afternoons",
+              "CONT A- Mold":"Continental Days","CONT B - Mold":"Continental Days","CONT C - Mold":"Continental Nights","CONT D - Mold":"Continental Nights",
+              "Grinder 1":"Midnights","Grinder 2":"Days","Grinder 3":"Afternoons",
               "MOLDING 1":"Midnights","MOLDING 2":"Days","MOLDING 3":"Afternoons",
+              "Moldman 1":"Midnights","Moldman 2":"Days","Moldman 3":"Afternoons",
             };
+            const SHIFT_MAP_UC = Object.fromEntries(Object.entries(SHIFT_MAP).map(([k,v]) => [k.toUpperCase(), v]));
             const KNOWN_BUS = new Set(["BU Verathon","BU Molding","BU Tier 1","BU Tier 2","BU Bellfarm","BU Bell Farm","BU Tier 1 - Respiratory","BU Tier 1 - Blades","BU Tier 2 - DNA","BU Tier 2 - FLEX"]);
             const OTHER_VALS = new Set(["#N/A","#NA","0","N/A"]);
             const prRows = [];
@@ -1247,7 +1249,7 @@ function BuildTracker() {
               if (typeof dateVal === "number") { const d = new Date(Math.round((dateVal-25569)*86400*1000)); dateStr = d.toISOString().slice(0,10); }
               else if (dateVal) { const d = new Date(dateVal); dateStr = isNaN(d) ? String(dateVal).trim() : d.toISOString().slice(0,10); }
               if (!dateStr) continue;
-              const shiftCode = String(r[COL_SHIFT_PR] || "").trim().toUpperCase(); const shift = SHIFT_MAP[shiftCode] || null; prRows.push({ date: dateStr, resource, hrs: Math.round(hrs*100)/100, qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100, earned: Math.round((parseFloat(r[COL_EARNED])||0)*100)/100, lost: Math.round(lost*100)/100, unitLead: unitLead || "Other", shift });
+              const shiftCode = String(r[COL_SHIFT_PR] || "").trim().toUpperCase(); const shift = SHIFT_MAP_UC[shiftCode] || null; prRows.push({ date: dateStr, resource, hrs: Math.round(hrs*100)/100, qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100, earned: Math.round((parseFloat(r[COL_EARNED])||0)*100)/100, lost: Math.round(lost*100)/100, unitLead: unitLead || "Other", shift });
             }
             const cutoff62 = new Date(); cutoff62.setDate(cutoff62.getDate() - 62);
             const cutoff62ISO = cutoff62.toISOString().slice(0,10);
