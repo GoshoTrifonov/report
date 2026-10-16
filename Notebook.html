@@ -34,6 +34,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
   .saving-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .drag-row { transition: border-color 0.1s, background 0.1s, opacity 0.1s, transform 0.1s; }
 </style>
 </head>
 <body>
@@ -487,22 +488,18 @@ function ResourceCard({ name, bu }) {
 
 // ─── CONFIG PANEL ─────────────────────────────────────────────────────────────
 function ConfigPanel({ bu, allResources, order, hidden, onSave, onClose }) {
-  // Local working copies — only written to Firestore on Save
   const [localOrder, setLocalOrder] = React.useState(() => {
     const base = order.length ? order : allResources;
-    // Add any new resources not yet in order
     const extra = allResources.filter(r => !base.includes(r));
     return [...base.filter(r => allResources.includes(r)), ...extra];
   });
   const [localHidden, setLocalHidden] = React.useState(() => new Set(hidden));
 
-  const move = (idx, dir) => {
-    const next = [...localOrder];
-    const swap = idx + dir;
-    if (swap < 0 || swap >= next.length) return;
-    [next[idx], next[swap]] = [next[swap], next[idx]];
-    setLocalOrder(next);
-  };
+  // Drag state
+  const dragIdx = React.useRef(null);
+  const dragOverIdx = React.useRef(null);
+  const [dragActive, setDragActive] = React.useState(null); // index being dragged
+  const [dropTarget, setDropTarget] = React.useState(null); // index being hovered over
 
   const toggleHide = (name) => {
     setLocalHidden(prev => {
@@ -510,6 +507,47 @@ function ConfigPanel({ bu, allResources, order, hidden, onSave, onClose }) {
       if (s.has(name)) s.delete(name); else s.add(name);
       return s;
     });
+  };
+
+  const onDragStart = (e, idx) => {
+    dragIdx.current = idx;
+    setDragActive(idx);
+    e.dataTransfer.effectAllowed = "move";
+    // Transparent drag ghost (we style the row itself)
+    const ghost = document.createElement("div");
+    ghost.style.position = "absolute";
+    ghost.style.top = "-1000px";
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 0, 0);
+    setTimeout(() => document.body.removeChild(ghost), 0);
+  };
+
+  const onDragEnter = (e, idx) => {
+    e.preventDefault();
+    dragOverIdx.current = idx;
+    setDropTarget(idx);
+  };
+
+  const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+
+  const onDrop = (e, idx) => {
+    e.preventDefault();
+    const from = dragIdx.current;
+    if (from === null || from === idx) { cleanup(); return; }
+    const next = [...localOrder];
+    const [item] = next.splice(from, 1);
+    next.splice(idx, 0, item);
+    setLocalOrder(next);
+    cleanup();
+  };
+
+  const onDragEnd = () => cleanup();
+
+  const cleanup = () => {
+    dragIdx.current = null;
+    dragOverIdx.current = null;
+    setDragActive(null);
+    setDropTarget(null);
   };
 
   const visibleCount = localOrder.filter(r => !localHidden.has(r)).length;
@@ -529,19 +567,40 @@ function ConfigPanel({ bu, allResources, order, hidden, onSave, onClose }) {
         {/* Instructions */}
         <div className="px-5 py-2 border-b border-slate-800 flex items-center gap-4 text-xs text-slate-500">
           <span>👁 toggle visibility</span>
-          <span>↑↓ reorder</span>
+          <span>⠿ drag to reorder</span>
         </div>
 
         {/* Resource list */}
-        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-1.5">
+        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-1">
           {localOrder.map((name, idx) => {
             const isHidden = localHidden.has(name);
+            const isDragging = dragActive === idx;
+            const isTarget = dropTarget === idx && dragActive !== idx;
             return (
-              <div key={name} className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${isHidden ? "bg-slate-800/30 border-slate-800 opacity-50" : "bg-slate-800 border-slate-700"}`}>
+              <div
+                key={name}
+                draggable
+                onDragStart={e => onDragStart(e, idx)}
+                onDragEnter={e => onDragEnter(e, idx)}
+                onDragOver={onDragOver}
+                onDrop={e => onDrop(e, idx)}
+                onDragEnd={onDragEnd}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all select-none
+                  ${isDragging ? "opacity-30 scale-95" : ""}
+                  ${isTarget ? "border-blue-500 bg-blue-900/20" : isHidden ? "bg-slate-800/30 border-slate-800 opacity-50" : "bg-slate-800 border-slate-700"}
+                `}
+                style={{cursor: "grab"}}
+              >
+                {/* Drag handle */}
+                <span className="flex-shrink-0 text-slate-600 hover:text-slate-400 transition-colors text-base leading-none px-0.5" style={{cursor:"grab"}}>
+                  ⠿
+                </span>
+
                 {/* Visibility toggle */}
                 <button
                   onClick={() => toggleHide(name)}
                   title={isHidden ? "Show" : "Hide"}
+                  onMouseDown={e => e.stopPropagation()}
                   className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${isHidden ? "bg-slate-700 text-slate-500 hover:text-slate-300" : "bg-emerald-900 text-emerald-400 hover:bg-emerald-800"}`}
                 >
                   {isHidden ? "✕" : "👁"}
@@ -549,20 +608,6 @@ function ConfigPanel({ bu, allResources, order, hidden, onSave, onClose }) {
 
                 {/* Name */}
                 <span className={`flex-1 text-sm truncate ${isHidden ? "text-slate-600 line-through" : "text-slate-200"}`}>{name}</span>
-
-                {/* Move buttons */}
-                <div className="flex gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => move(idx, -1)}
-                    disabled={idx === 0}
-                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-20 text-slate-300 text-xs flex items-center justify-center"
-                  >▲</button>
-                  <button
-                    onClick={() => move(idx, 1)}
-                    disabled={idx === localOrder.length - 1}
-                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-20 text-slate-300 text-xs flex items-center justify-center"
-                  >▼</button>
-                </div>
               </div>
             );
           })}
