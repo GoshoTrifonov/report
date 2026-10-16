@@ -303,7 +303,7 @@ function ResourceCard({ name, bu }) {
       }
     });
     return () => unsub();
-  }, [db, key]);
+  }, [key]);
 
   const toggleScheduled = async () => {
     if (!docRef.current) return;
@@ -485,17 +485,174 @@ function ResourceCard({ name, bu }) {
   );
 }
 
+// ─── CONFIG PANEL ─────────────────────────────────────────────────────────────
+function ConfigPanel({ bu, allResources, order, hidden, onSave, onClose }) {
+  // Local working copies — only written to Firestore on Save
+  const [localOrder, setLocalOrder] = React.useState(() => {
+    const base = order.length ? order : allResources;
+    // Add any new resources not yet in order
+    const extra = allResources.filter(r => !base.includes(r));
+    return [...base.filter(r => allResources.includes(r)), ...extra];
+  });
+  const [localHidden, setLocalHidden] = React.useState(() => new Set(hidden));
+
+  const move = (idx, dir) => {
+    const next = [...localOrder];
+    const swap = idx + dir;
+    if (swap < 0 || swap >= next.length) return;
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    setLocalOrder(next);
+  };
+
+  const toggleHide = (name) => {
+    setLocalHidden(prev => {
+      const s = new Set(prev);
+      if (s.has(name)) s.delete(name); else s.add(name);
+      return s;
+    });
+  };
+
+  const visibleCount = localOrder.filter(r => !localHidden.has(r)).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4" style={{background:"rgba(0,0,0,0.7)"}}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        {/* Panel header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+          <div>
+            <div className="text-white font-bold text-sm">Configure — {bu}</div>
+            <div className="text-slate-500 text-xs mt-0.5">{visibleCount} visible · {localHidden.size} hidden</div>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-lg leading-none px-1">✕</button>
+        </div>
+
+        {/* Instructions */}
+        <div className="px-5 py-2 border-b border-slate-800 flex items-center gap-4 text-xs text-slate-500">
+          <span>👁 toggle visibility</span>
+          <span>↑↓ reorder</span>
+        </div>
+
+        {/* Resource list */}
+        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-1.5">
+          {localOrder.map((name, idx) => {
+            const isHidden = localHidden.has(name);
+            return (
+              <div key={name} className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${isHidden ? "bg-slate-800/30 border-slate-800 opacity-50" : "bg-slate-800 border-slate-700"}`}>
+                {/* Visibility toggle */}
+                <button
+                  onClick={() => toggleHide(name)}
+                  title={isHidden ? "Show" : "Hide"}
+                  className={`flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${isHidden ? "bg-slate-700 text-slate-500 hover:text-slate-300" : "bg-emerald-900 text-emerald-400 hover:bg-emerald-800"}`}
+                >
+                  {isHidden ? "✕" : "👁"}
+                </button>
+
+                {/* Name */}
+                <span className={`flex-1 text-sm truncate ${isHidden ? "text-slate-600 line-through" : "text-slate-200"}`}>{name}</span>
+
+                {/* Move buttons */}
+                <div className="flex gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => move(idx, -1)}
+                    disabled={idx === 0}
+                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-20 text-slate-300 text-xs flex items-center justify-center"
+                  >▲</button>
+                  <button
+                    onClick={() => move(idx, 1)}
+                    disabled={idx === localOrder.length - 1}
+                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-20 text-slate-300 text-xs flex items-center justify-center"
+                  >▼</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-slate-700 flex gap-3 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
+          <button
+            onClick={() => onSave(localOrder, [...localHidden])}
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+          >Save Changes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App() {
   const [selectedBU, setSelectedBU] = React.useState("BU Verathon");
   const [search, setSearch] = React.useState("");
 
-  const resources = React.useMemo(() => {
-    if (selectedBU === "All") {
-      return getAllResources();
+  // Config state — loaded from Firestore per BU
+  // Shape: { [bu]: { order: string[], hidden: string[] } }
+  const [buConfig, setBuConfig] = React.useState({});
+  const configDocRef = React.useRef(null);
+
+  // Config panel state
+  const [showConfigGate, setShowConfigGate] = React.useState(false);
+  const [configPw, setConfigPw] = React.useState("");
+  const [configPwErr, setConfigPwErr] = React.useState("");
+  const [configUnlocked, setConfigUnlocked] = React.useState(false);
+  const [showConfigPanel, setShowConfigPanel] = React.useState(false);
+
+  // Load config from Firestore
+  React.useEffect(() => {
+    configDocRef.current = db.collection("notebook_config").doc("layout");
+    const unsub = configDocRef.current.onSnapshot(snap => {
+      if (snap.exists) setBuConfig(snap.data());
+    });
+    return () => unsub();
+  }, []);
+
+  const tryUnlock = () => {
+    if (configPw === "chepelare") {
+      setConfigUnlocked(true);
+      setShowConfigGate(false);
+      setShowConfigPanel(true);
+      setConfigPw("");
+      setConfigPwErr("");
+    } else {
+      setConfigPwErr("Wrong password");
     }
-    return getResourcesForBU(selectedBU);
-  }, [selectedBU]);
+  };
+
+  const openConfig = () => {
+    if (configUnlocked) { setShowConfigPanel(true); }
+    else { setShowConfigGate(true); }
+  };
+
+  const saveConfig = async (order, hidden) => {
+    const next = { ...buConfig, [selectedBU]: { order, hidden } };
+    await configDocRef.current.set(next);
+    setShowConfigPanel(false);
+  };
+
+  // Get ordered, filtered resources for current BU
+  const resources = React.useMemo(() => {
+    const cfg = buConfig[selectedBU] || {};
+    const hiddenSet = new Set(cfg.hidden || []);
+
+    let base;
+    if (selectedBU === "All") {
+      base = getAllResources();
+    } else {
+      const raw = getResourcesForBU(selectedBU);
+      const savedOrder = cfg.order || [];
+      if (savedOrder.length) {
+        // Apply saved order, add any new resources at end
+        const extra = raw.filter(r => !savedOrder.includes(r));
+        base = [...savedOrder.filter(r => raw.includes(r)), ...extra];
+      } else {
+        base = raw;
+      }
+      // Filter hidden
+      base = base.filter(r => !hiddenSet.has(r));
+    }
+    return base;
+  }, [selectedBU, buConfig]);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return resources;
@@ -507,8 +664,59 @@ function App() {
     return RESOURCE_BU_MAP[name] || "Other";
   };
 
+  // All resources for config panel (before hiding)
+  const allResourcesForConfig = React.useMemo(() => {
+    const cfg = buConfig[selectedBU] || {};
+    const raw = selectedBU === "All" ? getAllResources() : getResourcesForBU(selectedBU);
+    const savedOrder = cfg.order || [];
+    if (savedOrder.length) {
+      const extra = raw.filter(r => !savedOrder.includes(r));
+      return [...savedOrder.filter(r => raw.includes(r)), ...extra];
+    }
+    return raw;
+  }, [selectedBU, buConfig]);
+
+  const hiddenForConfig = (buConfig[selectedBU] || {}).hidden || [];
+  const hiddenCount = hiddenForConfig.length;
+
   return (
     <div className="min-h-screen bg-slate-900">
+      {/* Config password gate modal */}
+      {showConfigGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{background:"rgba(0,0,0,0.7)"}}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 fade-in">
+            <div className="text-white font-bold text-sm mb-1">Configuration</div>
+            <div className="text-slate-500 text-xs mb-4">Enter password to access layout settings</div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={configPw}
+              autoFocus
+              onChange={e => { setConfigPw(e.target.value); setConfigPwErr(""); }}
+              onKeyDown={e => e.key === "Enter" && tryUnlock()}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 mb-2"
+            />
+            {configPwErr && <p className="text-xs text-red-400 mb-2">{configPwErr}</p>}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowConfigGate(false); setConfigPw(""); setConfigPwErr(""); }} className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200">Cancel</button>
+              <button onClick={tryUnlock} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg">Unlock</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Config panel */}
+      {showConfigPanel && (
+        <ConfigPanel
+          bu={selectedBU}
+          allResources={allResourcesForConfig}
+          order={(buConfig[selectedBU] || {}).order || []}
+          hidden={hiddenForConfig}
+          onSave={saveConfig}
+          onClose={() => setShowConfigPanel(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="bg-slate-950 border-b border-slate-800 sticky top-0 z-10 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -530,8 +738,20 @@ function App() {
                 placeholder="Search resource..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 w-40"
+                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 w-36"
               />
+              {/* Config button — only show when a specific BU is selected */}
+              {selectedBU !== "All" && (
+                <button
+                  onClick={openConfig}
+                  title="Configure layout"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-medium transition-all"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                  Config
+                  {hiddenCount > 0 && <span className="bg-amber-600 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{hiddenCount}</span>}
+                </button>
+              )}
             </div>
           </div>
 
@@ -563,12 +783,16 @@ function App() {
               {selectedBU}
             </h2>
             <span className="text-slate-600 text-xs">{filtered.length} resource{filtered.length !== 1 ? "s" : ""}</span>
+            {hiddenCount > 0 && !search && (
+              <span className="text-xs text-amber-600">{hiddenCount} hidden</span>
+            )}
           </div>
         )}
 
         {filtered.length === 0 && (
           <div className="text-center py-12 text-slate-600">
             <p className="text-sm">No resources found</p>
+            {hiddenCount > 0 && <p className="text-xs mt-1 text-slate-700">{hiddenCount} resource{hiddenCount !== 1 ? "s are" : " is"} hidden — open Config to show them</p>}
           </div>
         )}
 
