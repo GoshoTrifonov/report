@@ -921,21 +921,28 @@ function App() {
   const [author, setAuthor] = React.useState(() => localStorage.getItem("nb_author") || "");
   const [showInitialsPrompt, setShowInitialsPrompt] = React.useState(() => !localStorage.getItem("nb_author"));
 
-  // Build plan — live from Firestore (same doc BuildTracker uses)
+  // Build plan — live from Firestore (mirrors BuildTracker's fbParse exactly)
+  // Doc: buildtracker/build_plan  →  { data: JSON.stringify({ rows: [...], fileName, uploadedAt }) }
+  // Each row has: { resource, part, descr, wo, ... }
   const [buildPlanMap, setBuildPlanMap] = React.useState({}); // resource -> {part, descr}
   React.useEffect(() => {
     const unsub = db.collection("buildtracker").doc("build_plan").onSnapshot(snap => {
-      if (!snap.exists) return;
+      if (!snap.exists) { setBuildPlanMap({}); return; }
       try {
-        const raw = snap.data();
-        const parsed = raw.data ? JSON.parse(raw.data) : raw;
-        const rows = parsed.rows || [];
+        const parsed = JSON.parse(snap.data().data || "null");
+        if (!parsed || !parsed.rows) { setBuildPlanMap({}); return; }
         const map = {};
-        rows.forEach(r => {
-          if (r.resource && r.part) map[r.resource] = { part: r.part, descr: r.descr || "" };
+        parsed.rows.forEach(r => {
+          // A resource can appear multiple times (multiple WOs); first active one wins
+          if (r.resource && r.part && !map[r.resource]) {
+            map[r.resource] = { part: r.part, descr: r.descr || "" };
+          }
         });
         setBuildPlanMap(map);
-      } catch(e) { console.warn("Build plan parse error", e); }
+      } catch(e) {
+        console.warn("Notebook: build plan parse error", e);
+        setBuildPlanMap({});
+      }
     });
     return () => unsub();
   }, []);
