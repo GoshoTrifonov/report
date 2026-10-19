@@ -374,6 +374,38 @@
     display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border 0.15s;
   }
   .roster-row:hover { border-color: var(--ink-faint); }
+  .roster-row.on-loa { background: var(--amber-soft); border-color: var(--amber); }
+  .loa-badge {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+    background: var(--amber); color: white; padding: 2px 7px; border-radius: 3px;
+    letter-spacing: 0.06em; white-space: nowrap; flex-shrink: 0;
+  }
+  .loa-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+    border: 1.5px solid var(--line); border-radius: 4px; background: transparent;
+    color: var(--ink-faint); cursor: pointer; padding: 3px 8px; white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+  .loa-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .loa-btn.active { background: var(--amber); border-color: var(--amber); color: white; }
+  /* LOA date modal */
+  .loa-modal-body { padding: 20px 18px; }
+  .loa-modal-body label { display: block; font-size: 11px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+  .loa-modal-body input[type=date] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
+    font-family: inherit; font-size: 15px; background: var(--bg-card); color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .loa-modal-body input[type=date]:focus { outline: none; border-color: var(--amber); }
+  .loa-modal-body .loa-type-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .loa-modal-body .loa-type-btn {
+    flex: 1; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: 6px;
+    background: transparent; font-family: inherit; font-size: 13px; font-weight: 500;
+    color: var(--ink-soft); cursor: pointer; text-align: center;
+  }
+  .loa-modal-body .loa-type-btn.selected { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .loa-modal-actions { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .loa-modal-actions button { flex: 1; padding: 12px; border: 0; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
   .roster-row .nm { flex: 1; min-width: 0; }
   .roster-row .nm .name { font-size: 14px; font-weight: 500; }
   .roster-row .nm .meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
@@ -968,6 +1000,34 @@
   </div>
 </div>
 
+<!-- LOA modal -->
+<div class="modal-overlay" id="loa-modal" onclick="if(event.target.id==='loa-modal')closeLOAModal()">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-head">
+      <div>
+        <h3>Leave of Absence</h3>
+        <div class="ctx" id="loa-modal-ctx">Set LOA for operator</div>
+      </div>
+      <button class="modal-close" onclick="closeLOAModal()">&times;</button>
+    </div>
+    <div class="loa-modal-body">
+      <div class="loa-type-row">
+        <button class="loa-type-btn selected" data-type="personal" onclick="selectLOAType(this)">Personal</button>
+        <button class="loa-type-btn" data-type="medical" onclick="selectLOAType(this)">Medical</button>
+      </div>
+      <label>Return to work date</label>
+      <input type="date" id="loa-return-date" />
+      <div style="font-size:12px; color:var(--ink-soft); line-height:1.5;">
+        This operator will be hidden from Step 1 until their return date. They'll automatically become available again when the date passes.
+      </div>
+    </div>
+    <div class="loa-modal-actions">
+      <button style="background:var(--red-soft);color:var(--red);" onclick="clearLOA()" id="loa-clear-btn">Clear LOA</button>
+      <button style="background:var(--ink);color:var(--bg);" onclick="saveLOA()">Save LOA</button>
+    </div>
+  </div>
+</div>
+
 <!-- Operator edit modal &mdash; shows when adding new or editing existing -->
 <div class="modal-overlay" id="op-edit-modal" onclick="if(event.target.id==='op-edit-modal')closeOperatorEdit()">
   <div class="modal" style="max-width: 560px;">
@@ -1218,6 +1278,62 @@ function loadBUState(buId) {
   }
 }
 
+/* ===================== LOA HELPERS ===================== */
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);  // 'YYYY-MM-DD'
+}
+function formatLoaDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[+m-1]} ${+d}`;
+}
+
+let loaTargetName = null;
+function openLOAModal(opName) {
+  loaTargetName = opName;
+  const op = ROSTER.find(o => o.name === opName);
+  document.getElementById('loa-modal-ctx').textContent = opName;
+  // Set existing LOA values if present
+  const loa = op && op.loa;
+  const typeRow = document.querySelectorAll('.loa-type-btn');
+  typeRow.forEach(b => b.classList.toggle('selected', b.dataset.type === (loa ? loa.type : 'personal')));
+  document.getElementById('loa-return-date').value = loa ? loa.returnDate : '';
+  document.getElementById('loa-clear-btn').disabled = !loa;
+  document.getElementById('loa-clear-btn').style.opacity = loa ? '1' : '0.4';
+  document.getElementById('loa-modal').classList.add('open');
+}
+function closeLOAModal() {
+  document.getElementById('loa-modal').classList.remove('open');
+  loaTargetName = null;
+}
+function selectLOAType(btn) {
+  document.querySelectorAll('.loa-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function saveLOA() {
+  const returnDate = document.getElementById('loa-return-date').value;
+  if (!returnDate) { alert('Please pick a return date.'); return; }
+  if (returnDate < todayISO()) { alert('Return date must be today or in the future.'); return; }
+  const type = document.querySelector('.loa-type-btn.selected')?.dataset.type || 'personal';
+  const op = ROSTER.find(o => o.name === loaTargetName);
+  if (!op) return;
+  op.loa = { type, returnDate };
+  saveRoster();
+  closeLOAModal();
+  renderRoster();
+  renderStep1(); updateCounters();
+}
+function clearLOA() {
+  const op = ROSTER.find(o => o.name === loaTargetName);
+  if (!op) return;
+  delete op.loa;
+  saveRoster();
+  closeLOAModal();
+  renderRoster();
+  renderStep1(); updateCounters();
+}
+
 function saveRoster() {
   ROSTER = ROSTER.map(migrateOperator);
   Storage.save(ROSTER_KEY, ROSTER);   // local cache
@@ -1392,7 +1508,12 @@ function renderStep1() {
     </div>`;
     return;
   }
+  const today = todayISO();
+  let loaCount = 0;
   OPERATORS.forEach(op => {
+    // Skip LOA operators — they are not available until their return date
+    const loa = op.loa;
+    if (loa && loa.returnDate && loa.returnDate >= today) { loaCount++; return; }
     if (q && !op.name.toLowerCase().includes(q)) return;
     const row = document.createElement('div');
     row.className = 'op-row' + (state.absent.has(op.name) ? ' absent' : '');
@@ -1404,13 +1525,22 @@ function renderStep1() {
     };
     list.appendChild(row);
   });
+  // Show LOA notice if any operators are on leave
+  if (loaCount > 0 && !q) {
+    const notice = document.createElement('div');
+    notice.style.cssText = 'background:var(--amber-soft);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-top:8px;';
+    notice.innerHTML = `&#128338; <strong>${loaCount} operator${loaCount>1?'s are':' is'} on LOA</strong> and hidden from this list. Manage in Roster.`;
+    list.appendChild(notice);
+  }
 }
 document.getElementById('op-search').addEventListener('input', renderStep1);
 function markAllPresent() { state.absent.clear(); renderStep1(); updateCounters(); }
 
 function updateCounters() {
-  const total = OPERATORS.length;
-  const present = total - state.absent.size;
+  const today = todayISO();
+  const loaOps = new Set(OPERATORS.filter(o => o.loa && o.loa.returnDate && o.loa.returnDate >= today).map(o => o.name));
+  const total = OPERATORS.length - loaOps.size;
+  const present = total - Array.from(state.absent).filter(n => !loaOps.has(n)).length;
   document.getElementById('present-num').textContent = present;
   const totalEl = document.getElementById('total-num');
   if (totalEl) totalEl.textContent = total;
@@ -1726,7 +1856,11 @@ function renderTotals() {
 function versatility(op) { return Object.keys(op.training).length; }
 
 function availableOps() {
-  return OPERATORS.filter(o => !state.absent.has(o.name));
+  const today = todayISO();
+  return OPERATORS.filter(o =>
+    !state.absent.has(o.name) &&
+    !(o.loa && o.loa.returnDate && o.loa.returnDate >= today)
+  );
 }
 
 function runAssignment() {
@@ -2636,18 +2770,30 @@ function renderRoster() {
     const skillCount = Object.keys(op.training || {}).length;
     const buList = op.bus || [];
     const buText = buList.length === 0 ? 'untagged' : buList.join(', ');
+    const loa = op.loa;  // { type: 'personal'|'medical', returnDate: 'YYYY-MM-DD' }
+    const isOnLOA = loa && loa.returnDate && loa.returnDate >= todayISO();
     const row = document.createElement('div');
-    row.className = 'roster-row';
+    row.className = 'roster-row' + (isOnLOA ? ' on-loa' : '');
     const badges = ALL_SHIFTS.map(s => {
       const on = (op.shifts || []).includes(s.id);
       return `<div class="shift-badge ${s.short} ${on ? 'active' : ''}" title="${s.label}">${s.short}</div>`;
     }).join('');
+    const loaBadgeHtml = isOnLOA
+      ? `<span class="loa-badge" title="Returns ${loa.returnDate}">LOA · ${formatLoaDate(loa.returnDate)}</span>`
+      : '';
     row.innerHTML = `
       <div class="nm">
         <div class="name">${op.name}</div>
         <div class="meta">${skillCount} skill${skillCount===1?'':'s'} &middot; ${buText}</div>
       </div>
-      <div class="shift-badges">${badges}</div>`;
+      ${loaBadgeHtml}
+      <div class="shift-badges">${badges}</div>
+      <button class="loa-btn ${isOnLOA ? 'active' : ''}" title="Set Leave of Absence">LOA</button>`;
+    // LOA button opens modal; main row click opens editor
+    row.querySelector('.loa-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openLOAModal(op.name);
+    });
     row.onclick = () => openOperatorEdit(op.name);
     body.appendChild(row);
   });
@@ -3261,7 +3407,11 @@ function updateStepperForMode() {
    even if HDMI Mix (4) didn't fit). The BU filter skips entries whose line
    belongs to a different BU than the one currently selected. ============= */
 function autoScheduleLines() {
-  const present = OPERATORS.filter(o => !state.absent.has(o.name));
+  const today = todayISO();
+  const present = OPERATORS.filter(o =>
+    !state.absent.has(o.name) &&
+    !(o.loa && o.loa.returnDate && o.loa.returnDate >= today)
+  );
   const presentCount = present.length;
   state.running.clear();
 
