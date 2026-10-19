@@ -420,6 +420,18 @@
     white-space: nowrap;
   }
   .priority-entry .hc-pill.small { background: var(--bg-sunken); color: var(--ink-soft); }
+  .priority-entry.not-scheduled { opacity: 0.55; }
+  .priority-entry.not-scheduled .hc-pill { background: var(--ink-faint); }
+  .priority-entry.always-scheduled .hc-pill { background: var(--green); }
+  .priority-status-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+    border: 1.5px solid var(--line); border-radius: 4px; background: transparent;
+    color: var(--ink-faint); cursor: pointer; padding: 3px 7px; white-space: nowrap;
+    letter-spacing: 0.04em; line-height: 1.4;
+  }
+  .priority-status-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+  .priority-status-btn.not-sched { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+  .priority-status-btn.always-sched { border-color: var(--green); color: var(--green); background: var(--green-soft); }
   .priority-entry .move-btns { display: flex; flex-direction: column; gap: 2px; }
   .priority-entry .move-btns button {
     background: transparent; border: 0; color: var(--ink-faint);
@@ -921,10 +933,20 @@
     <h2>Line Priority &mdash; <span id="priority-shift-label">Day</span></h2>
     <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
   </header>
-  <div class="roster-toolbar" style="background: var(--bg); border-bottom-color: var(--line);">
+  <div class="roster-toolbar" style="background: var(--bg); border-bottom-color: var(--line); flex-direction: column; align-items: flex-start; gap: 8px;">
     <p style="font-size:12px; color: var(--ink-soft); margin:0; line-height:1.4;">
       Drag entries up or down. Top = highest priority. The auto-scheduler walks this list and schedules lines until the available pool runs out. Variable-headcount lines (like HDMI Mix) can appear twice with different counts &mdash; the bigger version usually higher, smaller as a fallback.
     </p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <span style="font-size:11px; color:var(--ink-faint); font-family:'IBM Plex Mono',monospace; letter-spacing:.04em;">STATUS BTN:</span>
+      <span style="font-size:11px; background:var(--bg-sunken); padding:2px 8px; border-radius:4px; border:1.5px solid var(--line); color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;">Normal</span>
+      <span style="font-size:11px;">→</span>
+      <span style="font-size:11px; background:var(--red-soft); padding:2px 8px; border-radius:4px; border:1.5px solid var(--red); color:var(--red); font-family:'IBM Plex Mono',monospace;">Not Sched</span>
+      <span style="font-size:11px; color:var(--ink-faint);">(skip, no ops assigned)</span>
+      <span style="font-size:11px;">→</span>
+      <span style="font-size:11px; background:var(--green-soft); padding:2px 8px; border-radius:4px; border:1.5px solid var(--green); color:var(--green); font-family:'IBM Plex Mono',monospace;">Scheduled</span>
+      <span style="font-size:11px; color:var(--ink-faint);">(always in roster; gaps shown if short-staffed)</span>
+    </div>
   </div>
   <div class="roster-body" id="priority-body"></div>
   <div class="roster-footer">
@@ -3025,17 +3047,32 @@ function renderPriorityList() {
     const line = LINES.find(l => l.id === entry.lineId);
     if (!line) return;
     const row = document.createElement('div');
-    row.className = 'priority-entry';
+    const isNotSched = !!entry.notScheduled;
+    const isAlwaysSched = !!entry.alwaysScheduled;
+    row.className = 'priority-entry' +
+      (isNotSched ? ' not-scheduled' : '') +
+      (isAlwaysSched ? ' always-scheduled' : '');
     row.dataset.idx = idx;
     const isSmall = line.variable && entry.headcount === Math.min(...line.options);
+
+    // Status button cycles: normal → Not Scheduled → Scheduled → normal
+    let statusClass = '', statusLabel = 'Normal';
+    if (isNotSched)   { statusClass = 'not-sched';   statusLabel = 'Not Sched'; }
+    if (isAlwaysSched){ statusClass = 'always-sched'; statusLabel = 'Scheduled'; }
+
+    const hcText = entry.headcount === 0
+      ? '0 ops'
+      : `${entry.headcount} op${entry.headcount > 1 ? 's' : ''}`;
+
     row.innerHTML = `
       <span class="rank">${idx + 1}</span>
       <span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
       <div class="info">
-        <div class="nm">${line.name.replace(/^[^&ndash;]+&ndash; /, '')}</div>
+        <div class="nm">${line.name.replace(/^[^–]+– /, '')}</div>
         <div class="id">${line.id}</div>
       </div>
-      <span class="hc-pill ${isSmall ? 'small' : ''}">${entry.headcount} op${entry.headcount > 1 ? 's' : ''}</span>
+      <span class="hc-pill ${isSmall ? 'small' : ''}">${hcText}</span>
+      <button class="priority-status-btn ${statusClass}" title="Toggle scheduling mode" data-idx="${idx}">${statusLabel}</button>
       <div class="move-btns">
         <button title="Move up" onclick="movePriorityEntry(${idx}, -1)">&#9650;</button>
         <button title="Move down" onclick="movePriorityEntry(${idx}, 1)">&#9660;</button>
@@ -3045,6 +3082,8 @@ function renderPriorityList() {
     // Wire up drag handle (pointer events work on mouse + touch)
     const handle = row.querySelector('.drag-handle');
     handle.addEventListener('pointerdown', (e) => startPriorityDrag(e, row, idx));
+    // Wire up status toggle button
+    row.querySelector('.priority-status-btn').addEventListener('click', () => cyclePriorityStatus(idx));
     body.appendChild(row);
   });
 }
@@ -3064,6 +3103,31 @@ function removePriorityEntry(idx) {
   const line = LINES.find(l => l.id === entries[idx].lineId);
   if (!confirm(`Remove ${line ? line.name : entries[idx].lineId} (${entries[idx].headcount} ops) from priority?`)) return;
   entries.splice(idx, 1);
+  setPriorityEntries(entries);
+  renderPriorityList();
+}
+
+/* Cycle an entry's scheduling status:
+   normal → notScheduled (excluded from auto-scheduler, shown in roster greyed) →
+   alwaysScheduled (forced into roster even with insufficient staff; slots show as gaps) →
+   normal */
+function cyclePriorityStatus(idx) {
+  const entries = getPriorityEntries();
+  const e = entries[idx];
+  if (!e) return;
+  if (!e.notScheduled && !e.alwaysScheduled) {
+    // normal → Not Scheduled
+    e.notScheduled = true;
+    e.alwaysScheduled = false;
+  } else if (e.notScheduled) {
+    // Not Scheduled → Scheduled (always on)
+    e.notScheduled = false;
+    e.alwaysScheduled = true;
+  } else {
+    // Scheduled → normal
+    e.notScheduled = false;
+    e.alwaysScheduled = false;
+  }
   setPriorityEntries(entries);
   renderPriorityList();
 }
@@ -3206,7 +3270,30 @@ function autoScheduleLines() {
   let totalCommitted = 0;
   let loproCommitted = 0;
 
+  // First pass: force "alwaysScheduled" lines into the roster regardless of pool
   for (const entry of entries) {
+    if (entry.notScheduled) continue;   // explicitly excluded
+    if (!entry.alwaysScheduled) continue;
+    if (scheduled.has(entry.lineId)) continue;
+    const line = LINES.find(l => l.id === entry.lineId);
+    if (!line || line.bu !== state.currentBU) continue;
+    scheduled.add(entry.lineId);
+    state.running.add(entry.lineId);
+    state.headcount[entry.lineId] = entry.headcount;
+    // Count committed ops for budget (still counts toward total even if it creates gaps)
+    const hc = entry.headcount;
+    let floaterDelta = 0;
+    if (line.group === 'lopro') {
+      floaterDelta = computeFloaters(loproCommitted + hc) - computeFloaters(loproCommitted);
+      loproCommitted += hc;
+    }
+    totalCommitted += hc + floaterDelta;
+  }
+
+  // Second pass: normal priority-order scheduling for the rest
+  for (const entry of entries) {
+    if (entry.notScheduled) continue;  // explicitly excluded
+    if (entry.alwaysScheduled) continue;  // already handled above
     if (scheduled.has(entry.lineId)) continue;   // line already scheduled (other variant)
     const line = LINES.find(l => l.id === entry.lineId);
     if (!line || line.bu !== state.currentBU) continue;   // skip lines from other BUs
