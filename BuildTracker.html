@@ -2105,11 +2105,11 @@ function BuildTracker() {
           {stats.nextNotReady > 0 && <button onClick={() => setShowNextNotReady(v => !v)}
             style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>⚠️ {stats.nextNotReady}</button>}
           <button onClick={() => setShowLogModal("plantwide")}
-            style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>Plantwide</button>
+            style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🏭 Plantwide</button>
           <button onClick={() => setShowLogModal("safety")}
-            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🔴 Safety</button>
+            style={{ background: "#dc2626", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🚨 Safety</button>
           <button onClick={() => setShowLogModal("nc")}
-            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>🟠 NC</button>
+            style={{ background: "#ea580c", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}>❌ NC</button>
           <input ref={labourInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleLabourUpload}/>
         </div>
 
