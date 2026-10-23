@@ -136,6 +136,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .shift-row:hover { background: #f8fafc; }
 .shift-row.green-row { background: rgba(22,163,74,0.06); }
 .shift-row.red-row   { background: rgba(220,38,38,0.05); }
+.shift-row.down-row  { background: #fef2f2; }
+.shift-row.down-row:hover { background: #fee2e2; }
 
 .cell { font-size: 12px; font-family: var(--mono); text-align: right; color: var(--text); padding-top: 2px; }
 .cell.left { text-align: left; font-family: var(--sans); }
@@ -468,6 +470,7 @@ function App() {
   // actuals: { "resourceName|YYYY-MM-DD|shiftId": { qty, hrs, sku, notes } }
   const [resources,  setResources]  = useState([]);
   const [actuals,    setActuals]    = useState({});
+  const [down,       setDown]       = useState({});
   const [comments,   setComments]   = useState({});
 
   const dates = weekDates(currentDay); // ["2026-09-28", ..., "2026-10-04"]
@@ -513,6 +516,8 @@ function App() {
 
       // actuals map: "resource|date|shiftId" -> { qty, hrs, sku, notes, bu }
       const actualsMap = {};
+      // down map: "resource|date|shiftId" -> { reason, notes, by, duration }
+      const downMap = {};
       // Also collect non-VER resources seen in shift reports
       const extraResources = {}; // name -> { bu }
 
@@ -539,6 +544,13 @@ function App() {
             if (!extraResources[res]) extraResources[res] = { bu };
           }
         });
+        // Build down map from linesDown array
+        (d.linesDown || []).forEach(ld => {
+          const res = (ld.resource||"").trim();
+          if (!res) return;
+          const key = `${res}|${d.date}|${shiftId}`;
+          downMap[key] = { reason: ld.reason||"", notes: ld.notes||"", by: ld.by||"", duration: ld.duration||"" };
+        });
       });
 
       // Build combined resource list: VER (from plan) + others (from shift reports)
@@ -556,6 +568,7 @@ function App() {
 
       setResources(allResources);
       setActuals(actualsMap);
+      setDown(downMap);
       setComments(savedComments);
       setLastRefresh(dayjs());
     } catch(err) {
@@ -830,8 +843,10 @@ function App() {
                       const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, earned:0, sku:"", notes:"" };
                       const hasData = (a.qty||0) > 0 || (a.hrs||0) > 0;
                       const effVal  = a.hrs > 0 ? (a.earned||0) / a.hrs * 100 : null;
-                      const rowCls  = !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const commKey = `${r.id}|${date}|${sid}`;
+                      const downEntry = down[commKey] || null;
+                      const isDown = !hasData && !!downEntry;
+                      const rowCls  = isDown ? "down-row" : !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const isFirstShiftOfDay = si===0;
 
                       return (
@@ -854,10 +869,26 @@ function App() {
                           <div className="cell muted">{hasData ? (a.hrs||0) : <span className="dim">—</span>}</div>
                           {/* Eff% */}
                           <div className="cell"><EffBadge earned={a.earned||0} hrs={a.hrs||0}/></div>
-                          {/* SKU — hidden on mobile */}
-                          <div className="cell left hide-mobile"><span className="sku-text">{a.sku||""}</span></div>
-                          {/* Notes — hidden on mobile */}
-                          <div className="cell left hide-mobile"><span className="notes-text">{a.notes||""}</span></div>
+                          {/* SKU / Down reason — hidden on mobile */}
+                          <div className="cell left hide-mobile">
+                            {isDown
+                              ? <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                                  <span style={{background:"#dc2626",color:"#fff",fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,letterSpacing:"0.03em",flexShrink:0}}>DOWN</span>
+                                  {downEntry.reason && <span style={{color:"#991b1b",fontWeight:700,fontSize:11}}>{downEntry.reason}</span>}
+                                </span>
+                              : <span className="sku-text">{a.sku||""}</span>
+                            }
+                          </div>
+                          {/* Notes / Down notes — hidden on mobile */}
+                          <div className="cell left hide-mobile">
+                            {isDown
+                              ? <span style={{color:"#7f1d1d",fontSize:11,fontStyle:"italic"}}>
+                                  {downEntry.notes||""}
+                                  {downEntry.by && <span style={{color:"#94a3b8",fontSize:10,marginLeft:4}}>— {downEntry.by}</span>}
+                                </span>
+                              : <span className="notes-text">{a.notes||""}</span>
+                            }
+                          </div>
                           {/* Comments — hidden on mobile */}
                           <div className="cell hide-mobile">
                             <textarea className="comment-cell" rows={1} placeholder="Add note…"
