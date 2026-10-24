@@ -907,6 +907,7 @@
       <div class="hist-actions" style="display:flex; gap:8px; margin-top: 10px; flex-wrap: wrap;">
         <button onclick="exportHistory()" class="hist-btn">Export backup</button>
         <button onclick="document.getElementById('hist-import-file').click()" class="hist-btn">Import backup</button>
+        <button onclick="pruneHistory(35)" class="hist-btn">Clean up (&gt;35 days)</button>
         <button onclick="clearHistory()" class="hist-btn danger">Clear all history</button>
         <input type="file" id="hist-import-file" accept=".json" style="display:none" onchange="importHistory(event)"/>
       </div>
@@ -965,6 +966,7 @@
     <h2>Line Priority &mdash; <span id="priority-shift-label">Day</span></h2>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="priority-sync-badge" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--ink-faint);"></span>
+      <button class="reset-btn" onclick="debugPriorityFirebase()" style="font-size:10px;padding:3px 8px;opacity:0.7;" title="Check what is actually in Firebase for this BU/shift">🔍 Debug</button>
       <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
     </div>
   </header>
@@ -2525,6 +2527,33 @@ function clearHistory() {
   }
 }
 
+function pruneHistory(keepDays) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - keepDays);
+  const cutoffISO = cutoff.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  const toDelete = state.history.filter(h => h.date && h.date < cutoffISO);
+  if (toDelete.length === 0) {
+    alert(`No history older than ${keepDays} days found. Nothing to clean up.`);
+    return;
+  }
+  if (!confirm(`Delete ${toDelete.length} shift record(s) older than ${keepDays} days (before ${cutoffISO})?\n\nRecent history will be kept.`)) return;
+  if (db) {
+    const batch = db.batch();
+    toDelete.forEach(h => {
+      const docId = `${h.date}_${h.shift || 'day'}`;
+      batch.delete(db.collection('history').doc(docId));
+    });
+    batch.commit()
+      .then(() => alert(`✅ Deleted ${toDelete.length} old record(s) from Firebase.`))
+      .catch(e => alert('Cleanup failed: ' + e.message));
+  } else {
+    state.history = state.history.filter(h => !h.date || h.date >= cutoffISO);
+    Storage.save(HISTORY_KEY, state.history);
+    renderHistory();
+    alert(`Deleted ${toDelete.length} old record(s) from local storage.`);
+  }
+}
+
 function exportHistory() {
   const blob = new Blob([JSON.stringify(state.history, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -3254,6 +3283,69 @@ function updatePrioritySyncBadge(status) {
 }
 function closePriorityScreen() {
   document.getElementById('priority-screen').classList.remove('open');
+}
+
+function debugPriorityFirebase() {
+  const bu = state.currentBU;
+  const shift = state.currentShift;
+  const docId = `${bu.replace(/\s+/g, '_')}_${shift}`;
+  const localEntries = state.priorities[bu]?.[shift] || [];
+
+  let msg = `=== PRIORITY DEBUG ===\n`;
+  msg += `BU: ${bu} | Shift: ${shift}\n`;
+  msg += `Doc ID: ${docId}\n`;
+  msg += `Firebase db: ${db ? 'CONNECTED' : 'NULL (not ready!)'}\n`;
+  msg += `cloudReady: ${cloudReady}\n`;
+  msg += `Pending writes queued: ${_pendingPriorityWrites.length}\n`;
+  msg += `Local entries (${localEntries.length}): ${JSON.stringify(localEntries.map(e => e.label || e.line || e.id))}\n\n`;
+
+  if (!db) {
+    alert(msg + 'Firebase is NOT connected. Changes are queued locally and will sync when Firebase connects.\n\nCheck the main cloud status indicator (top right of app) — if it shows offline/local, Firebase never connected on this device.');
+    return;
+  }
+
+  updatePrioritySyncBadge('syncing');
+  msg += 'Fetching from Firestore...\n';
+
+  db.collection('priorities').doc(docId).get()
+    .then(snap => {
+      if (snap.exists) {
+        const data = snap.data();
+        const cloudEntries = data.entries || [];
+        msg += `✅ FOUND in Firebase!\n`;
+        msg += `Cloud entries (${cloudEntries.length}): ${JSON.stringify(cloudEntries.map(e => e.label || e.line || e.id))}\n`;
+        msg += `Updated at: ${data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown'}\n\n`;
+
+        if (cloudEntries.length === 0 && localEntries.length > 0) {
+          msg += `⚠️ Firebase has 0 entries but local has ${localEntries.length}. Writes may not be reaching Firebase.\n`;
+        } else if (JSON.stringify(cloudEntries.map(e=>e.label)) !== JSON.stringify(localEntries.map(e=>e.label))) {
+          msg += `⚠️ Firebase and local are OUT OF SYNC.\n`;
+        } else {
+          msg += `✓ Firebase and local match.\n`;
+        }
+      } else {
+        msg += `❌ NOT FOUND in Firebase — doc "${docId}" does not exist.\n`;
+        msg += `This means no priority data has ever been saved to Firebase for this BU/shift.\n`;
+        msg += `\nAttempting to write local data to Firebase now...\n`;
+        db.collection('priorities').doc(docId)
+          .set({ entries: localEntries, bu, shift, updatedAt: Date.now() })
+          .then(() => {
+            alert(msg + '\n✅ Write succeeded! Refresh on other devices to see it.');
+            updatePrioritySyncBadge('synced');
+          })
+          .catch(err => {
+            alert(msg + `\n❌ Write FAILED: ${err.message}\n\nThis is likely a Firestore security rules issue. Check Firebase console > Firestore > Rules.`);
+            updatePrioritySyncBadge('offline');
+          });
+        return;
+      }
+      alert(msg);
+      updatePrioritySyncBadge('synced');
+    })
+    .catch(err => {
+      alert(`Firebase read FAILED:\n${err.code}: ${err.message}\n\nThis could be a Firestore security rules issue or network problem.`);
+      updatePrioritySyncBadge('offline');
+    });
 }
 
 function renderPriorityList() {
