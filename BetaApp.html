@@ -963,7 +963,10 @@
   <header class="roster-head">
     <button class="roster-back" onclick="closePriorityScreen()">&larr; Back</button>
     <h2>Line Priority &mdash; <span id="priority-shift-label">Day</span></h2>
-    <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="priority-sync-badge" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--ink-faint);"></span>
+      <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
+    </div>
   </header>
   <div class="roster-toolbar" style="background: var(--bg); border-bottom-color: var(--line); flex-direction: column; align-items: flex-start; gap: 8px;">
     <p style="font-size:12px; color: var(--ink-soft); margin:0; line-height:1.4;">
@@ -1161,6 +1164,7 @@ let db = null;          // Firestore handle (null until connected)
 let fbAuth = null;
 let cloudStatus = 'connecting';   // connecting | synced | offline | local
 let cloudReady = false;           // true once first roster snapshot arrives
+let _pendingPriorityWrites = [];  // queued priority writes when db not yet ready
 
 function updateCloudStatus(s) {
   if (s) cloudStatus = s;
@@ -1396,16 +1400,52 @@ const state = {
 };
 refreshOperators();
 
+function flushPendingPriorityWrites() {
+  if (!db || !_pendingPriorityWrites.length) return;
+  const writes = _pendingPriorityWrites.splice(0);
+  // Deduplicate: keep only the latest write per docId
+  const latest = {};
+  writes.forEach(w => { latest[w.docId] = w; });
+  const batch = Object.values(latest);
+  console.log(`Flushing ${batch.length} queued priority write(s) to Firestore`);
+  batch.forEach(w => {
+    db.collection('priorities').doc(w.docId)
+      .set({ entries: w.entries, bu: w.bu, shift: w.shift, updatedAt: w.updatedAt })
+      .then(() => {
+        // Update badge if this is the currently visible priority screen
+        if (w.bu === state.currentBU && w.shift === state.currentShift) {
+          updatePrioritySyncBadge('synced');
+        }
+      })
+      .catch(e => {
+        console.warn('Priority cloud flush failed:', e.message);
+        // Put it back in the queue
+        _pendingPriorityWrites.push(w);
+      });
+  });
+}
+
 function savePriorities() {
   Storage.save(PRIORITY_KEY, state.priorities);
+  const bu = state.currentBU;
+  const shift = state.currentShift;
+  const docId = `${bu.replace(/\s+/g, '_')}_${shift}`;
+  const entries = (state.priorities[bu]?.[shift] || []).slice();
   if (db) {
-    const bu = state.currentBU;
-    const shift = state.currentShift;
-    const docId = `${bu.replace(/\s+/g, '_')}_${shift}`;
-    const entries = state.priorities[bu]?.[shift] || [];
     db.collection('priorities').doc(docId)
       .set({ entries, bu, shift, updatedAt: Date.now() })
-      .catch(e => console.warn('Priority cloud save failed:', e.message));
+      .catch(e => {
+        console.warn('Priority cloud save failed:', e.message);
+        updatePrioritySyncBadge('offline');
+        // Queue it so we retry when connection recovers
+        _pendingPriorityWrites.push({ docId, entries, bu, shift, updatedAt: Date.now() });
+      });
+    updatePrioritySyncBadge('syncing');
+  } else {
+    // Firebase not ready yet — queue the write; it will flush once db is available
+    _pendingPriorityWrites.push({ docId, entries, bu, shift, updatedAt: Date.now() });
+    updatePrioritySyncBadge('offline');
+    console.log('Priority write queued (Firebase not ready):', docId);
   }
 }
 function getPriorityEntries() {
@@ -3176,6 +3216,41 @@ function openPriorityScreen() {
     `${state.currentBU} / ${shiftLabel(state.currentShift)}`;
   renderPriorityList();
   document.getElementById('priority-screen').classList.add('open');
+  // If Firebase is connected, force a fresh read of this BU+shift's priority doc
+  // so the screen always reflects the latest cloud state, not just local cache.
+  if (db) {
+    const bu = state.currentBU;
+    const shift = state.currentShift;
+    const docId = `${bu.replace(/\s+/g, '_')}_${shift}`;
+    db.collection('priorities').doc(docId).get()
+      .then(snap => {
+        if (snap.exists) {
+          const data = snap.data();
+          if (Array.isArray(data.entries)) {
+            if (!state.priorities[bu]) state.priorities[bu] = {};
+            state.priorities[bu][shift] = data.entries;
+            Storage.save(PRIORITY_KEY, state.priorities);
+            renderPriorityList();   // re-render with fresh cloud data
+          }
+        }
+        updatePrioritySyncBadge('synced');
+      })
+      .catch(() => updatePrioritySyncBadge('offline'));
+    updatePrioritySyncBadge('syncing');
+  }
+}
+
+function updatePrioritySyncBadge(status) {
+  const badge = document.getElementById('priority-sync-badge');
+  if (!badge) return;
+  const map = {
+    syncing: { text: '⟳ syncing…',  color: 'var(--ink-faint)' },
+    synced:  { text: '✓ synced',     color: 'var(--green)' },
+    offline: { text: '⚠ queued',     color: 'var(--amber)' },
+  };
+  const s = map[status] || map.synced;
+  badge.textContent = s.text;
+  badge.style.color = s.color;
 }
 function closePriorityScreen() {
   document.getElementById('priority-screen').classList.remove('open');
@@ -3514,6 +3589,9 @@ function subscribeCloud() {
   if (_cloudSubscribed || !db) return;
   _cloudSubscribed = true;
 
+  // Flush any priority writes that were queued before Firebase was ready
+  flushPendingPriorityWrites();
+
   // --- Roster: single shared document ---
   db.collection('roster').doc('current').onSnapshot(
     { includeMetadataChanges: true },
@@ -3551,9 +3629,11 @@ function subscribeCloud() {
           }
         }
         cloudReady = true;
+        flushPendingPriorityWrites();
       } else if (!cloudReady) {
         // Database is empty &mdash; first ever run. Seed it from this device's roster.
         cloudReady = true;
+        flushPendingPriorityWrites();
         db.collection('roster').doc('current')
           .set({ operators: ROSTER, seededAt: Date.now() })
           .catch(e => console.warn('Seeding cloud roster failed:', e.message));
@@ -3577,10 +3657,11 @@ function subscribeCloud() {
               if (!state.priorities[b.id]) state.priorities[b.id] = {};
               state.priorities[b.id][s.id] = data.entries;
               Storage.save(PRIORITY_KEY, state.priorities);
-              if (b.id === state.currentBU
-                  && s.id === state.currentShift
-                  && document.getElementById('priority-screen').classList.contains('open')) {
-                renderPriorityList();
+              if (b.id === state.currentBU && s.id === state.currentShift) {
+                if (document.getElementById('priority-screen').classList.contains('open')) {
+                  renderPriorityList();
+                  updatePrioritySyncBadge('synced');
+                }
               }
             }
           }
