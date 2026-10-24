@@ -792,11 +792,6 @@
     <button class="reset-btn" onclick="openPriorityScreen()">&#9889; Priority</button>
     <button class="reset-btn" onclick="openRosterScreen()">&#128101; Roster</button>
     <button class="reset-btn" onclick="resetAll()">Reset</button>
-    <div style="display:flex;gap:4px;margin-left:8px;padding-left:8px;border-left:1px solid rgba(255,255,255,0.2)">
-      <a href="index.html" title="Production Report" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">&#128202;</a>
-      <a href="BuildTracker.html" title="Build Tracker" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">&#128203;</a>
-      <a href="ShiftReadiness.html" title="Shift Readiness" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:#f59e0b;color:white;text-decoration:none;font-size:16px;transition:background 0.15s" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">&#9989;</a>
-    </div>
   </div>
 </div>
 
@@ -966,7 +961,6 @@
     <h2>Line Priority &mdash; <span id="priority-shift-label">Day</span></h2>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="priority-sync-badge" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--ink-faint);"></span>
-      <button class="reset-btn" onclick="debugPriorityFirebase()" style="font-size:10px;padding:3px 8px;opacity:0.7;" title="Check what is actually in Firebase for this BU/shift">🔍 Debug</button>
       <button class="roster-add" onclick="openAddPriorityEntry()">+ Add</button>
     </div>
   </header>
@@ -2511,6 +2505,9 @@ function deleteHistoryEntry(idx) {
 }
 
 function clearHistory() {
+  const pwd = prompt('Enter password to clear all history:');
+  if (pwd === null) return;
+  if (pwd !== 'chepelare') { alert('Incorrect password.'); return; }
   if (!confirm(`Clear ALL ${state.history.length} saved shifts?\n\nRotation will restart from scratch.`)) return;
   if (db) {
     // Delete every history doc in a batch
