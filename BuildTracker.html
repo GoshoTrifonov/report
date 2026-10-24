@@ -3581,6 +3581,250 @@ function DowntimeCard({ r }) {
   );
 }
 
+  const generateShiftReportHTML = (reportData, shiftMeta, reportDate, selectedLeader, shiftLogs) => {
+    const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
+    const dateStr = reportDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const timeStr = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    const effColor = (eff) => {
+      if (eff == null) return "#64748b";
+      if (eff >= 90) return "#15803d";
+      if (eff >= 76.5) return "#b45309";
+      return "#b91c1c";
+    };
+    const effBg = (eff) => {
+      if (eff == null) return "#f1f5f9";
+      if (eff >= 90) return "#dcfce7";
+      if (eff >= 76.5) return "#fef3c7";
+      return "#fee2e2";
+    };
+
+    const totalHrs    = reportData.totalHrs    || 0;
+    const totalEarned = reportData.totalEarned || 0;
+    const totalLost   = reportData.totalLost   || 0;
+    const totalEff    = reportData.totalEff;
+    const totalUnits  = reportData.totalUnits  || 0;
+
+    const statBox = (label, value, color, bg) =>
+      `<td style="width:110px;background:${bg||"#f8fafc"};border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;text-align:center">` +
+      `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:4px">${label}</div>` +
+      `<div style="font-size:20px;font-weight:800;color:${color||"#0f172a"};font-variant-numeric:tabular-nums">${value}</div>` +
+      `</td>`;
+
+    const statsHtml =
+      `<table cellspacing="6" cellpadding="0" style="border-collapse:separate;border-spacing:6px;margin-bottom:18px"><tr>` +
+      statBox("Total Units", totalUnits.toLocaleString()) +
+      statBox("Efficiency", totalEff != null ? totalEff.toFixed(1)+"%" : "—", effColor(totalEff), effBg(totalEff)) +
+      statBox("Hrs Worked", totalHrs > 0 ? totalHrs.toFixed(1)+"h" : "—") +
+      statBox("Lost Hours", totalLost > 0 ? totalLost.toFixed(1)+"h" : "—", totalLost > 0 ? "#b91c1c" : "#0f172a", totalLost > 0 ? "#fee2e2" : "#f8fafc") +
+      statBox("Resources", reportData.byResource.size) +
+      statBox("Lines Down", reportData.downLines.length, reportData.downLines.length > 0 ? "#b91c1c" : "#0f172a", reportData.downLines.length > 0 ? "#fee2e2" : "#f8fafc") +
+      `</tr></table>`;
+
+    let woRowsHtml = "";
+    let hasAnyData = false;
+    for (const [res, data] of reportData.byResource.entries()) {
+      for (const { row, entry } of data.entries) {
+        hasAnyData = true;
+        const progress = row.start_qty > 0 ? Math.min(100, Math.round((row.comp_qty||0)/row.start_qty*100)) : 0;
+        const progressBar = row.start_qty > 0
+          ? `<div style="height:5px;background:#e2e8f0;border-radius:3px;margin-top:3px;width:70px;display:inline-block">` +
+            `<div style="height:100%;background:#10b981;border-radius:3px;width:${progress}%"></div></div>` +
+            ` <span style="font-size:10px;color:#64748b">${progress}%</span>`
+          : "";
+        const effCell = entry.eff != null
+          ? `<span style="background:${effBg(entry.eff)};color:${effColor(entry.eff)};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${entry.eff.toFixed(1)}%</span>`
+          : `<span style="color:#94a3b8">—</span>`;
+        const hrsCell = entry.hrs > 0 ? `${entry.hrs.toFixed(1)}h` : `<span style="color:#94a3b8">—</span>`;
+        const reasonHtml = entry.reason
+          ? `<br><span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600">${entry.reason}</span>`
+          : "";
+        const notesHtml = entry.notes
+          ? `<span style="color:#475569;font-size:11px;font-style:italic">${entry.notes}</span>`
+          : `<span style="color:#cbd5e1">—</span>`;
+        const rowBg = (entry.eff != null && entry.eff < 76.5) ? "#fff7ed" : "#ffffff";
+        woRowsHtml +=
+          `<tr style="background:${rowBg};border-bottom:1px solid #f1f5f9">` +
+          `<td style="padding:7px 10px;font-weight:700;font-size:12px;color:#0f172a;white-space:nowrap">${res}</td>` +
+          `<td style="padding:7px 10px;font-family:monospace;font-size:12px;font-weight:700;color:#1e40af">${row.wo||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;color:#475569;max-width:180px">${row.descr||row.part||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:13px;font-weight:800;color:#047857;text-align:right;white-space:nowrap">+${(entry.qty||0).toLocaleString()}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;color:#64748b;text-align:center">${(row.comp_qty||0).toLocaleString()} / ${(row.start_qty||0).toLocaleString()}<br>${progressBar}</td>` +
+          `<td style="padding:7px 10px;text-align:center">${effCell}</td>` +
+          `<td style="padding:7px 10px;text-align:center;font-size:11px;color:#475569">${hrsCell}</td>` +
+          `<td style="padding:7px 10px;font-size:11px">${notesHtml}${reasonHtml}` +
+          (entry.by ? `<br><span style="font-size:10px;color:#94a3b8;font-weight:600">${entry.by}</span>` : "") +
+          `</td></tr>`;
+      }
+      for (const r of data.statusOnly) {
+        woRowsHtml +=
+          `<tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9">` +
+          `<td style="padding:7px 10px;font-weight:700;font-size:12px;color:#0f172a">${res}</td>` +
+          `<td style="padding:7px 10px;font-family:monospace;font-size:11px;color:#94a3b8">${r.wo||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;color:#94a3b8">${r.descr||r.part||"—"}</td>` +
+          `<td colspan="5" style="padding:7px 10px;font-size:10px;color:#94a3b8;font-style:italic;text-transform:uppercase;letter-spacing:0.05em">${r.status} — no entries this shift</td>` +
+          `</tr>`;
+      }
+    }
+    if (!hasAnyData) {
+      woRowsHtml = `<tr><td colspan="8" style="padding:24px;text-align:center;color:#94a3b8;font-style:italic">No production entries logged for this shift.</td></tr>`;
+    }
+
+    const mainTableHtml =
+      `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:18px">` +
+      `<thead><tr style="background:#0f172a;color:#ffffff">` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Resource</th>` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Work Order</th>` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Description</th>` +
+      `<th style="padding:8px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Units This Shift</th>` +
+      `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Total / Target</th>` +
+      `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Eff%</th>` +
+      `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Hrs</th>` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Notes / Reason</th>` +
+      `</tr></thead><tbody>${woRowsHtml}</tbody></table>`;
+
+    let downHtml = "";
+    if (reportData.downLines.length > 0) {
+      const downRows = reportData.downLines.map(d =>
+        `<tr style="border-bottom:1px solid #fecaca">` +
+        `<td style="padding:7px 10px;font-weight:700;color:#0f172a">${d.resource}</td>` +
+        `<td style="padding:7px 10px">` +
+        `<span style="background:#dc2626;color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">${d.reason||"—"}</span>` +
+        (d.duration > 0 ? ` <span style="background:#fecaca;color:#991b1b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px">${d.duration}h</span>` : "") +
+        `</td>` +
+        `<td style="padding:7px 10px;font-size:11px;color:#475569;font-style:italic">${d.notes||"—"}</td>` +
+        `<td style="padding:7px 10px;font-size:10px;color:#94a3b8">${d.by||"—"}</td>` +
+        `</tr>`
+      ).join("");
+      downHtml =
+        `<div style="margin-bottom:18px">` +
+        `<div style="background:#dc2626;color:white;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
+        `🔴 Lines Down This Shift (${reportData.downLines.length})</div>` +
+        `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fecaca;border-top:none;background:#fff1f2">` +
+        `<thead><tr style="background:#fee2e2">` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#991b1b;font-weight:700">Resource</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#991b1b;font-weight:700">Reason / Duration</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#991b1b;font-weight:700">Notes</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#991b1b;font-weight:700">By</th>` +
+        `</tr></thead><tbody>${downRows}</tbody></table></div>`;
+    }
+
+    let incidentHtml = "";
+    const safetyItems = (shiftLogs||[]).filter(l => l.type==="safety");
+    const ncItems     = (shiftLogs||[]).filter(l => l.type==="nc");
+    const pwItems     = (shiftLogs||[]).filter(l => l.type==="plantwide");
+    const allInc      = [...safetyItems, ...ncItems, ...pwItems];
+    if (allInc.length > 0) {
+      const incRows = allInc.map(log => {
+        const tc = log.type==="safety" ? "#dc2626" : log.type==="plantwide" ? "#7c3aed" : "#ea580c";
+        const tl = log.type==="safety" ? "SAFETY" : log.type==="plantwide" ? "PLANTWIDE" : "NC";
+        return `<tr style="border-bottom:1px solid #f1f5f9">` +
+          `<td style="padding:7px 10px"><span style="background:${tc};color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">${tl}</span></td>` +
+          `<td style="padding:7px 10px;font-size:11px;font-weight:700;color:#374151">${log.severity||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;font-weight:600;color:#475569">${log.resource||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;color:#475569">${log.description||"—"}` +
+          (log.ncNum ? `<br><span style="font-size:10px;color:#94a3b8">NC#: ${log.ncNum}</span>` : "") +
+          (log.wo    ? `<br><span style="font-size:10px;color:#94a3b8">WO: ${log.wo}</span>` : "") +
+          `</td><td style="padding:7px 10px;font-size:10px;color:#94a3b8">${log.by||"—"}</td></tr>`;
+      }).join("");
+      incidentHtml =
+        `<div style="margin-bottom:18px">` +
+        `<div style="background:#374151;color:white;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
+        `⚠️ Safety / NC / Plantwide Incidents (${allInc.length})</div>` +
+        `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;border-top:none">` +
+        `<thead><tr style="background:#f8fafc">` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Type</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Severity</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Resource</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">Description</th>` +
+        `<th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700">By</th>` +
+        `</tr></thead><tbody>${incRows}</tbody></table></div>`;
+    }
+
+    let reasonsHtml = "";
+    const reasons = reportData.reasonsCount || {};
+    if (Object.keys(reasons).length > 0) {
+      const chips = Object.entries(reasons)
+        .map(([r,c]) => `<span style="display:inline-block;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin:2px 4px 2px 0">${r} <strong>(${c})</strong></span>`)
+        .join("");
+      reasonsHtml =
+        `<div style="margin-bottom:18px;padding:12px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px">` +
+        `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:8px">Underperformance Reasons</div>` +
+        chips + `</div>`;
+    }
+
+    const subLine =
+      `${reportData.totalEntries} entr${reportData.totalEntries!==1?"ies":"y"} across ${reportData.byResource.size} resource${reportData.byResource.size!==1?"s":""}` +
+      (reportData.downLines.length>0 ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:#fca5a5;font-weight:700">⚠️ ${reportData.downLines.length} line${reportData.downLines.length!==1?"s":""} down</span>` : "") +
+      (allInc.length>0 ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:#fbbf24;font-weight:700">⚠️ ${allInc.length} incident${allInc.length!==1?"s":""}</span>` : "");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift Report — ${buLabel} — ${shiftMeta.label} — ${dateStr}</title>
+  <style>
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,'Segoe UI',system-ui,sans-serif; background:#f8fafc; }
+    .wrapper { max-width:920px; margin:0 auto; padding:20px; background:white; }
+    .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:16px; padding:10px 14px; background:#f1f5f9; border-radius:8px; }
+    .btn { padding:8px 18px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+    @media print { .toolbar { display:none !important; } body { background:white; } .wrapper { padding:8px; } }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="toolbar">
+    <strong style="font-size:13px;color:#0f172a">📋 Shift Report Ready</strong>
+    <span style="font-size:12px;color:#64748b;flex:1">Click <strong>Select All</strong>, then Ctrl+C, then paste into your Outlook email body.</span>
+    <button class="btn" style="background:#0f172a;color:white" onclick="selectAll()">Select All</button>
+    <button class="btn" style="background:#0ea5e9;color:white" onclick="window.print()">🖨 Print</button>
+  </div>
+  <div id="report-body">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px">
+      <tr>
+        <td style="background:#0f172a;padding:16px 20px;border-radius:8px 8px 0 0">
+          <div style="color:#94a3b8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Shift Production Report</div>
+          <div style="color:#ffffff;font-size:22px;font-weight:800;margin-bottom:2px">${buLabel}</div>
+          <div style="color:#94a3b8;font-size:13px">${dateStr}&nbsp;·&nbsp;${shiftMeta.label}&nbsp;(${shiftMeta.time})</div>
+        </td>
+        <td style="background:#1e293b;padding:16px 20px;border-radius:0 8px 0 0;text-align:right;vertical-align:top;white-space:nowrap">
+          <div style="color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Generated</div>
+          <div style="color:#e2e8f0;font-size:13px;font-weight:600">${timeStr}</div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="background:#334155;padding:8px 20px;border-radius:0 0 8px 8px">
+          <span style="color:#cbd5e1;font-size:11px">${subLine}</span>
+        </td>
+      </tr>
+    </table>
+    ${statsHtml}
+    ${mainTableHtml}
+    ${downHtml}
+    ${incidentHtml}
+    ${reasonsHtml}
+    <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:10px;display:flex;justify-content:space-between">
+      <span>SMI Build Plan Tracker · Auto-generated shift report</span>
+      <span>${buLabel} · ${shiftMeta.label} · ${dateStr}</span>
+    </div>
+  </div>
+</div>
+<script>
+function selectAll(){
+  var b=document.getElementById("report-body");
+  var r=document.createRange();
+  r.selectNodeContents(b);
+  var s=window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+<\/script>
+</body>
+</html>`;
+  };
+
 function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
@@ -3693,6 +3937,14 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
 
   const meta = SHIFTS.find(s => s.id === reportShiftId);
   const dateLabel = reportDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+
+  const openEmailReport = () => {
+    const shiftMeta = SHIFTS.find(s => s.id === reportShiftId) || { label: "S"+reportShiftId, time: "" };
+    const html = generateShiftReportHTML(reportData, shiftMeta, reportDate, selectedLeader, shiftLogs);
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+  };
 
   const printReport = () => {
     window.print();
@@ -4029,10 +4281,11 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
               )}
               <div className="flex gap-2">
-                <button onClick={copyReport} style={{flex:1,padding:"8px 12px",borderRadius:6,background:"#0f172a",color:"#ffffff",fontSize:13,fontWeight:600,border:"none",cursor:"pointer"}}>Copy text</button>
-                <button onClick={emailReport} style={{flex:1,padding:"8px 12px",borderRadius:6,background:"#2563eb",color:"#ffffff",fontSize:13,fontWeight:600,border:"none",cursor:"pointer"}}>✉ Email</button>
+                <button onClick={openEmailReport} style={{flex:1,padding:"9px 12px",borderRadius:6,background:"#2563eb",color:"#ffffff",fontSize:13,fontWeight:700,border:"none",cursor:"pointer"}}>✉ Open for Email (Outlook)</button>
+                <button onClick={copyReport} style={{padding:"9px 14px",borderRadius:6,background:"#475569",color:"#ffffff",fontSize:13,fontWeight:600,border:"none",cursor:"pointer"}}>Copy Text</button>
                 <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
               </div>
+              <p style={{fontSize:"10px",color:"#94a3b8",textAlign:"center",marginTop:6,fontStyle:"italic"}}>Opens a new tab → click "Select All" → Ctrl+C → paste into Outlook</p>
             </div>
           </React.Fragment>
 
