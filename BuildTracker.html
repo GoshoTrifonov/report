@@ -3653,7 +3653,7 @@ function DowntimeCard({ r }) {
           `<td style="padding:7px 10px;text-align:center">${effCell}</td>` +
           `<td style="padding:7px 10px;text-align:center;font-size:11px;color:#475569">${hrsCell}</td>` +
           `<td style="padding:7px 10px;font-size:11px">${notesHtml}${reasonHtml}` +
-          (entry.by ? `<br><span style="font-size:10px;color:#94a3b8;font-weight:600">${entry.by}</span>` : "") +
+          (entry.by && entry.source !== "labour" ? `<br><span style="font-size:10px;color:#94a3b8;font-weight:600">${entry.by}</span>` : "") +
           `</td></tr>`;
       }
       for (const r of data.statusOnly) {
