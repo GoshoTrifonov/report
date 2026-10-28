@@ -22,78 +22,207 @@
   const db = firebase.firestore();
 </script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #1e293b; }
-  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 
-  /* Efficiency badges */
-  .eff-green { background: #14532d; color: #86efac; }
-  .eff-amber { background: #78350f; color: #fcd34d; }
-  .eff-red   { background: #7f1d1d; color: #fca5a5; }
-  .eff-none  { color: #475569; }
+/* ── Theme tokens ── */
+[data-theme="dark"] {
+  --bg:        #0f172a;
+  --bg2:       #1e293b;
+  --bg3:       #0f172a;
+  --border:    #334155;
+  --border2:   #1e293b;
+  --text:      #e2e8f0;
+  --text2:     #94a3b8;
+  --text3:     #64748b;
+  --text4:     #475569;
+  --text-inv:  #0f172a;
+  --row-hover: rgba(255,255,255,0.03);
+  --sticky-bg: #1e293b;
+  --bu-bg:     #0f172a;
+  --foot-bg:   #0f172a;
+  --scroll-thumb: #475569;
+  --scroll-track: #1e293b;
+  --input-bg:  #1e293b;
+  --eff-green-bg: #14532d; --eff-green-txt: #86efac;
+  --eff-amber-bg: #78350f; --eff-amber-txt: #fcd34d;
+  --eff-red-bg:   #7f1d1d; --eff-red-txt:   #fca5a5;
+  --eff-none-txt: #475569;
+  --lost-color: #fbbf24;
+  --btn-ghost-bg: #0f172a;
+  --btn-ghost-border: #334155;
+  --btn-ghost-txt: #64748b;
+  --btn-sec-bg: #334155;
+  --btn-sec-txt: #e2e8f0;
+  --panel-bg:  #1e293b;
+  --chk-border: #475569;
+  --chk-bg:    #334155;
+  --modal-overlay: rgba(0,0,0,0.65);
+  --dot:       #334155;
+}
+[data-theme="light"] {
+  --bg:        #f1f5f9;
+  --bg2:       #ffffff;
+  --bg3:       #f8fafc;
+  --border:    #e2e8f0;
+  --border2:   #f1f5f9;
+  --text:      #0f172a;
+  --text2:     #475569;
+  --text3:     #64748b;
+  --text4:     #94a3b8;
+  --text-inv:  #ffffff;
+  --row-hover: rgba(0,0,0,0.025);
+  --sticky-bg: #ffffff;
+  --bu-bg:     #f8fafc;
+  --foot-bg:   #f1f5f9;
+  --scroll-thumb: #cbd5e1;
+  --scroll-track: #f1f5f9;
+  --input-bg:  #ffffff;
+  --eff-green-bg: #dcfce7; --eff-green-txt: #166534;
+  --eff-amber-bg: #fef3c7; --eff-amber-txt: #92400e;
+  --eff-red-bg:   #fee2e2; --eff-red-txt:   #991b1b;
+  --eff-none-txt: #94a3b8;
+  --lost-color: #d97706;
+  --btn-ghost-bg: #ffffff;
+  --btn-ghost-border: #e2e8f0;
+  --btn-ghost-txt: #64748b;
+  --btn-sec-bg: #e2e8f0;
+  --btn-sec-txt: #0f172a;
+  --panel-bg:  #ffffff;
+  --chk-border: #cbd5e1;
+  --chk-bg:    #f1f5f9;
+  --modal-overlay: rgba(15,23,42,0.4);
+  --dot:       #e2e8f0;
+}
 
-  /* Table */
-  table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-  td { padding: 6px 10px; white-space: nowrap; }
-  .num { font-variant-numeric: tabular-nums; text-align: right; }
-  .day-th { text-align: center; min-width: 90px; border-left: 1px solid #1e293b; }
-  .day-td { text-align: center; border-left: 1px solid #1e293b; }
-  .sep-left { border-left: 2px solid #334155 !important; }
-  .sticky-col { position: sticky; left: 0; background: #1e293b; z-index: 5; }
-  .bu-sticky { position: sticky; left: 0; background: #0f172a; z-index: 5; }
-  tr:hover td { background: rgba(255,255,255,0.03); }
-  tr:hover td.sticky-col { background: #1e293b; }
-  tr:hover td.bu-sticky  { background: #0f172a; }
-  .bu-row td { background: #0f172a; font-weight: 700; color: #94a3b8; font-size: 12px; border-top: 2px solid #334155; }
-  .foot-row td { background: #0f172a; font-weight: 800; border-top: 2px solid #475569; }
-  .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+::-webkit-scrollbar-track { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
 
-  /* Chips */
-  .chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.12s; }
-  .chip-on  { background: #1d4ed8; color: #bfdbfe; }
-  .chip-off { background: #1e293b; color: #64748b; border: 1px solid #334155; }
-  .chip:hover { opacity: 0.8; }
+/* ── Eff badges ── */
+.eff-green { background: var(--eff-green-bg); color: var(--eff-green-txt); }
+.eff-amber { background: var(--eff-amber-bg); color: var(--eff-amber-txt); }
+.eff-red   { background: var(--eff-red-bg);   color: var(--eff-red-txt);   }
+.eff-none  { color: var(--eff-none-txt); }
 
-  /* Buttons */
-  .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; padding: 6px 14px; transition: opacity 0.12s; }
-  .btn:hover { opacity: 0.85; }
-  .btn-primary { background: #1d4ed8; color: #fff; }
-  .btn-secondary { background: #334155; color: #e2e8f0; }
-  .btn-ghost { background: #0f172a; color: #64748b; border: 1px solid #334155; }
+/* ── Table ── */
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+td { padding: 6px 10px; white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+.day-th { text-align: center; min-width: 94px; border-left: 1px solid var(--border2); }
+.day-td { text-align: center; border-left: 1px solid var(--border2); }
+.sep-left { border-left: 2px solid var(--border) !important; }
+.sticky-col { position: sticky; left: 0; background: var(--sticky-bg); z-index: 5; }
+.bu-sticky  { position: sticky; left: 0; background: var(--bu-bg);     z-index: 5; }
+tr:hover td { background: var(--row-hover); }
+tr:hover td.sticky-col { background: var(--sticky-bg); }
+tr:hover td.bu-sticky  { background: var(--bu-bg); }
+.bu-row td { background: var(--bu-bg); font-weight: 700; color: var(--text2); font-size: 12px; border-top: 2px solid var(--border); }
+.foot-row td { background: var(--foot-bg); font-weight: 800; border-top: 2px solid var(--border); }
+.panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; }
 
-  /* Stat cards */
-  .stat-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 16px; flex: 1 1 140px; }
-  .stat-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
-  .stat-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* ── Checkbox filter column ── */
+.chk-col { width: 36px; text-align: center; border-right: 1px solid var(--border); }
+.chk-th  { width: 36px; text-align: center; border-right: 1px solid var(--border); vertical-align: middle; }
+.chk-input { width: 15px; height: 15px; cursor: pointer; accent-color: #3b82f6; }
 
-  /* Week nav */
-  .wnav { display: flex; gap: 6px; align-items: center; }
-  .wnav button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
-  .wnav button:hover { background: #334155; color: #e2e8f0; }
-  .wnav button.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
-  .wnav button:disabled { opacity: 0.3; cursor: default; }
+/* ── Eff badge inline ── */
+.badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* Modal overlay */
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; display: flex; align-items: center; justify-content: center; }
-  input[type=password] { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 9px 14px; font-size: 14px; outline: none; width: 100%; }
-  input[type=password]:focus { border-color: #3b82f6; }
+/* ── Buttons ── */
+.btn { border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; padding: 6px 14px; transition: opacity 0.12s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary   { background: #1d4ed8; color: #fff; }
+.btn-secondary { background: var(--btn-sec-bg); color: var(--btn-sec-txt); border: none; }
+.btn-ghost     { background: var(--btn-ghost-bg); color: var(--btn-ghost-txt); border: 1px solid var(--btn-ghost-border); }
+.btn-danger    { background: #dc2626; color: #fff; }
+
+/* ── Stat cards ── */
+.stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; flex: 1 1 130px; }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+
+/* ── Week nav ── */
+.wnav { display: flex; gap: 6px; align-items: center; }
+.wnav button { background: var(--bg2); border: 1px solid var(--border); color: var(--text2); border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.wnav button:hover { background: var(--btn-sec-bg); color: var(--text); }
+.wnav button.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.wnav button:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Header ── */
+.app-header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 20px; }
+
+/* ── Theme toggle ── */
+.theme-toggle { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px; display: flex; gap: 2px; cursor: pointer; }
+.theme-toggle span { padding: 3px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; color: var(--text3); transition: all 0.15s; }
+.theme-toggle span.active { background: #1d4ed8; color: #fff; }
+
+/* ── Modal ── */
+.overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 100; display: flex; align-items: center; justify-content: center; }
+
+/* ── Login ── */
+input[type=password], input[type=text] {
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 9px 14px; font-size: 14px; outline: none; width: 100%;
+}
+input[type=password]:focus, input[type=text]:focus { border-color: #3b82f6; }
+
+/* ── Filter sidebar/panel ── */
+.filter-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 320px;
+  background: var(--bg2); border-left: 1px solid var(--border);
+  z-index: 90; display: flex; flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.25);
+  transform: translateX(0); transition: transform 0.2s;
+}
+.filter-panel.hidden { transform: translateX(100%); }
+.filter-scroll { flex: 1; overflow-y: auto; }
+.filter-group-header {
+  padding: 8px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text3);
+  background: var(--bg3); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 2;
+}
+.filter-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 16px; cursor: pointer; border-bottom: 1px solid var(--border2);
+  font-size: 13px; color: var(--text);
+}
+.filter-item:hover { background: var(--row-hover); }
+.filter-item input[type=checkbox] { accent-color: #3b82f6; width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+
+/* ── Saved filter chips ── */
+.saved-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+  cursor: pointer; transition: all 0.12s;
+}
+.saved-chip:hover { border-color: #3b82f6; color: #3b82f6; }
+.saved-chip.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.saved-chip .del { color: inherit; opacity: 0.5; font-size: 14px; line-height: 1; }
+.saved-chip .del:hover { opacity: 1; }
 </style>
 </head>
-<body>
+<body data-theme="dark">
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-// ─── Auth ───────────────────────────────────────────────────────────────────
-const APP_PW    = "smi1234";
-const LS_AUTH   = "wd_auth";
-const LS_FILTER = "wd_filter_v2";
+// ─── Auth ────────────────────────────────────────────────────────────────────
+const APP_PW     = "smi1234";
+const LS_AUTH    = "wd_auth";
+const LS_THEME   = "wd_theme";
+const FILTERS_REF = db.collection("weekly_dashboard").doc("saved_filters");
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtQty  = n => n > 0 ? Math.round(n).toLocaleString() : "";
 const fmtEff  = n => n == null ? "" : n.toFixed(1) + "%";
-const fmtHrs  = n => n > 0 ? n.toFixed(1) : "";
 const fmtLost = n => n > 0 ? n.toFixed(1) : "";
 
 function calcEff(earned, hrs) {
@@ -105,9 +234,9 @@ function effCls(eff) {
   if (eff >= 76.5) return "eff-amber";
   return "eff-red";
 }
-function effBadge(eff) {
-  if (eff == null) return <span style={{color:"#475569"}}>—</span>;
-  return <span className={`chip ${effCls(eff)}`} style={{borderRadius:4,padding:"1px 6px",fontSize:12}}>{fmtEff(eff)}</span>;
+function EffBadge({ eff }) {
+  if (eff == null) return <span style={{color:"var(--eff-none-txt)"}}>—</span>;
+  return <span className={`badge ${effCls(eff)}`}>{fmtEff(eff)}</span>;
 }
 
 // Week helpers
@@ -118,32 +247,23 @@ function getMondayOf(date) {
   d.setHours(0,0,0,0);
   return d;
 }
-function addDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
-}
+function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate() + n); return d; }
 function isoOf(d) { return d.toISOString().slice(0,10); }
-function fmtDayLabel(d) {
-  return d.toLocaleDateString("en-US", { weekday:"short", month:"numeric", day:"numeric" });
-}
+function fmtDayLabel(d) { return d.toLocaleDateString("en-US", { weekday:"short", month:"numeric", day:"numeric" }); }
 function fmtWeekRange(monday) {
   const fri = addDays(monday, 4);
   return `${monday.toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${fri.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
 }
 
-// ─── Data aggregation ────────────────────────────────────────────────────────
-// rows: [{ date, resource, hrs, qty, earned, lost, unitLead, shift }]
-// Returns grouped by BU → resource → day
+// ─── Data aggregation ─────────────────────────────────────────────────────────
 function aggregate(rows, dayISOs) {
-  // resource → { bu, byDate: {iso: {qty,hrs,earned,lost}}, total }
   const map = {};
   for (const r of rows) {
     if (!dayISOs.includes(r.date)) continue;
     const key = r.resource || "Unknown";
-    const bu  = r.unitLead  || "Other";
+    const bu  = r.unitLead || "Other";
     if (!map[key]) {
-      map[key] = { resource: key, bu, byDate: {}, totalQty:0, totalHrs:0, totalEarned:0, totalLost:0 };
+      map[key] = { resource:key, bu, byDate:{}, totalQty:0, totalHrs:0, totalEarned:0, totalLost:0 };
       for (const d of dayISOs) map[key].byDate[d] = {qty:0,hrs:0,earned:0,lost:0};
     }
     map[key].byDate[r.date].qty    += r.qty    || 0;
@@ -158,7 +278,7 @@ function aggregate(rows, dayISOs) {
   return map;
 }
 
-// ─── Login ───────────────────────────────────────────────────────────────────
+// ─── Login ────────────────────────────────────────────────────────────────────
 function Login({ onAuth }) {
   const [pw, setPw] = React.useState("");
   const [err, setErr] = React.useState(false);
@@ -172,7 +292,7 @@ function Login({ onAuth }) {
       <div className="panel" style={{padding:40,width:320,textAlign:"center"}}>
         <div style={{fontSize:30,marginBottom:8}}>📊</div>
         <div style={{fontSize:20,fontWeight:800,marginBottom:2}}>Weekly Dashboard</div>
-        <div style={{fontSize:12,color:"#64748b",marginBottom:24}}>SMI Production</div>
+        <div style={{fontSize:12,color:"var(--text3)",marginBottom:24}}>SMI Production</div>
         <form onSubmit={submit}>
           <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr(false);}} placeholder="Password" autoFocus />
           {err && <div style={{color:"#f87171",fontSize:12,margin:"8px 0"}}>Incorrect password</div>}
@@ -183,61 +303,155 @@ function Login({ onAuth }) {
   );
 }
 
-// ─── Filter Modal ─────────────────────────────────────────────────────────────
-function FilterModal({ allBUs, allResources, filters, onApply, onSave, onClose }) {
-  const [buSel,  setBuSel]  = React.useState(filters.buList  || []);
-  const [resSel, setResSel] = React.useState(filters.resList || []);
-  const toggleBU  = bu  => setBuSel(s  => s.includes(bu)  ? s.filter(x=>x!==bu)  : [...s,bu]);
-  const toggleRes = res => setResSel(s => s.includes(res) ? s.filter(x=>x!==res) : [...s,res]);
+// ─── Filter Sidebar ───────────────────────────────────────────────────────────
+function FilterSidebar({ allBUs, allResources, checked, setChecked, savedFilters, onSave, onDeleteSaved, onClose }) {
+  const [saveName, setSaveName] = React.useState("");
+  const [saving, setSaving]     = React.useState(false);
+  const [nameMode, setNameMode] = React.useState(false);
+
+  // Group resources by BU using allResources map
+  const buGroups = React.useMemo(() => {
+    const g = {};
+    for (const { bu, resource } of allResources) {
+      if (!g[bu]) g[bu] = [];
+      g[bu].push(resource);
+    }
+    return g;
+  }, [allResources]);
+
+  const allKeys   = allResources.map(r => r.resource);
+  const allOn     = allKeys.every(k => checked.has(k));
+  const someOn    = !allOn && allKeys.some(k => checked.has(k));
+
+  function toggleAll() {
+    if (allOn) setChecked(new Set());
+    else       setChecked(new Set(allKeys));
+  }
+  function toggleBU(bu) {
+    const keys = (buGroups[bu] || []);
+    const buOn = keys.every(k => checked.has(k));
+    const next = new Set(checked);
+    for (const k of keys) buOn ? next.delete(k) : next.add(k);
+    setChecked(next);
+  }
+  function toggleOne(key) {
+    const next = new Set(checked);
+    next.has(key) ? next.delete(key) : next.add(key);
+    setChecked(next);
+  }
+
+  async function doSave() {
+    if (!saveName.trim()) return;
+    setSaving(true);
+    const entry = { name: saveName.trim(), resources: [...checked], savedAt: new Date().toISOString() };
+    const updated = [...savedFilters.filter(f => f.name !== entry.name), entry];
+    await FILTERS_REF.set({ filters: updated });
+    setSaveName(""); setNameMode(false); setSaving(false);
+  }
 
   return (
-    <div className="overlay" onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
-      <div className="panel" style={{width:540,maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"14px 18px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontWeight:700,fontSize:15}}>⚙ Filter</span>
-          <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:18,lineHeight:1}}>✕</button>
+    <>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:89,background:"transparent"}} />
+      <div className="filter-panel">
+        {/* Header */}
+        <div style={{padding:"14px 16px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <span style={{fontWeight:800,fontSize:15}}>⚙ Filter</span>
+          <button onClick={onClose} className="btn btn-ghost" style={{padding:"3px 9px",fontSize:14}}>✕</button>
         </div>
-        <div style={{flex:1,overflow:"auto",padding:"16px 18px"}}>
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:10,color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Business Unit</div>
+
+        {/* Saved filters */}
+        {savedFilters.length > 0 && (
+          <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+            <div style={{fontSize:10,color:"var(--text3)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:7}}>Saved Filters</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              <span className={`chip ${buSel.length===0?"chip-on":"chip-off"}`} onClick={()=>setBuSel([])}>All BUs</span>
-              {allBUs.map(bu=>(
-                <span key={bu} className={`chip ${buSel.includes(bu)?"chip-on":"chip-off"}`} onClick={()=>toggleBU(bu)}>{bu}</span>
+              {savedFilters.map(f => (
+                <span key={f.name} className="saved-chip" onClick={() => setChecked(new Set(f.resources || []))}>
+                  {f.name}
+                  <span className="del" onClick={e=>{e.stopPropagation();onDeleteSaved(f.name);}}>✕</span>
+                </span>
               ))}
             </div>
           </div>
-          <div>
-            <div style={{fontSize:10,color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Lines / Resources</div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              <span className={`chip ${resSel.length===0?"chip-on":"chip-off"}`} onClick={()=>setResSel([])}>All Lines</span>
-              {allResources.map(r=>(
-                <span key={r} className={`chip ${resSel.includes(r)?"chip-on":"chip-off"}`} onClick={()=>toggleRes(r)}>{r}</span>
-              ))}
-            </div>
-          </div>
+        )}
+
+        {/* Select all row */}
+        <div className="filter-item" style={{background:"var(--bg3)",fontWeight:700,borderBottom:"2px solid var(--border)",flexShrink:0}} onClick={toggleAll}>
+          <input type="checkbox" readOnly checked={allOn} ref={el=>{if(el)el.indeterminate=someOn;}} />
+          <span>Select All</span>
         </div>
-        <div style={{padding:"12px 18px",borderTop:"1px solid #334155",display:"flex",gap:8,justifyContent:"flex-end"}}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-secondary" onClick={()=>{onApply({buList:buSel,resList:resSel});onClose();}}>Apply</button>
-          <button className="btn btn-primary" onClick={()=>{const f={buList:buSel,resList:resSel};onApply(f);onSave(f);onClose();}}>💾 Save &amp; Apply</button>
+
+        {/* Resource list grouped by BU */}
+        <div className="filter-scroll">
+          {Object.keys(buGroups).sort((a,b)=>a==="Other"?1:b==="Other"?-1:a.localeCompare(b)).map(bu => {
+            const keys = buGroups[bu];
+            const buOn = keys.every(k => checked.has(k));
+            const buPartial = !buOn && keys.some(k => checked.has(k));
+            return (
+              <React.Fragment key={bu}>
+                <div className="filter-group-header" style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>toggleBU(bu)}>
+                  <input type="checkbox" readOnly checked={buOn} ref={el=>{if(el)el.indeterminate=buPartial;}} style={{width:14,height:14,accentColor:"#3b82f6",cursor:"pointer"}} />
+                  🏭 {bu}
+                </div>
+                {keys.sort().map(res => (
+                  <div key={res} className="filter-item" onClick={()=>toggleOne(res)}>
+                    <input type="checkbox" readOnly checked={checked.has(res)} />
+                    <span>{res}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)",flexShrink:0}}>
+          {nameMode ? (
+            <div style={{display:"flex",gap:6}}>
+              <input type="text" value={saveName} onChange={e=>setSaveName(e.target.value)}
+                placeholder="Filter name…" style={{flex:1,padding:"6px 10px",fontSize:13}}
+                onKeyDown={e=>{if(e.key==="Enter")doSave();if(e.key==="Escape")setNameMode(false);}}
+                autoFocus />
+              <button className="btn btn-primary" onClick={doSave} disabled={saving} style={{padding:"6px 12px"}}>
+                {saving?"…":"Save"}
+              </button>
+              <button className="btn btn-ghost" onClick={()=>setNameMode(false)} style={{padding:"6px 10px"}}>✕</button>
+            </div>
+          ) : (
+            <div style={{display:"flex",gap:6}}>
+              <button className="btn btn-secondary" style={{flex:1}} onClick={()=>{setChecked(new Set());onClose();}}>Clear All</button>
+              <button className="btn btn-primary" style={{flex:1}} onClick={()=>setNameMode(true)}>💾 Save Filter</button>
+            </div>
+          )}
+          <div style={{marginTop:6,fontSize:11,color:"var(--text3)",textAlign:"center"}}>
+            {checked.size === 0 ? "Showing all lines" : `${checked.size} line${checked.size!==1?"s":""} selected`}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 function App() {
-  const [authed, setAuthed] = React.useState(() => { try { return localStorage.getItem(LS_AUTH)==="1"; } catch(_){return false;} });
-  const [status, setStatus] = React.useState("loading"); // loading | ready | empty | error
-  const [allRows, setAllRows] = React.useState([]);
+  const [authed, setAuthed]     = React.useState(() => { try { return localStorage.getItem(LS_AUTH)==="1"; } catch(_){return false;} });
+  const [theme, setTheme]       = React.useState(() => { try { return localStorage.getItem(LS_THEME)||"dark"; } catch(_){return "dark";} });
+  const [status, setStatus]     = React.useState("loading");
+  const [allRows, setAllRows]   = React.useState([]);
   const [lastUpdated, setLastUpdated] = React.useState(null);
-  const [weekOffset, setWeekOffset] = React.useState(0);
-  const [filters, setFilters] = React.useState(() => { try { return JSON.parse(localStorage.getItem(LS_FILTER)||"null") || {buList:[],resList:[]}; } catch(_){return {buList:[],resList:[]};} });
-  const [showFilter, setShowFilter] = React.useState(false);
+  const [weekOffset, setWeekOffset]   = React.useState(0);
+  const [showFilter, setShowFilter]   = React.useState(false);
+  // checked = Set of resource names to SHOW (empty = show all)
+  const [checked, setChecked]   = React.useState(new Set());
+  const [savedFilters, setSavedFilters] = React.useState([]);
 
-  // Load data from Firebase (same doc as Production Report)
+  // Apply theme to <body>
+  React.useEffect(() => {
+    document.body.setAttribute("data-theme", theme);
+    try { localStorage.setItem(LS_THEME, theme); } catch(_){}
+  }, [theme]);
+
+  // Load production data
   React.useEffect(() => {
     if (!authed) return;
     setStatus("loading");
@@ -252,31 +466,46 @@ function App() {
       .catch(e => { console.error(e); setStatus("error"); });
   }, [authed]);
 
-  // Week dates (Mon–Fri)
-  const monday = React.useMemo(() => {
-    const m = getMondayOf(new Date());
-    return addDays(m, weekOffset * 7);
-  }, [weekOffset]);
+  // Load saved filters from Firebase (live)
+  React.useEffect(() => {
+    if (!authed) return;
+    const unsub = FILTERS_REF.onSnapshot(snap => {
+      if (snap.exists && snap.data().filters) setSavedFilters(snap.data().filters);
+      else setSavedFilters([]);
+    });
+    return () => unsub();
+  }, [authed]);
+
+  async function deleteSavedFilter(name) {
+    const updated = savedFilters.filter(f => f.name !== name);
+    await FILTERS_REF.set({ filters: updated });
+  }
+
+  // Week
+  const monday  = React.useMemo(() => { const m = getMondayOf(new Date()); return addDays(m, weekOffset*7); }, [weekOffset]);
   const days    = React.useMemo(() => Array.from({length:5},(_,i)=>addDays(monday,i)), [monday]);
   const dayISOs = React.useMemo(() => days.map(isoOf), [days]);
 
-  // All BUs and resources in data
-  const allBUs       = React.useMemo(() => [...new Set(allRows.map(r=>r.unitLead).filter(Boolean))].sort((a,b)=>a==="Other"?1:b==="Other"?-1:a.localeCompare(b)), [allRows]);
-  const allResources = React.useMemo(() => [...new Set(allRows.map(r=>r.resource).filter(Boolean))].sort(), [allRows]);
+  // All resources with BU info
+  const allResources = React.useMemo(() => {
+    const seen = new Map();
+    for (const r of allRows) {
+      if (r.resource && !seen.has(r.resource)) seen.set(r.resource, r.unitLead || "Other");
+    }
+    return [...seen.entries()].map(([resource,bu])=>({resource,bu})).sort((a,b)=>a.resource.localeCompare(b.resource));
+  }, [allRows]);
+  const allBUs = React.useMemo(() => [...new Set(allResources.map(r=>r.bu))].sort((a,b)=>a==="Other"?1:b==="Other"?-1:a.localeCompare(b)), [allResources]);
 
-  // Apply filters to rows
+  // Filter rows: if checked is empty → all; else only checked resources
   const filteredRows = React.useMemo(() => {
-    return allRows.filter(r => {
-      if (filters.buList.length  > 0 && !filters.buList.includes(r.unitLead))  return false;
-      if (filters.resList.length > 0 && !filters.resList.includes(r.resource)) return false;
-      return true;
-    });
-  }, [allRows, filters]);
+    if (checked.size === 0) return allRows;
+    return allRows.filter(r => checked.has(r.resource));
+  }, [allRows, checked]);
 
-  // Aggregate for this week
+  // Aggregate
   const weekData = React.useMemo(() => aggregate(filteredRows, dayISOs), [filteredRows, dayISOs]);
 
-  // Group by BU, sort lines within BU
+  // Group by BU
   const byBU = React.useMemo(() => {
     const map = {};
     for (const r of Object.values(weekData)) {
@@ -295,10 +524,10 @@ function App() {
     return { qty, hrs, earned, lost, eff: calcEff(earned,hrs) };
   }, [weekData]);
 
-  // Per-day grand totals
+  // Per-day totals
   const dayGrand = React.useMemo(() => {
-    const dt = {};
-    for (const d of dayISOs) dt[d] = {qty:0,hrs:0,earned:0,lost:0};
+    const dt={};
+    for (const d of dayISOs) dt[d]={qty:0,hrs:0,earned:0,lost:0};
     for (const r of Object.values(weekData)) {
       for (const d of dayISOs) {
         dt[d].qty    += r.byDate[d]?.qty    || 0;
@@ -310,20 +539,18 @@ function App() {
     return dt;
   }, [weekData, dayISOs]);
 
-  function saveFilter(f) { try { localStorage.setItem(LS_FILTER, JSON.stringify(f)); } catch(_){} }
-
-  const activeCount = filters.buList.length + filters.resList.length;
+  const activeFilterCount = checked.size;
 
   if (!authed) return <Login onAuth={() => setAuthed(true)} />;
 
   return (
     <div style={{minHeight:"100vh",paddingBottom:40}}>
       {/* ── Header ── */}
-      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"12px 20px"}}>
-        <div style={{maxWidth:1440,margin:"0 auto",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-          <div style={{flex:1,minWidth:200}}>
+      <div className="app-header">
+        <div style={{maxWidth:1440,margin:"0 auto",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:180}}>
             <div style={{fontSize:17,fontWeight:800,letterSpacing:"-0.4px"}}>📊 Weekly Production Dashboard</div>
-            <div style={{fontSize:11,color:"#64748b",marginTop:1}}>
+            <div style={{fontSize:11,color:"var(--text3)",marginTop:1}}>
               {fmtWeekRange(monday)}
               {lastUpdated && <span style={{marginLeft:8}}>· Data: {lastUpdated.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
             </div>
@@ -337,43 +564,50 @@ function App() {
             <button onClick={()=>setWeekOffset(o=>o+1)} disabled={weekOffset>=0}>▶</button>
           </div>
 
+          {/* Theme toggle */}
+          <div className="theme-toggle" onClick={()=>setTheme(t=>t==="dark"?"light":"dark")}>
+            <span className={theme==="dark"?"active":""}>🌙 Dark</span>
+            <span className={theme==="light"?"active":""}>☀️ Light</span>
+          </div>
+
           {/* Filter */}
-          <button className={`btn ${activeCount>0?"btn-primary":"btn-secondary"}`} onClick={()=>setShowFilter(true)} style={{display:"flex",alignItems:"center",gap:6}}>
+          <button className={`btn ${activeFilterCount>0?"btn-primary":"btn-secondary"}`} onClick={()=>setShowFilter(s=>!s)}
+            style={{display:"flex",alignItems:"center",gap:6}}>
             ⚙ Filter
-            {activeCount>0 && <span style={{background:"rgba(255,255,255,0.2)",borderRadius:10,padding:"0 6px",fontSize:11}}>{activeCount}</span>}
+            {activeFilterCount>0 && <span style={{background:"rgba(255,255,255,0.22)",borderRadius:10,padding:"0 6px",fontSize:11,fontWeight:800}}>{activeFilterCount}</span>}
           </button>
 
           {/* Sign out */}
-          <button className="btn btn-ghost" style={{fontSize:12}} onClick={()=>{try{localStorage.removeItem(LS_AUTH);}catch(_){}setAuthed(false);}}>Sign Out</button>
+          <button className="btn btn-ghost" style={{fontSize:12}}
+            onClick={()=>{try{localStorage.removeItem(LS_AUTH);}catch(_){}setAuthed(false);}}>
+            Sign Out
+          </button>
         </div>
       </div>
 
-      <div style={{maxWidth:1440,margin:"0 auto",padding:"16px 20px"}}>
+      <div style={{maxWidth:1440,margin:"0 auto",padding:"16px 20px",paddingRight: showFilter ? "340px" : "20px", transition:"padding 0.2s"}}>
 
         {/* ── Stat row ── */}
         <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
           {[
-            { label:"Week Total", value: grand.qty>0 ? grand.qty.toLocaleString() : "—", icon:"📦" },
-            { label:"Efficiency", value: grand.eff!=null ? fmtEff(grand.eff) : "—", icon:"⚡", cls: effCls(grand.eff) },
-            { label:"Hours Worked", value: grand.hrs>0 ? grand.hrs.toFixed(1) : "—", icon:"⏱" },
+            { label:"Week Total",   value: grand.qty>0 ? grand.qty.toLocaleString() : "—", icon:"📦" },
+            { label:"Efficiency",   value: grand.eff!=null ? fmtEff(grand.eff) : "—", icon:"⚡", effCls: effCls(grand.eff) },
             { label:"Lost Hours",   value: grand.lost>0 ? grand.lost.toFixed(1) : "—", icon:"⚠️", warn: grand.lost>0 },
             { label:"Active Lines", value: Object.values(weekData).filter(r=>r.totalQty>0).length || "—", icon:"🏭" },
           ].map(s=>(
             <div key={s.label} className="stat-card">
               <div className="stat-label">{s.icon} {s.label}</div>
-              <div className={`stat-value ${s.cls||""}`} style={{
-                ...(s.cls && s.cls!=="eff-none" ? {background:"transparent",borderRadius:4} : {}),
-                color: s.warn ? "#fbbf24" : undefined
-              }}>
-                {s.value}
-              </div>
+              {s.effCls && s.effCls !== "eff-none"
+                ? <span className={`badge ${s.effCls}`} style={{fontSize:22,borderRadius:6}}>{s.value}</span>
+                : <div className="stat-value" style={{color:s.warn?"var(--lost-color)":undefined}}>{s.value}</div>
+              }
             </div>
           ))}
         </div>
 
         {/* ── Table ── */}
         {status==="loading" && (
-          <div style={{textAlign:"center",padding:60,color:"#64748b"}}>
+          <div style={{textAlign:"center",padding:60,color:"var(--text3)"}}>
             <div style={{fontSize:32,marginBottom:8}}>⏳</div>Loading production data…
           </div>
         )}
@@ -383,8 +617,8 @@ function App() {
           </div>
         )}
         {status==="empty" && (
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:32,textAlign:"center",color:"#64748b"}}>
-            No production data uploaded yet. Upload a labour ticket file in the Production Report app first.
+          <div className="panel" style={{padding:32,textAlign:"center",color:"var(--text3)"}}>
+            No production data found. Upload a labour ticket in the Production Report app first.
           </div>
         )}
         {status==="ready" && (
@@ -392,96 +626,100 @@ function App() {
             <div style={{overflowX:"auto"}}>
               <table>
                 <thead>
-                  <tr style={{borderBottom:"2px solid #334155"}}>
-                    <th className="sticky-col" style={{textAlign:"left",minWidth:170}}>BU / Line</th>
+                  <tr style={{borderBottom:"2px solid var(--border)"}}>
+                    <th className="sticky-col" style={{textAlign:"left",minWidth:180}}>BU / Line</th>
                     {days.map(d=>(
                       <th key={isoOf(d)} className="day-th">{fmtDayLabel(d)}</th>
                     ))}
-                    <th className="num sep-left" style={{minWidth:80}}>Week Total</th>
-                    <th className="num" style={{minWidth:72,borderLeft:"1px solid #1e293b"}}>Eff %</th>
-                    <th className="num" style={{minWidth:64,borderLeft:"1px solid #1e293b"}}>Hrs</th>
-                    <th className="num" style={{minWidth:64,borderLeft:"1px solid #1e293b"}}>Lost Hrs</th>
+                    <th className="num sep-left" style={{minWidth:90}}>Week Total</th>
+                    <th className="num" style={{minWidth:78,borderLeft:"1px solid var(--border2)"}}>Eff %</th>
+                    <th className="num" style={{minWidth:70,borderLeft:"1px solid var(--border2)"}}>Lost Hrs</th>
                   </tr>
                 </thead>
                 <tbody>
                   {buList.length===0 && (
-                    <tr><td colSpan={days.length+5} style={{padding:40,textAlign:"center",color:"#64748b"}}>
-                      No production data found for this week ({dayISOs[0]} – {dayISOs[4]})
+                    <tr><td colSpan={days.length+4} style={{padding:40,textAlign:"center",color:"var(--text3)"}}>
+                      No data for {dayISOs[0]} – {dayISOs[4]}
                     </td></tr>
                   )}
                   {buList.map(bu => {
                     const lines = byBU[bu];
-                    // BU subtotals
                     let bQty=0,bHrs=0,bEarned=0,bLost=0;
-                    const bDay = {};
-                    for (const d of dayISOs) bDay[d] = 0;
+                    const bDay={};
+                    for (const d of dayISOs) bDay[d]=0;
                     for (const r of lines) {
                       bQty+=r.totalQty; bHrs+=r.totalHrs; bEarned+=r.totalEarned; bLost+=r.totalLost;
-                      for (const d of dayISOs) bDay[d] += r.byDate[d]?.qty||0;
+                      for (const d of dayISOs) bDay[d]+=r.byDate[d]?.qty||0;
                     }
-                    const bEff = calcEff(bEarned, bHrs);
+                    const bEff = calcEff(bEarned,bHrs);
                     return (
                       <React.Fragment key={bu}>
-                        {/* BU row */}
                         <tr className="bu-row">
                           <td className="bu-sticky" style={{paddingLeft:12}}>🏭 {bu}</td>
                           {dayISOs.map(d=>(
-                            <td key={d} className="num day-td" style={{color:"#94a3b8"}}>
-                              {bDay[d]>0 ? Math.round(bDay[d]).toLocaleString() : <span style={{color:"#334155"}}>—</span>}
+                            <td key={d} className="num day-td">
+                              {bDay[d]>0 ? Math.round(bDay[d]).toLocaleString() : <span style={{color:"var(--border)"}}>—</span>}
                             </td>
                           ))}
-                          <td className="num sep-left" style={{color:"#e2e8f0"}}>{bQty>0?Math.round(bQty).toLocaleString():"—"}</td>
-                          <td className="num" style={{borderLeft:"1px solid #1e293b"}}>{bHrs>0?effBadge(bEff):<span style={{color:"#475569"}}>—</span>}</td>
-                          <td className="num" style={{borderLeft:"1px solid #1e293b",color:"#64748b"}}>{fmtHrs(bHrs)}</td>
-                          <td className="num" style={{borderLeft:"1px solid #1e293b",color:bLost>0?"#fbbf24":"#475569"}}>{fmtLost(bLost)||"—"}</td>
+                          <td className="num sep-left">{bQty>0?Math.round(bQty).toLocaleString():"—"}</td>
+                          <td className="num" style={{borderLeft:"1px solid var(--border2)"}}>
+                            {bHrs>0?<EffBadge eff={bEff}/>:<span style={{color:"var(--text4)"}}>—</span>}
+                          </td>
+                          <td className="num" style={{borderLeft:"1px solid var(--border2)",color:bLost>0?"var(--lost-color)":"var(--text4)"}}>
+                            {fmtLost(bLost)||"—"}
+                          </td>
                         </tr>
-                        {/* Line rows */}
                         {lines.map(r=>{
                           const eff = calcEff(r.totalEarned,r.totalHrs);
                           return (
-                            <tr key={r.resource} style={{borderTop:"1px solid #0f172a"}}>
-                              <td className="sticky-col" style={{paddingLeft:28,color:"#cbd5e1"}}>{r.resource}</td>
+                            <tr key={r.resource} style={{borderTop:"1px solid var(--border2)"}}>
+                              <td className="sticky-col" style={{paddingLeft:28,color:"var(--text2)"}}>{r.resource}</td>
                               {dayISOs.map(d=>{
-                                const q = r.byDate[d]?.qty||0;
+                                const q=r.byDate[d]?.qty||0;
                                 return (
-                                  <td key={d} className="num day-td" style={{color:q>0?"#e2e8f0":"#1e293b"}}>
+                                  <td key={d} className="num day-td" style={{color:q>0?"var(--text)":"var(--dot)"}}>
                                     {q>0?Math.round(q).toLocaleString():"·"}
                                   </td>
                                 );
                               })}
-                              <td className="num sep-left" style={{fontWeight:700,color:r.totalQty>0?"#e2e8f0":"#475569"}}>{r.totalQty>0?Math.round(r.totalQty).toLocaleString():"—"}</td>
-                              <td className="num" style={{borderLeft:"1px solid #0f172a"}}>{r.totalHrs>0?effBadge(eff):<span style={{color:"#475569"}}>—</span>}</td>
-                              <td className="num" style={{borderLeft:"1px solid #0f172a",color:"#64748b"}}>{fmtHrs(r.totalHrs)||"—"}</td>
-                              <td className="num" style={{borderLeft:"1px solid #0f172a",color:r.totalLost>0?"#fbbf24":"#475569"}}>{fmtLost(r.totalLost)||"—"}</td>
+                              <td className="num sep-left" style={{fontWeight:700,color:r.totalQty>0?"var(--text)":"var(--text4)"}}>
+                                {r.totalQty>0?Math.round(r.totalQty).toLocaleString():"—"}
+                              </td>
+                              <td className="num" style={{borderLeft:"1px solid var(--border2)"}}>
+                                {r.totalHrs>0?<EffBadge eff={eff}/>:<span style={{color:"var(--text4)"}}>—</span>}
+                              </td>
+                              <td className="num" style={{borderLeft:"1px solid var(--border2)",color:r.totalLost>0?"var(--lost-color)":"var(--text4)"}}>
+                                {fmtLost(r.totalLost)||"—"}
+                              </td>
                             </tr>
                           );
                         })}
                       </React.Fragment>
                     );
                   })}
-
-                  {/* Footer: daily totals */}
+                  {/* Footer */}
                   {buList.length>0 && (
                     <tr className="foot-row">
-                      <td className="bu-sticky" style={{paddingLeft:12,color:"#94a3b8",fontSize:11,textTransform:"uppercase",letterSpacing:0.5}}>Daily Total</td>
+                      <td className="bu-sticky" style={{paddingLeft:12,color:"var(--text3)",fontSize:11,textTransform:"uppercase",letterSpacing:0.5}}>Daily Total</td>
                       {dayISOs.map(d=>{
-                        const dg = dayGrand[d];
-                        const de = calcEff(dg.earned,dg.hrs);
+                        const dg=dayGrand[d];
+                        const de=calcEff(dg.earned,dg.hrs);
                         return (
-                          <td key={d} className="day-td" style={{textAlign:"center",borderLeft:"1px solid #334155"}}>
-                            <div style={{fontWeight:800,color:dg.qty>0?"#f8fafc":"#475569",fontVariantNumeric:"tabular-nums"}}>
+                          <td key={d} className="day-td" style={{textAlign:"center",borderLeft:"1px solid var(--border)"}}>
+                            <div style={{fontWeight:800,color:dg.qty>0?"var(--text)":"var(--text4)",fontVariantNumeric:"tabular-nums"}}>
                               {dg.qty>0?Math.round(dg.qty).toLocaleString():"—"}
                             </div>
-                            {dg.qty>0 && de!=null && (
-                              <div style={{marginTop:2}}><span className={`chip ${effCls(de)}`} style={{borderRadius:3,padding:"0 5px",fontSize:10}}>{fmtEff(de)}</span></div>
+                            {dg.qty>0&&de!=null&&(
+                              <div style={{marginTop:2}}><span className={`badge ${effCls(de)}`} style={{fontSize:10,padding:"0 5px",borderRadius:3}}>{fmtEff(de)}</span></div>
                             )}
                           </td>
                         );
                       })}
-                      <td className="num sep-left" style={{fontSize:15,color:"#f8fafc"}}>{grand.qty>0?grand.qty.toLocaleString():"—"}</td>
-                      <td className="num" style={{borderLeft:"1px solid #334155"}}>{effBadge(grand.eff)}</td>
-                      <td className="num" style={{borderLeft:"1px solid #334155",color:"#94a3b8",fontWeight:700}}>{fmtHrs(grand.hrs)||"—"}</td>
-                      <td className="num" style={{borderLeft:"1px solid #334155",color:grand.lost>0?"#fbbf24":"#475569",fontWeight:700}}>{fmtLost(grand.lost)||"—"}</td>
+                      <td className="num sep-left" style={{fontSize:15}}>{grand.qty>0?grand.qty.toLocaleString():"—"}</td>
+                      <td className="num" style={{borderLeft:"1px solid var(--border)"}}><EffBadge eff={grand.eff}/></td>
+                      <td className="num" style={{borderLeft:"1px solid var(--border)",color:grand.lost>0?"var(--lost-color)":"var(--text4)",fontWeight:700}}>
+                        {fmtLost(grand.lost)||"—"}
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -491,23 +729,25 @@ function App() {
         )}
 
         {/* Legend */}
-        <div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",alignItems:"center",fontSize:11,color:"#64748b"}}>
+        <div style={{marginTop:10,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",fontSize:11,color:"var(--text3)"}}>
           <span>Eff %:</span>
-          <span className="chip eff-green" style={{borderRadius:4,padding:"1px 7px"}}>≥ 90%</span>
-          <span className="chip eff-amber" style={{borderRadius:4,padding:"1px 7px"}}>76.5 – 89.9%</span>
-          <span className="chip eff-red"   style={{borderRadius:4,padding:"1px 7px"}}>&lt; 76.5%</span>
-          <span style={{marginLeft:"auto"}}>Source: Production Report labour upload · {dayISOs[0]} – {dayISOs[4]}</span>
+          <span className="badge eff-green">≥ 90%</span>
+          <span className="badge eff-amber">76.5 – 89.9%</span>
+          <span className="badge eff-red">&lt; 76.5%</span>
+          <span style={{marginLeft:"auto"}}>Source: Production Report · {dayISOs[0]} – {dayISOs[4]}</span>
         </div>
       </div>
 
-      {/* Filter modal */}
+      {/* ── Filter sidebar ── */}
       {showFilter && (
-        <FilterModal
+        <FilterSidebar
           allBUs={allBUs}
           allResources={allResources}
-          filters={filters}
-          onApply={setFilters}
-          onSave={saveFilter}
+          checked={checked}
+          setChecked={setChecked}
+          savedFilters={savedFilters}
+          onSave={()=>{}} // handled inside sidebar
+          onDeleteSaved={deleteSavedFilter}
           onClose={()=>setShowFilter(false)}
         />
       )}
