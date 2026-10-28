@@ -3,354 +3,303 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Production Dashboard</title>
-<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- Firebase compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<title>SMI Weekly Production Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
+    authDomain: "smi-production-report.firebaseapp.com",
+    projectId: "smi-production-report",
+    storageBucket: "smi-production-report.firebasestorage.app",
+    messagingSenderId: "934983410817",
+    appId: "1:934983410817:web:77a10c77b6ee36c9ded980"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 <style>
-  body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: #1e293b; }
   ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-  .eff-green  { background: #166534; color: #86efac; }
-  .eff-amber  { background: #78350f; color: #fcd34d; }
-  .eff-red    { background: #7f1d1d; color: #fca5a5; }
-  .eff-none   { background: #1e293b; color: #64748b; }
-  .day-col    { min-width: 88px; }
-  .sticky-left { position: sticky; left: 0; z-index: 10; background: #1e293b; }
-  .bu-header  { background: #0f172a; }
-  tr:hover td { background: rgba(148,163,184,0.05); }
-  tr:hover td.sticky-left { background: #1e293b; }
-  .num-cell   { font-variant-numeric: tabular-nums; }
-  input[type=password] { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none; }
-  input[type=password]:focus { border-color: #3b82f6; }
-  select { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
-  select:focus { outline: none; border-color: #3b82f6; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: opacity 0.15s; }
-  .chip:hover { opacity: 0.8; }
-  .chip-active   { background: #1d4ed8; color: #bfdbfe; }
-  .chip-inactive { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+
+  /* Efficiency badges */
+  .eff-green { background: #14532d; color: #86efac; }
+  .eff-amber { background: #78350f; color: #fcd34d; }
+  .eff-red   { background: #7f1d1d; color: #fca5a5; }
+  .eff-none  { color: #475569; }
+
+  /* Table */
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  td { padding: 6px 10px; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  .day-th { text-align: center; min-width: 90px; border-left: 1px solid #1e293b; }
+  .day-td { text-align: center; border-left: 1px solid #1e293b; }
+  .sep-left { border-left: 2px solid #334155 !important; }
+  .sticky-col { position: sticky; left: 0; background: #1e293b; z-index: 5; }
+  .bu-sticky { position: sticky; left: 0; background: #0f172a; z-index: 5; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  tr:hover td.sticky-col { background: #1e293b; }
+  tr:hover td.bu-sticky  { background: #0f172a; }
+  .bu-row td { background: #0f172a; font-weight: 700; color: #94a3b8; font-size: 12px; border-top: 2px solid #334155; }
+  .foot-row td { background: #0f172a; font-weight: 800; border-top: 2px solid #475569; }
   .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; }
-  .stat-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 16px; }
-  .week-nav button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
-  .week-nav button:hover { background: #334155; color: #e2e8f0; }
-  .week-nav .cur { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+
+  /* Chips */
+  .chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.12s; }
+  .chip-on  { background: #1d4ed8; color: #bfdbfe; }
+  .chip-off { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+  .chip:hover { opacity: 0.8; }
+
+  /* Buttons */
+  .btn { border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; padding: 6px 14px; transition: opacity 0.12s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #1d4ed8; color: #fff; }
+  .btn-secondary { background: #334155; color: #e2e8f0; }
+  .btn-ghost { background: #0f172a; color: #64748b; border: 1px solid #334155; }
+
+  /* Stat cards */
+  .stat-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 16px; flex: 1 1 140px; }
+  .stat-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* Week nav */
+  .wnav { display: flex; gap: 6px; align-items: center; }
+  .wnav button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .wnav button:hover { background: #334155; color: #e2e8f0; }
+  .wnav button.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+  .wnav button:disabled { opacity: 0.3; cursor: default; }
+
+  /* Modal overlay */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  input[type=password] { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 9px 14px; font-size: 14px; outline: none; width: 100%; }
+  input[type=password]:focus { border-color: #3b82f6; }
 </style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
-// ─── Firebase ──────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyB3UgrV8_kxQDJvyMbwZ_QXVLjsgt0yilQ",
-  authDomain: "smi-production-report.firebaseapp.com",
-  projectId: "smi-production-report",
-  storageBucket: "smi-production-report.firebasestorage.app",
-  messagingSenderId: "934983410817",
-  appId: "1:934983410817:web:77a10c77b6ee36c9ded980"
-};
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+<script type="text/babel" data-presets="react">
+// ─── Auth ───────────────────────────────────────────────────────────────────
+const APP_PW    = "smi1234";
+const LS_AUTH   = "wd_auth";
+const LS_FILTER = "wd_filter_v2";
 
-// ─── Constants ─────────────────────────────────────────────────────────────
-const APP_PASSWORD = "smi1234";
-const LS_AUTH      = "weekly_dash_auth";
-const LS_FILTERS   = "weekly_dash_filters";
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const fmtQty  = n => n > 0 ? Math.round(n).toLocaleString() : "";
+const fmtEff  = n => n == null ? "" : n.toFixed(1) + "%";
+const fmtHrs  = n => n > 0 ? n.toFixed(1) : "";
+const fmtLost = n => n > 0 ? n.toFixed(1) : "";
 
-const LEADER_TO_BU = {
-  "George":                  "BU Verathon",
-  "Andrew B.":               "BU Molding",
-  "Mark P.":                 "BU Tier 1",
-  "Lori F.":                 "BU Tier 2",
-  "Rob S.":                  "BU Bell Farm",
-  "BU Verathon":             "BU Verathon",
-  "BU Molding":              "BU Molding",
-  "BU Tier 1":               "BU Tier 1",
-  "BU Tier 1 - Respiratory": "BU Tier 1",
-  "BU Tier 1 - Blades":      "BU Tier 1",
-  "BU Tier 2":               "BU Tier 2",
-  "BU Tier 2 - DNA":         "BU Tier 2",
-  "BU Tier 2 - FLEX":        "BU Tier 2",
-  "BU Bell Farm":            "BU Bell Farm",
-  "BU Bellfarm":             "BU Bell Farm",
-};
-const buName = (leader) => LEADER_TO_BU[leader] || (leader ? leader : "—");
-
-// Week calculation helpers
-function getMondayOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay(); // 0=Sun..6=Sat
-  const diff = (day === 0) ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-function weekDays(monday) {
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
-}
-function isoDate(d) { return d.toISOString().slice(0, 10); }
-function fmtDay(d) {
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" });
-}
-function fmtWeekRange(monday) {
-  const fri = new Date(monday); fri.setDate(monday.getDate() + 4);
-  const opts = { month: "short", day: "numeric" };
-  return `${monday.toLocaleDateString("en-US", opts)} – ${fri.toLocaleDateString("en-US", opts)}`;
-}
-
-// ─── Data aggregation ──────────────────────────────────────────────────────
-function aggregateWeekly(buildPlanRows, weekDatesISO) {
-  // weekDatesISO: ["2025-10-14", "2025-10-15", ..., "2025-10-18"]
-  // Returns: { resource: { bu, leader, byDate: { "ISO": {qty, hrs, earned, lost} }, total } }
-  const result = {};
-
-  for (const row of buildPlanRows) {
-    const resource = row.resource || "Unknown";
-    const leader   = row.leader   || "";
-    const bu       = buName(leader);
-
-    if (!result[resource]) {
-      result[resource] = { resource, bu, leader, byDate: {}, totalQty: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
-      for (const d of weekDatesISO) result[resource].byDate[d] = { qty: 0, hrs: 0, earned: 0, lost: 0 };
-    }
-
-    for (const shift of (row.shifts || [])) {
-      const dateISO = (shift.shiftDateISO || "").slice(0, 10);
-      if (!weekDatesISO.includes(dateISO)) continue;
-      const qty    = Number(shift.qty)    || 0;
-      const hrs    = Number(shift.hrs)    || 0;
-      const earned = Number(shift.earned) || 0;
-      const lost   = Number(shift.lost)   || 0;
-      result[resource].byDate[dateISO].qty    += qty;
-      result[resource].byDate[dateISO].hrs    += hrs;
-      result[resource].byDate[dateISO].earned += earned;
-      result[resource].byDate[dateISO].lost   += lost;
-      result[resource].totalQty    += qty;
-      result[resource].totalHrs    += hrs;
-      result[resource].totalEarned += earned;
-      result[resource].totalLost   += lost;
-    }
-  }
-  return result;
-}
-
-// ─── Efficiency helpers ─────────────────────────────────────────────────────
 function calcEff(earned, hrs) {
-  if (!hrs || hrs === 0) return null;
-  return Math.round((earned / hrs) * 1000) / 10; // one decimal
+  return hrs > 0 ? Math.round((earned / hrs) * 1000) / 10 : null;
 }
-function effClass(eff) {
-  if (eff === null) return "eff-none";
+function effCls(eff) {
+  if (eff == null) return "eff-none";
   if (eff >= 90)   return "eff-green";
   if (eff >= 76.5) return "eff-amber";
   return "eff-red";
 }
-function fmtEff(eff) { return eff === null ? "—" : `${eff.toFixed(1)}%`; }
-function fmtQty(n)   { return n === 0 ? "—" : n.toLocaleString(); }
-function fmtHrs(n)   { return n === 0 ? "—" : n.toFixed(1); }
+function effBadge(eff) {
+  if (eff == null) return <span style={{color:"#475569"}}>—</span>;
+  return <span className={`chip ${effCls(eff)}`} style={{borderRadius:4,padding:"1px 6px",fontSize:12}}>{fmtEff(eff)}</span>;
+}
 
-// ─── Login Screen ───────────────────────────────────────────────────────────
-function LoginScreen({ onAuth }) {
+// Week helpers
+function getMondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function isoOf(d) { return d.toISOString().slice(0,10); }
+function fmtDayLabel(d) {
+  return d.toLocaleDateString("en-US", { weekday:"short", month:"numeric", day:"numeric" });
+}
+function fmtWeekRange(monday) {
+  const fri = addDays(monday, 4);
+  return `${monday.toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${fri.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
+}
+
+// ─── Data aggregation ────────────────────────────────────────────────────────
+// rows: [{ date, resource, hrs, qty, earned, lost, unitLead, shift }]
+// Returns grouped by BU → resource → day
+function aggregate(rows, dayISOs) {
+  // resource → { bu, byDate: {iso: {qty,hrs,earned,lost}}, total }
+  const map = {};
+  for (const r of rows) {
+    if (!dayISOs.includes(r.date)) continue;
+    const key = r.resource || "Unknown";
+    const bu  = r.unitLead  || "Other";
+    if (!map[key]) {
+      map[key] = { resource: key, bu, byDate: {}, totalQty:0, totalHrs:0, totalEarned:0, totalLost:0 };
+      for (const d of dayISOs) map[key].byDate[d] = {qty:0,hrs:0,earned:0,lost:0};
+    }
+    map[key].byDate[r.date].qty    += r.qty    || 0;
+    map[key].byDate[r.date].hrs    += r.hrs    || 0;
+    map[key].byDate[r.date].earned += r.earned || 0;
+    map[key].byDate[r.date].lost   += r.lost   || 0;
+    map[key].totalQty    += r.qty    || 0;
+    map[key].totalHrs    += r.hrs    || 0;
+    map[key].totalEarned += r.earned || 0;
+    map[key].totalLost   += r.lost   || 0;
+  }
+  return map;
+}
+
+// ─── Login ───────────────────────────────────────────────────────────────────
+function Login({ onAuth }) {
   const [pw, setPw] = React.useState("");
   const [err, setErr] = React.useState(false);
   function submit(e) {
     e.preventDefault();
-    if (pw === APP_PASSWORD) {
-      try { localStorage.setItem(LS_AUTH, "1"); } catch (_) {}
-      onAuth();
-    } else {
-      setErr(true);
-      setPw("");
-    }
+    if (pw === APP_PW) { try { localStorage.setItem(LS_AUTH,"1"); } catch(_){} onAuth(); }
+    else { setErr(true); setPw(""); }
   }
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="panel" style={{ padding: 40, width: 320, textAlign: "center" }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Weekly Production Dashboard</div>
-        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 24 }}>SMI Production</div>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div className="panel" style={{padding:40,width:320,textAlign:"center"}}>
+        <div style={{fontSize:30,marginBottom:8}}>📊</div>
+        <div style={{fontSize:20,fontWeight:800,marginBottom:2}}>Weekly Dashboard</div>
+        <div style={{fontSize:12,color:"#64748b",marginBottom:24}}>SMI Production</div>
         <form onSubmit={submit}>
-          <input type="password" value={pw} onChange={e => { setPw(e.target.value); setErr(false); }}
-            placeholder="Password" style={{ width: "100%", marginBottom: 12, boxSizing: "border-box" }} autoFocus />
-          {err && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 8 }}>Incorrect password</div>}
-          <button type="submit"
-            style={{ width: "100%", padding: "9px 0", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            Sign In
-          </button>
+          <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr(false);}} placeholder="Password" autoFocus />
+          {err && <div style={{color:"#f87171",fontSize:12,margin:"8px 0"}}>Incorrect password</div>}
+          <button type="submit" className="btn btn-primary" style={{width:"100%",marginTop:12,padding:"10px 0",fontSize:14}}>Sign In</button>
         </form>
       </div>
     </div>
   );
 }
 
-// ─── Multi-select filter panel ──────────────────────────────────────────────
-function FilterPanel({ allBUs, allResources, filters, onChange, onSave, onClose }) {
-  const [localBUs, setLocalBUs]   = React.useState(filters.buList);
-  const [localRes, setLocalRes]   = React.useState(filters.resList);
-
-  function toggleBU(bu) {
-    setLocalBUs(prev => prev.includes(bu) ? prev.filter(x => x !== bu) : [...prev, bu]);
-  }
-  function toggleRes(r) {
-    setLocalRes(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
-  }
-  function apply() {
-    onChange({ buList: localBUs, resList: localRes });
-    onClose();
-  }
-  function saveApply() {
-    const f = { buList: localBUs, resList: localRes };
-    onChange(f);
-    onSave(f);
-    onClose();
-  }
+// ─── Filter Modal ─────────────────────────────────────────────────────────────
+function FilterModal({ allBUs, allResources, filters, onApply, onSave, onClose }) {
+  const [buSel,  setBuSel]  = React.useState(filters.buList  || []);
+  const [resSel, setResSel] = React.useState(filters.resList || []);
+  const toggleBU  = bu  => setBuSel(s  => s.includes(bu)  ? s.filter(x=>x!==bu)  : [...s,bu]);
+  const toggleRes = res => setResSel(s => s.includes(res) ? s.filter(x=>x!==res) : [...s,res]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="panel" style={{ width: 520, maxHeight: "80vh", display: "flex", flexDirection: "column", padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>Filter</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
+    <div className="overlay" onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
+      <div className="panel" style={{width:540,maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontWeight:700,fontSize:15}}>⚙ Filter</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:18,lineHeight:1}}>✕</button>
         </div>
-        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
-          {/* BU section */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Business Unit</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span className={`chip ${localBUs.length === 0 ? "chip-active" : "chip-inactive"}`}
-                onClick={() => setLocalBUs([])}>All BUs</span>
-              {allBUs.map(bu => (
-                <span key={bu} className={`chip ${localBUs.includes(bu) ? "chip-active" : "chip-inactive"}`}
-                  onClick={() => toggleBU(bu)}>{bu}</span>
+        <div style={{flex:1,overflow:"auto",padding:"16px 18px"}}>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:10,color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Business Unit</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <span className={`chip ${buSel.length===0?"chip-on":"chip-off"}`} onClick={()=>setBuSel([])}>All BUs</span>
+              {allBUs.map(bu=>(
+                <span key={bu} className={`chip ${buSel.includes(bu)?"chip-on":"chip-off"}`} onClick={()=>toggleBU(bu)}>{bu}</span>
               ))}
             </div>
           </div>
-          {/* Resource section */}
           <div>
-            <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Lines / Resources</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span className={`chip ${localRes.length === 0 ? "chip-active" : "chip-inactive"}`}
-                onClick={() => setLocalRes([])}>All Lines</span>
-              {allResources.map(r => (
-                <span key={r} className={`chip ${localRes.includes(r) ? "chip-active" : "chip-inactive"}`}
-                  onClick={() => toggleRes(r)}>{r}</span>
+            <div style={{fontSize:10,color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Lines / Resources</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <span className={`chip ${resSel.length===0?"chip-on":"chip-off"}`} onClick={()=>setResSel([])}>All Lines</span>
+              {allResources.map(r=>(
+                <span key={r} className={`chip ${resSel.includes(r)?"chip-on":"chip-off"}`} onClick={()=>toggleRes(r)}>{r}</span>
               ))}
             </div>
           </div>
         </div>
-        <div style={{ padding: "12px 20px", borderTop: "1px solid #334155", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={apply}
-            style={{ padding: "7px 16px", borderRadius: 6, background: "#334155", color: "#e2e8f0", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Apply</button>
-          <button onClick={saveApply}
-            style={{ padding: "7px 16px", borderRadius: 6, background: "#1d4ed8", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>Save &amp; Apply</button>
+        <div style={{padding:"12px 18px",borderTop:"1px solid #334155",display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary" onClick={()=>{onApply({buList:buSel,resList:resSel});onClose();}}>Apply</button>
+          <button className="btn btn-primary" onClick={()=>{const f={buList:buSel,resList:resSel};onApply(f);onSave(f);onClose();}}>💾 Save &amp; Apply</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Main App ───────────────────────────────────────────────────────────────
+// ─── App ─────────────────────────────────────────────────────────────────────
 function App() {
-  const [authed, setAuthed] = React.useState(() => {
-    try { return localStorage.getItem(LS_AUTH) === "1"; } catch (_) { return false; }
-  });
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError]     = React.useState(null);
-  const [planRows, setPlanRows] = React.useState([]);
-
-  // Week navigation: offset from current week (0 = this week, -1 = last week, etc.)
+  const [authed, setAuthed] = React.useState(() => { try { return localStorage.getItem(LS_AUTH)==="1"; } catch(_){return false;} });
+  const [status, setStatus] = React.useState("loading"); // loading | ready | empty | error
+  const [allRows, setAllRows] = React.useState([]);
+  const [lastUpdated, setLastUpdated] = React.useState(null);
   const [weekOffset, setWeekOffset] = React.useState(0);
-  const currentMonday = React.useMemo(() => {
-    const m = getMondayOfWeek(new Date());
-    m.setDate(m.getDate() + weekOffset * 7);
-    return m;
-  }, [weekOffset]);
-  const days = React.useMemo(() => weekDays(currentMonday), [currentMonday]);
-  const dayISOs = React.useMemo(() => days.map(isoDate), [days]);
-
-  // Filters
-  const [filters, setFilters] = React.useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LS_FILTERS) || "null");
-      return saved || { buList: [], resList: [] };
-    } catch (_) { return { buList: [], resList: [] }; }
-  });
+  const [filters, setFilters] = React.useState(() => { try { return JSON.parse(localStorage.getItem(LS_FILTER)||"null") || {buList:[],resList:[]}; } catch(_){return {buList:[],resList:[]};} });
   const [showFilter, setShowFilter] = React.useState(false);
 
-  // Load data
+  // Load data from Firebase (same doc as Production Report)
   React.useEffect(() => {
     if (!authed) return;
-    setLoading(true);
-    setError(null);
-    db.collection("buildtracker").doc("build_plan").get()
+    setStatus("loading");
+    db.collection("production_data").doc("latest").get()
       .then(snap => {
-        if (!snap.exists) { setPlanRows([]); setLoading(false); return; }
-        const data = snap.data() || {};
-        const rows = Object.values(data).filter(v => v && typeof v === "object" && v.resource);
-        setPlanRows(rows);
-        setLoading(false);
+        if (!snap.exists || !snap.data().rows?.length) { setStatus("empty"); return; }
+        const data = snap.data();
+        setAllRows(data.rows || []);
+        setLastUpdated(data.uploadedAt ? data.uploadedAt.toDate() : null);
+        setStatus("ready");
       })
-      .catch(e => { setError(e.message); setLoading(false); });
+      .catch(e => { console.error(e); setStatus("error"); });
   }, [authed]);
 
-  // Compute aggregated data
-  const weekData = React.useMemo(() => aggregateWeekly(planRows, dayISOs), [planRows, dayISOs]);
+  // Week dates (Mon–Fri)
+  const monday = React.useMemo(() => {
+    const m = getMondayOf(new Date());
+    return addDays(m, weekOffset * 7);
+  }, [weekOffset]);
+  const days    = React.useMemo(() => Array.from({length:5},(_,i)=>addDays(monday,i)), [monday]);
+  const dayISOs = React.useMemo(() => days.map(isoOf), [days]);
 
-  // All BUs and resources for filter panel
-  const allBUs       = React.useMemo(() => [...new Set(Object.values(weekData).map(r => r.bu).filter(Boolean))].sort(), [weekData]);
-  const allResources = React.useMemo(() => [...new Set(Object.values(weekData).map(r => r.resource))].sort(), [weekData]);
+  // All BUs and resources in data
+  const allBUs       = React.useMemo(() => [...new Set(allRows.map(r=>r.unitLead).filter(Boolean))].sort((a,b)=>a==="Other"?1:b==="Other"?-1:a.localeCompare(b)), [allRows]);
+  const allResources = React.useMemo(() => [...new Set(allRows.map(r=>r.resource).filter(Boolean))].sort(), [allRows]);
 
-  // Apply filters
-  const filteredResources = React.useMemo(() => {
-    return Object.values(weekData).filter(r => {
-      if (filters.buList.length > 0 && !filters.buList.includes(r.bu)) return false;
+  // Apply filters to rows
+  const filteredRows = React.useMemo(() => {
+    return allRows.filter(r => {
+      if (filters.buList.length  > 0 && !filters.buList.includes(r.unitLead))  return false;
       if (filters.resList.length > 0 && !filters.resList.includes(r.resource)) return false;
       return true;
     });
-  }, [weekData, filters]);
+  }, [allRows, filters]);
 
-  // Group by BU
+  // Aggregate for this week
+  const weekData = React.useMemo(() => aggregate(filteredRows, dayISOs), [filteredRows, dayISOs]);
+
+  // Group by BU, sort lines within BU
   const byBU = React.useMemo(() => {
     const map = {};
-    for (const r of filteredResources) {
+    for (const r of Object.values(weekData)) {
       if (!map[r.bu]) map[r.bu] = [];
       map[r.bu].push(r);
     }
-    // Sort lines within BU
-    for (const bu of Object.keys(map)) {
-      map[bu].sort((a, b) => a.resource.localeCompare(b.resource));
-    }
+    for (const bu of Object.keys(map)) map[bu].sort((a,b)=>a.resource.localeCompare(b.resource));
     return map;
-  }, [filteredResources]);
+  }, [weekData]);
+  const buList = React.useMemo(() => Object.keys(byBU).sort((a,b)=>a==="Other"?1:b==="Other"?-1:a.localeCompare(b)), [byBU]);
 
-  const buList = React.useMemo(() => Object.keys(byBU).sort(), [byBU]);
+  // Grand totals
+  const grand = React.useMemo(() => {
+    let qty=0,hrs=0,earned=0,lost=0;
+    for (const r of Object.values(weekData)) { qty+=r.totalQty; hrs+=r.totalHrs; earned+=r.totalEarned; lost+=r.totalLost; }
+    return { qty, hrs, earned, lost, eff: calcEff(earned,hrs) };
+  }, [weekData]);
 
-  // Summary stats for header
-  const totals = React.useMemo(() => {
-    let qty = 0, hrs = 0, earned = 0, lost = 0;
-    for (const r of filteredResources) {
-      qty    += r.totalQty;
-      hrs    += r.totalHrs;
-      earned += r.totalEarned;
-      lost   += r.totalLost;
-    }
-    return { qty, hrs, earned, lost, eff: calcEff(earned, hrs) };
-  }, [filteredResources]);
-
-  // Per-day totals
-  const dayTotals = React.useMemo(() => {
+  // Per-day grand totals
+  const dayGrand = React.useMemo(() => {
     const dt = {};
-    for (const d of dayISOs) dt[d] = { qty: 0, hrs: 0, earned: 0, lost: 0 };
-    for (const r of filteredResources) {
+    for (const d of dayISOs) dt[d] = {qty:0,hrs:0,earned:0,lost:0};
+    for (const r of Object.values(weekData)) {
       for (const d of dayISOs) {
         dt[d].qty    += r.byDate[d]?.qty    || 0;
         dt[d].hrs    += r.byDate[d]?.hrs    || 0;
@@ -359,202 +308,180 @@ function App() {
       }
     }
     return dt;
-  }, [filteredResources, dayISOs]);
+  }, [weekData, dayISOs]);
 
-  function saveFilters(f) {
-    try { localStorage.setItem(LS_FILTERS, JSON.stringify(f)); } catch (_) {}
-  }
+  function saveFilter(f) { try { localStorage.setItem(LS_FILTER, JSON.stringify(f)); } catch(_){} }
 
-  const activeFiltersCount = filters.buList.length + filters.resList.length;
+  const activeCount = filters.buList.length + filters.resList.length;
 
-  if (!authed) return <LoginScreen onAuth={() => setAuthed(true)} />;
+  if (!authed) return <Login onAuth={() => setAuthed(true)} />;
 
   return (
-    <div style={{ minHeight: "100vh", padding: "0 0 40px" }}>
-      {/* Header */}
-      <div style={{ background: "#1e293b", borderBottom: "1px solid #334155", padding: "12px 20px" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px" }}>📊 Weekly Production Dashboard</div>
-            <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>SMI Production · {fmtWeekRange(currentMonday)}</div>
+    <div style={{minHeight:"100vh",paddingBottom:40}}>
+      {/* ── Header ── */}
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"12px 20px"}}>
+        <div style={{maxWidth:1440,margin:"0 auto",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:200}}>
+            <div style={{fontSize:17,fontWeight:800,letterSpacing:"-0.4px"}}>📊 Weekly Production Dashboard</div>
+            <div style={{fontSize:11,color:"#64748b",marginTop:1}}>
+              {fmtWeekRange(monday)}
+              {lastUpdated && <span style={{marginLeft:8}}>· Data: {lastUpdated.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
+            </div>
           </div>
-          {/* Week navigation */}
-          <div className="week-nav" style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <button onClick={() => setWeekOffset(w => w - 1)}>◀</button>
-            <button className={weekOffset === 0 ? "cur" : ""} onClick={() => setWeekOffset(0)}>This Week</button>
-            <button className={weekOffset === -1 ? "cur" : ""} onClick={() => setWeekOffset(-1)}>Last Week</button>
-            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 0}
-              style={{ opacity: weekOffset >= 0 ? 0.3 : 1, cursor: weekOffset >= 0 ? "default" : "pointer" }}>▶</button>
+
+          {/* Week nav */}
+          <div className="wnav">
+            <button onClick={()=>setWeekOffset(o=>o-1)}>◀</button>
+            <button className={weekOffset===0?"active":""} onClick={()=>setWeekOffset(0)}>This Week</button>
+            <button className={weekOffset===-1?"active":""} onClick={()=>setWeekOffset(-1)}>Last Week</button>
+            <button onClick={()=>setWeekOffset(o=>o+1)} disabled={weekOffset>=0}>▶</button>
           </div>
-          {/* Filter button */}
-          <button onClick={() => setShowFilter(true)}
-            style={{ padding: "6px 14px", borderRadius: 6, background: activeFiltersCount > 0 ? "#1d4ed8" : "#334155", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-            ⚙ Filter {activeFiltersCount > 0 && <span style={{ background: "#fff", color: "#1d4ed8", borderRadius: 10, padding: "0 6px", fontSize: 11, fontWeight: 800 }}>{activeFiltersCount}</span>}
+
+          {/* Filter */}
+          <button className={`btn ${activeCount>0?"btn-primary":"btn-secondary"}`} onClick={()=>setShowFilter(true)} style={{display:"flex",alignItems:"center",gap:6}}>
+            ⚙ Filter
+            {activeCount>0 && <span style={{background:"rgba(255,255,255,0.2)",borderRadius:10,padding:"0 6px",fontSize:11}}>{activeCount}</span>}
           </button>
-          {/* Logout */}
-          <button onClick={() => { try { localStorage.removeItem(LS_AUTH); } catch (_) {} setAuthed(false); }}
-            style={{ padding: "5px 10px", borderRadius: 6, background: "#0f172a", color: "#64748b", border: "1px solid #334155", cursor: "pointer", fontSize: 12 }}>
-            Sign Out
-          </button>
+
+          {/* Sign out */}
+          <button className="btn btn-ghost" style={{fontSize:12}} onClick={()=>{try{localStorage.removeItem(LS_AUTH);}catch(_){}setAuthed(false);}}>Sign Out</button>
         </div>
       </div>
 
-      {/* Summary stat row */}
-      <div style={{ maxWidth: 1400, margin: "16px auto 0", padding: "0 20px" }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div style={{maxWidth:1440,margin:"0 auto",padding:"16px 20px"}}>
+
+        {/* ── Stat row ── */}
+        <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
           {[
-            { label: "Total Units", value: totals.qty.toLocaleString(), icon: "📦" },
-            { label: "Efficiency", value: fmtEff(totals.eff), icon: "⚡", cls: totals.eff !== null ? effClass(totals.eff) : "" },
-            { label: "Hours Worked", value: fmtHrs(totals.hrs), icon: "⏱" },
-            { label: "Lost Hours", value: fmtHrs(totals.lost), icon: "⚠️" },
-            { label: "Active Lines", value: filteredResources.filter(r => r.totalQty > 0).length, icon: "🏭" },
-          ].map(s => (
-            <div key={s.label} className="stat-card" style={{ flex: "1 1 160px" }}>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>{s.icon} {s.label}</div>
-              <div className={`num-cell ${s.cls || ""}`} style={{ fontSize: 20, fontWeight: 800, borderRadius: 4, padding: s.cls ? "2px 6px" : 0, display: "inline-block" }}>{s.value}</div>
+            { label:"Week Total", value: grand.qty>0 ? grand.qty.toLocaleString() : "—", icon:"📦" },
+            { label:"Efficiency", value: grand.eff!=null ? fmtEff(grand.eff) : "—", icon:"⚡", cls: effCls(grand.eff) },
+            { label:"Hours Worked", value: grand.hrs>0 ? grand.hrs.toFixed(1) : "—", icon:"⏱" },
+            { label:"Lost Hours",   value: grand.lost>0 ? grand.lost.toFixed(1) : "—", icon:"⚠️", warn: grand.lost>0 },
+            { label:"Active Lines", value: Object.values(weekData).filter(r=>r.totalQty>0).length || "—", icon:"🏭" },
+          ].map(s=>(
+            <div key={s.label} className="stat-card">
+              <div className="stat-label">{s.icon} {s.label}</div>
+              <div className={`stat-value ${s.cls||""}`} style={{
+                ...(s.cls && s.cls!=="eff-none" ? {background:"transparent",borderRadius:4} : {}),
+                color: s.warn ? "#fbbf24" : undefined
+              }}>
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Main table */}
-      <div style={{ maxWidth: 1400, margin: "16px auto 0", padding: "0 20px" }}>
-        {loading && (
-          <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
-            Loading production data…
+        {/* ── Table ── */}
+        {status==="loading" && (
+          <div style={{textAlign:"center",padding:60,color:"#64748b"}}>
+            <div style={{fontSize:32,marginBottom:8}}>⏳</div>Loading production data…
           </div>
         )}
-        {error && (
-          <div style={{ background: "#450a0a", border: "1px solid #7f1d1d", borderRadius: 8, padding: 16, color: "#fca5a5" }}>
-            ❌ Error loading data: {error}
+        {status==="error" && (
+          <div style={{background:"#450a0a",border:"1px solid #7f1d1d",borderRadius:8,padding:16,color:"#fca5a5"}}>
+            ❌ Error loading data from Firebase.
           </div>
         )}
-        {!loading && !error && (
-          <div className="panel" style={{ overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        {status==="empty" && (
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:32,textAlign:"center",color:"#64748b"}}>
+            No production data uploaded yet. Upload a labour ticket file in the Production Report app first.
+          </div>
+        )}
+        {status==="ready" && (
+          <div className="panel" style={{overflow:"hidden"}}>
+            <div style={{overflowX:"auto"}}>
+              <table>
                 <thead>
-                  <tr style={{ borderBottom: "2px solid #334155" }}>
-                    <th className="sticky-left" style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#94a3b8", fontSize: 11, whiteSpace: "nowrap", minWidth: 160 }}>BU / Line</th>
-                    {days.map(d => (
-                      <th key={isoDate(d)} className="day-col" style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: "#94a3b8", fontSize: 11, whiteSpace: "nowrap", borderLeft: "1px solid #334155" }}>
-                        {fmtDay(d)}
-                      </th>
+                  <tr style={{borderBottom:"2px solid #334155"}}>
+                    <th className="sticky-col" style={{textAlign:"left",minWidth:170}}>BU / Line</th>
+                    {days.map(d=>(
+                      <th key={isoOf(d)} className="day-th">{fmtDayLabel(d)}</th>
                     ))}
-                    <th style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: "#94a3b8", fontSize: 11, borderLeft: "2px solid #475569", whiteSpace: "nowrap", minWidth: 80 }}>WEEK<br/>TOTAL</th>
-                    <th style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: "#94a3b8", fontSize: 11, borderLeft: "1px solid #334155", whiteSpace: "nowrap", minWidth: 68 }}>EFF %</th>
-                    <th style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: "#94a3b8", fontSize: 11, borderLeft: "1px solid #334155", whiteSpace: "nowrap", minWidth: 68 }}>HRS</th>
-                    <th style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: "#94a3b8", fontSize: 11, borderLeft: "1px solid #334155", whiteSpace: "nowrap", minWidth: 68 }}>LOST HRS</th>
+                    <th className="num sep-left" style={{minWidth:80}}>Week Total</th>
+                    <th className="num" style={{minWidth:72,borderLeft:"1px solid #1e293b"}}>Eff %</th>
+                    <th className="num" style={{minWidth:64,borderLeft:"1px solid #1e293b"}}>Hrs</th>
+                    <th className="num" style={{minWidth:64,borderLeft:"1px solid #1e293b"}}>Lost Hrs</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {buList.length === 0 && (
-                    <tr><td colSpan={5 + days.length + 3} style={{ padding: 40, textAlign: "center", color: "#64748b" }}>
-                      No data for this week
+                  {buList.length===0 && (
+                    <tr><td colSpan={days.length+5} style={{padding:40,textAlign:"center",color:"#64748b"}}>
+                      No production data found for this week ({dayISOs[0]} – {dayISOs[4]})
                     </td></tr>
                   )}
                   {buList.map(bu => {
-                    const rows = byBU[bu];
+                    const lines = byBU[bu];
                     // BU subtotals
-                    const buSub = { qty: 0, hrs: 0, earned: 0, lost: 0 };
-                    const buDayQty = {};
-                    for (const d of dayISOs) buDayQty[d] = 0;
-                    for (const r of rows) {
-                      buSub.qty    += r.totalQty;
-                      buSub.hrs    += r.totalHrs;
-                      buSub.earned += r.totalEarned;
-                      buSub.lost   += r.totalLost;
-                      for (const d of dayISOs) buDayQty[d] += r.byDate[d]?.qty || 0;
+                    let bQty=0,bHrs=0,bEarned=0,bLost=0;
+                    const bDay = {};
+                    for (const d of dayISOs) bDay[d] = 0;
+                    for (const r of lines) {
+                      bQty+=r.totalQty; bHrs+=r.totalHrs; bEarned+=r.totalEarned; bLost+=r.totalLost;
+                      for (const d of dayISOs) bDay[d] += r.byDate[d]?.qty||0;
                     }
-                    const buEff = calcEff(buSub.earned, buSub.hrs);
+                    const bEff = calcEff(bEarned, bHrs);
                     return (
                       <React.Fragment key={bu}>
-                        {/* BU header row */}
-                        <tr style={{ borderTop: "2px solid #334155" }}>
-                          <td className="sticky-left bu-header" style={{ padding: "8px 12px", fontWeight: 800, color: "#e2e8f0", fontSize: 13, letterSpacing: 0.3 }}>
-                            🏭 {bu}
-                          </td>
-                          {dayISOs.map(d => (
-                            <td key={d} className="bu-header num-cell" style={{ padding: "6px 8px", textAlign: "center", color: "#94a3b8", fontWeight: 700, borderLeft: "1px solid #334155", fontSize: 13 }}>
-                              {buDayQty[d] > 0 ? buDayQty[d].toLocaleString() : <span style={{ color: "#475569" }}>—</span>}
+                        {/* BU row */}
+                        <tr className="bu-row">
+                          <td className="bu-sticky" style={{paddingLeft:12}}>🏭 {bu}</td>
+                          {dayISOs.map(d=>(
+                            <td key={d} className="num day-td" style={{color:"#94a3b8"}}>
+                              {bDay[d]>0 ? Math.round(bDay[d]).toLocaleString() : <span style={{color:"#334155"}}>—</span>}
                             </td>
                           ))}
-                          <td className="bu-header num-cell" style={{ padding: "6px 8px", textAlign: "center", fontWeight: 800, borderLeft: "2px solid #475569", color: "#e2e8f0" }}>
-                            {buSub.qty > 0 ? buSub.qty.toLocaleString() : "—"}
-                          </td>
-                          <td className="bu-header" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #334155" }}>
-                            <span className={`num-cell ${effClass(buEff)}`} style={{ padding: "2px 6px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{fmtEff(buEff)}</span>
-                          </td>
-                          <td className="bu-header num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #334155", color: "#94a3b8" }}>
-                            {fmtHrs(buSub.hrs)}
-                          </td>
-                          <td className="bu-header num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #334155", color: buSub.lost > 0 ? "#fbbf24" : "#475569" }}>
-                            {fmtHrs(buSub.lost)}
-                          </td>
+                          <td className="num sep-left" style={{color:"#e2e8f0"}}>{bQty>0?Math.round(bQty).toLocaleString():"—"}</td>
+                          <td className="num" style={{borderLeft:"1px solid #1e293b"}}>{bHrs>0?effBadge(bEff):<span style={{color:"#475569"}}>—</span>}</td>
+                          <td className="num" style={{borderLeft:"1px solid #1e293b",color:"#64748b"}}>{fmtHrs(bHrs)}</td>
+                          <td className="num" style={{borderLeft:"1px solid #1e293b",color:bLost>0?"#fbbf24":"#475569"}}>{fmtLost(bLost)||"—"}</td>
                         </tr>
                         {/* Line rows */}
-                        {rows.map(r => {
-                          const eff = calcEff(r.totalEarned, r.totalHrs);
+                        {lines.map(r=>{
+                          const eff = calcEff(r.totalEarned,r.totalHrs);
                           return (
-                            <tr key={r.resource} style={{ borderTop: "1px solid #1e293b" }}>
-                              <td className="sticky-left" style={{ padding: "6px 12px 6px 24px", color: "#cbd5e1", whiteSpace: "nowrap" }}>
-                                {r.resource}
-                              </td>
-                              {dayISOs.map(d => {
-                                const cell = r.byDate[d] || { qty: 0 };
+                            <tr key={r.resource} style={{borderTop:"1px solid #0f172a"}}>
+                              <td className="sticky-col" style={{paddingLeft:28,color:"#cbd5e1"}}>{r.resource}</td>
+                              {dayISOs.map(d=>{
+                                const q = r.byDate[d]?.qty||0;
                                 return (
-                                  <td key={d} className="num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #1e293b", color: cell.qty > 0 ? "#e2e8f0" : "#334155" }}>
-                                    {cell.qty > 0 ? cell.qty.toLocaleString() : "·"}
+                                  <td key={d} className="num day-td" style={{color:q>0?"#e2e8f0":"#1e293b"}}>
+                                    {q>0?Math.round(q).toLocaleString():"·"}
                                   </td>
                                 );
                               })}
-                              <td className="num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "2px solid #475569", fontWeight: 700, color: r.totalQty > 0 ? "#e2e8f0" : "#475569" }}>
-                                {r.totalQty > 0 ? r.totalQty.toLocaleString() : "—"}
-                              </td>
-                              <td style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #1e293b" }}>
-                                {r.totalHrs > 0
-                                  ? <span className={`num-cell ${effClass(eff)}`} style={{ padding: "1px 5px", borderRadius: 4, fontSize: 12 }}>{fmtEff(eff)}</span>
-                                  : <span style={{ color: "#475569" }}>—</span>}
-                              </td>
-                              <td className="num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #1e293b", color: "#64748b" }}>
-                                {fmtHrs(r.totalHrs)}
-                              </td>
-                              <td className="num-cell" style={{ padding: "6px 8px", textAlign: "center", borderLeft: "1px solid #1e293b", color: r.totalLost > 0 ? "#fbbf24" : "#475569" }}>
-                                {fmtHrs(r.totalLost)}
-                              </td>
+                              <td className="num sep-left" style={{fontWeight:700,color:r.totalQty>0?"#e2e8f0":"#475569"}}>{r.totalQty>0?Math.round(r.totalQty).toLocaleString():"—"}</td>
+                              <td className="num" style={{borderLeft:"1px solid #0f172a"}}>{r.totalHrs>0?effBadge(eff):<span style={{color:"#475569"}}>—</span>}</td>
+                              <td className="num" style={{borderLeft:"1px solid #0f172a",color:"#64748b"}}>{fmtHrs(r.totalHrs)||"—"}</td>
+                              <td className="num" style={{borderLeft:"1px solid #0f172a",color:r.totalLost>0?"#fbbf24":"#475569"}}>{fmtLost(r.totalLost)||"—"}</td>
                             </tr>
                           );
                         })}
                       </React.Fragment>
                     );
                   })}
-                  {/* Day totals footer */}
-                  {buList.length > 0 && (
-                    <tr style={{ borderTop: "2px solid #475569", background: "#0f172a" }}>
-                      <td className="sticky-left" style={{ background: "#0f172a", padding: "9px 12px", fontWeight: 800, color: "#94a3b8", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                        Daily Total
-                      </td>
-                      {dayISOs.map(d => {
-                        const dt = dayTotals[d];
+
+                  {/* Footer: daily totals */}
+                  {buList.length>0 && (
+                    <tr className="foot-row">
+                      <td className="bu-sticky" style={{paddingLeft:12,color:"#94a3b8",fontSize:11,textTransform:"uppercase",letterSpacing:0.5}}>Daily Total</td>
+                      {dayISOs.map(d=>{
+                        const dg = dayGrand[d];
+                        const de = calcEff(dg.earned,dg.hrs);
                         return (
-                          <td key={d} className="num-cell" style={{ padding: "9px 8px", textAlign: "center", fontWeight: 800, borderLeft: "1px solid #334155", color: dt.qty > 0 ? "#f8fafc" : "#475569" }}>
-                            {dt.qty > 0 ? dt.qty.toLocaleString() : "—"}
+                          <td key={d} className="day-td" style={{textAlign:"center",borderLeft:"1px solid #334155"}}>
+                            <div style={{fontWeight:800,color:dg.qty>0?"#f8fafc":"#475569",fontVariantNumeric:"tabular-nums"}}>
+                              {dg.qty>0?Math.round(dg.qty).toLocaleString():"—"}
+                            </div>
+                            {dg.qty>0 && de!=null && (
+                              <div style={{marginTop:2}}><span className={`chip ${effCls(de)}`} style={{borderRadius:3,padding:"0 5px",fontSize:10}}>{fmtEff(de)}</span></div>
+                            )}
                           </td>
                         );
                       })}
-                      <td className="num-cell" style={{ padding: "9px 8px", textAlign: "center", fontWeight: 800, borderLeft: "2px solid #475569", color: "#f8fafc", fontSize: 14 }}>
-                        {totals.qty.toLocaleString()}
-                      </td>
-                      <td style={{ padding: "9px 8px", textAlign: "center", borderLeft: "1px solid #334155" }}>
-                        <span className={`num-cell ${effClass(totals.eff)}`} style={{ padding: "2px 6px", borderRadius: 4, fontSize: 12, fontWeight: 800 }}>{fmtEff(totals.eff)}</span>
-                      </td>
-                      <td className="num-cell" style={{ padding: "9px 8px", textAlign: "center", borderLeft: "1px solid #334155", color: "#94a3b8", fontWeight: 700 }}>
-                        {fmtHrs(totals.hrs)}
-                      </td>
-                      <td className="num-cell" style={{ padding: "9px 8px", textAlign: "center", borderLeft: "1px solid #334155", color: totals.lost > 0 ? "#fbbf24" : "#475569", fontWeight: 700 }}>
-                        {fmtHrs(totals.lost)}
-                      </td>
+                      <td className="num sep-left" style={{fontSize:15,color:"#f8fafc"}}>{grand.qty>0?grand.qty.toLocaleString():"—"}</td>
+                      <td className="num" style={{borderLeft:"1px solid #334155"}}>{effBadge(grand.eff)}</td>
+                      <td className="num" style={{borderLeft:"1px solid #334155",color:"#94a3b8",fontWeight:700}}>{fmtHrs(grand.hrs)||"—"}</td>
+                      <td className="num" style={{borderLeft:"1px solid #334155",color:grand.lost>0?"#fbbf24":"#475569",fontWeight:700}}>{fmtLost(grand.lost)||"—"}</td>
                     </tr>
                   )}
                 </tbody>
@@ -564,24 +491,24 @@ function App() {
         )}
 
         {/* Legend */}
-        <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "#64748b" }}>
-          <span>Efficiency thresholds:</span>
-          <span className="eff-green" style={{ padding: "2px 7px", borderRadius: 4, fontWeight: 700 }}>≥ 90%</span>
-          <span className="eff-amber" style={{ padding: "2px 7px", borderRadius: 4, fontWeight: 700 }}>76.5 – 89.9%</span>
-          <span className="eff-red"   style={{ padding: "2px 7px", borderRadius: 4, fontWeight: 700 }}>&lt; 76.5%</span>
-          <span style={{ marginLeft: "auto" }}>Units from labour ticket shifts · {dayISOs[0]} – {dayISOs[4]}</span>
+        <div style={{marginTop:10,display:"flex",gap:14,flexWrap:"wrap",alignItems:"center",fontSize:11,color:"#64748b"}}>
+          <span>Eff %:</span>
+          <span className="chip eff-green" style={{borderRadius:4,padding:"1px 7px"}}>≥ 90%</span>
+          <span className="chip eff-amber" style={{borderRadius:4,padding:"1px 7px"}}>76.5 – 89.9%</span>
+          <span className="chip eff-red"   style={{borderRadius:4,padding:"1px 7px"}}>&lt; 76.5%</span>
+          <span style={{marginLeft:"auto"}}>Source: Production Report labour upload · {dayISOs[0]} – {dayISOs[4]}</span>
         </div>
       </div>
 
       {/* Filter modal */}
       {showFilter && (
-        <FilterPanel
+        <FilterModal
           allBUs={allBUs}
           allResources={allResources}
           filters={filters}
-          onChange={setFilters}
-          onSave={saveFilters}
-          onClose={() => setShowFilter(false)}
+          onApply={setFilters}
+          onSave={saveFilter}
+          onClose={()=>setShowFilter(false)}
         />
       )}
     </div>
