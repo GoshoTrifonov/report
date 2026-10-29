@@ -112,19 +112,22 @@ body {
 .eff-none  { color: var(--eff-none-txt); }
 
 /* ── Table ── */
+:root { --hdr-h: 57px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+thead tr { position: sticky; top: var(--hdr-h); z-index: 10; background: var(--bg2); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; background: var(--bg2); }
 td { padding: 6px 10px; white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
 .day-th { text-align: center; min-width: 94px; border-left: 1px solid var(--border2); }
 .day-td { text-align: center; border-left: 1px solid var(--border2); }
 .sep-left { border-left: 2px solid var(--border) !important; }
-.sticky-col { position: sticky; left: 0; background: var(--sticky-bg); z-index: 5; }
-.bu-sticky  { position: sticky; left: 0; background: var(--bu-bg);     z-index: 5; }
+.sticky-col { position: sticky; left: 0; background: var(--sticky-bg); z-index: 6; }
+.bu-sticky  { position: sticky; left: 0; background: var(--bu-bg);     z-index: 9; }
+thead .sticky-col { background: var(--bg2); z-index: 12; }
 tr:hover td { background: var(--row-hover); }
 tr:hover td.sticky-col { background: var(--sticky-bg); }
 tr:hover td.bu-sticky  { background: var(--bu-bg); }
-.bu-row td { background: var(--bu-bg); font-weight: 700; color: var(--text2); font-size: 12px; border-top: 2px solid var(--border); }
+.bu-row td { background: var(--bu-bg); font-weight: 700; color: var(--text2); font-size: 12px; border-top: 2px solid var(--border); position: sticky; top: calc(var(--hdr-h) + 37px); z-index: 8; box-shadow: 0 2px 4px rgba(0,0,0,0.12); }
 .foot-row td { background: var(--foot-bg); font-weight: 800; border-top: 2px solid var(--border); }
 .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; }
 
@@ -157,7 +160,7 @@ tr:hover td.bu-sticky  { background: var(--bu-bg); }
 .wnav button:disabled { opacity: 0.3; cursor: default; }
 
 /* ── Header ── */
-.app-header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 20px; }
+.app-header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 20px; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
 /* ── Theme toggle ── */
 .theme-toggle { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px; display: flex; gap: 2px; cursor: pointer; }
