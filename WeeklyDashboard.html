@@ -114,7 +114,7 @@ body {
 /* ── Table ── */
 :root { --hdr-h: 57px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-thead tr { position: sticky; top: var(--hdr-h); z-index: 10; background: var(--bg2); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+thead tr { position: sticky; top: 0; z-index: 10; background: var(--bg2); box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
 th { padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; background: var(--bg2); }
 td { padding: 6px 10px; white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
@@ -127,7 +127,7 @@ thead .sticky-col { background: var(--bg2); z-index: 12; }
 tr:hover td { background: var(--row-hover); }
 tr:hover td.sticky-col { background: var(--sticky-bg); }
 tr:hover td.bu-sticky  { background: var(--bu-bg); }
-.bu-row td { background: var(--bu-bg); font-weight: 700; color: var(--text2); font-size: 12px; border-top: 2px solid var(--border); position: sticky; top: calc(var(--hdr-h) + 37px); z-index: 8; box-shadow: 0 2px 4px rgba(0,0,0,0.12); }
+.bu-row td { background: var(--bu-bg); font-weight: 700; color: var(--text2); font-size: 12px; border-top: 2px solid var(--border); position: sticky; top: 37px; z-index: 8; box-shadow: 0 2px 4px rgba(0,0,0,0.12); }
 .foot-row td { background: var(--foot-bg); font-weight: 800; border-top: 2px solid var(--border); }
 .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; }
 
@@ -588,7 +588,7 @@ function App() {
         </div>
       </div>
 
-      <div style={{maxWidth:1440,margin:"0 auto",padding:"16px 20px",paddingRight: showFilter ? "340px" : "20px", transition:"padding 0.2s"}}>
+      <div style={{maxWidth:1440,margin:"0 auto",padding:"16px 20px",paddingTop:16,paddingRight: showFilter ? "340px" : "20px", transition:"padding 0.2s"}}>
 
         {/* ── Stat row ── */}
         <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
@@ -626,7 +626,7 @@ function App() {
         )}
         {status==="ready" && (
           <div className="panel" style={{overflow:"hidden"}}>
-            <div style={{overflowX:"auto"}}>
+            <div style={{overflowX:"auto",overflowY:"auto",maxHeight:"calc(100vh - var(--hdr-h) - 120px)"}}>
               <table>
                 <thead>
                   <tr style={{borderBottom:"2px solid var(--border)"}}>
