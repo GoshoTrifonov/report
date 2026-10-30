@@ -3878,7 +3878,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     // Find resources for this leader
     const leaderResources = new Set();
     for (const r of allRows) {
-      if (r.leader === selectedLeader) leaderResources.add(r.resource);
+      if (selectedLeader === "__ALL__" || r.leader === selectedLeader) leaderResources.add((r.resource||"").trim());
     }
     for (const r of allRows) {
       if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
@@ -3910,9 +3910,9 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     // Find lines marked down for this shift (only for this leader's resources)
     const downLines = [];
     for (const [res, entries] of Object.entries(lineDown)) {
-      if (!leaderResources.has(res)) continue;
+      if (!leaderResources.has((res||"").trim())) continue;
       const match = entries.find(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === targetKey);
-      if (match) downLines.push({ resource: res, ...match });
+      if (match) downLines.push({ resource: (res||"").trim(), ...match });
     }
     // Group by resource for the report
     const byResource = new Map();
