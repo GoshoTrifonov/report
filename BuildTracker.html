@@ -610,10 +610,17 @@ const shiftEntryKey = (date, shiftId) => {
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}#${shiftId}`;
 };
+// Parse a YYYY-MM-DD string as LOCAL midnight (avoids UTC offset shifting the date)
+const parseLocalDate = (iso) => {
+  if (!iso) return new Date(NaN);
+  const s = iso.slice(0, 10); // take just YYYY-MM-DD in case there's a T suffix
+  const [y, m, d] = s.split("-");
+  return new Date(+y, +m - 1, +d);
+};
 // Pretty-print a shift entry timestamp
 const shiftLabel = (entry) => {
   const meta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
-  const d = new Date(entry.shiftDateISO);
+  const d = parseLocalDate(entry.shiftDateISO);
   const dStr = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return `${dStr} · ${meta.label} (${meta.time})`;
 };
@@ -977,7 +984,7 @@ function BuildTracker() {
             const manualShifts = existingShifts.filter(s => s.source !== "labour");
             const labourShifts = (shiftDetail[row.wo] || []).map(s => ({
               shiftId: s.shiftId,
-              shiftDateISO: new Date(s.dateISO + "T12:00:00").toISOString(),
+              shiftDateISO: s.dateISO,
               qty:    Math.round(s.qty),
               hrs:    s.hrs    || 0,
               earned: s.earned || 0,
@@ -1452,20 +1459,22 @@ function BuildTracker() {
     try { await fbSave(BT_LINEDOWN_REF, next); }
     catch(e) { localStorage.setItem(LINE_DOWN_STORAGE, JSON.stringify(next)); }
   };
-  const markLineDown = (resource, { shiftId, shiftDate, reason, notes }) => {
+  const markLineDown = (resource, { shiftId, shiftDate, reason, notes, duration }) => {
     const existing = lineDown[resource] || [];
     const targetKey = shiftEntryKey(shiftDate, shiftId);
     // Replace if entry for the same shift already exists
-    const filtered = existing.filter(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) !== targetKey);
+    const filtered = existing.filter(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) !== targetKey);
+    const effectiveDuration = reason === "Not Scheduled" ? 0 : (duration ?? 8);
     const next = {
       ...lineDown,
       [resource]: [
         ...filtered,
         {
-          shiftDateISO: shiftDate.toISOString(),
+          shiftDateISO: `${shiftDate.getFullYear()}-${String(shiftDate.getMonth()+1).padStart(2,"0")}-${String(shiftDate.getDate()).padStart(2,"0")}`,
           shiftId,
           reason: reason || "",
           notes: notes || "",
+          duration: effectiveDuration,
           by: userInitials || "",
           loggedAt: new Date().toISOString(),
         },
@@ -1476,7 +1485,7 @@ function BuildTracker() {
   const unmarkLineDown = (resource, shiftId, shiftDate) => {
     const existing = lineDown[resource] || [];
     const targetKey = shiftEntryKey(shiftDate, shiftId);
-    const filtered = existing.filter(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) !== targetKey);
+    const filtered = existing.filter(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) !== targetKey);
     const next = { ...lineDown };
     if (filtered.length === 0) delete next[resource]; else next[resource] = filtered;
     saveLineDown(next);
@@ -1485,7 +1494,7 @@ function BuildTracker() {
   const getLineDownEntry = (resource, shiftId, shiftDate) => {
     const entries = lineDown[resource] || [];
     const targetKey = shiftEntryKey(shiftDate, shiftId);
-    return entries.find(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === targetKey) || null;
+    return entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey) || null;
   };
   // Derive the list of leaders present in the data, ordered by WO count (descending).
   const leaderList = useMemo(() => {
@@ -1529,7 +1538,7 @@ function BuildTracker() {
       if (lineFilter === "running_down") {
         const { shiftId, shiftDate } = getCurrentShift(new Date());
         const isDown = ((lineDown[l.resource] || []).find(e =>
-          shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(shiftDate, shiftId)
+          shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(shiftDate, shiftId)
         )) ? true : false;
         return hasWip || isDown;
       }
@@ -1725,7 +1734,7 @@ function BuildTracker() {
       ...existingShifts,
       {
         shiftId,
-        shiftDateISO: shiftDate.toISOString(),
+        shiftDateISO: `${shiftDate.getFullYear()}-${String(shiftDate.getMonth()+1).padStart(2,"0")}-${String(shiftDate.getDate()).padStart(2,"0")}`,
         qty: Number(qty) || 0,
         notes: notes || "",
         reason: reason || "",
@@ -1904,7 +1913,7 @@ function BuildTracker() {
           return getRemain(a) - getRemain(b);
         }).map(line => {
             const isDown = ((lineDown[line.resource] || []).find(e =>
-              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
+              shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
             )) ? true : false;
             const nowRow = line.rows[0];
             const hasWip = line.rows.some(r => r.status === "wip");
@@ -2034,7 +2043,7 @@ function BuildTracker() {
         <div style={{ padding: "10px 12px" }}>
           {lines.map(line => {
             const isDown = ((lineDown[line.resource] || []).find(e =>
-              shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
+              shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(curShiftDate, curShift)
             )) ? true : false;
             const nowRow = line.rows[0];
             const nextRow = line.rows[1];
@@ -2152,8 +2161,8 @@ function BuildTracker() {
     }
     const { shiftId: _sortShiftId, shiftDate: _sortShiftDate } = getCurrentShift(now);
     resourceList.sort(function(a, b) {
-      const aDown = !!((lineDown[a] || []).find(function(e) { return shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
-      const bDown = !!((lineDown[b] || []).find(function(e) { return shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
+      const aDown = !!((lineDown[a] || []).find(function(e) { return shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
+      const bDown = !!((lineDown[b] || []).find(function(e) { return shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(_sortShiftDate, _sortShiftId); }));
       if (aDown !== bDown) return aDown ? 1 : -1;
       const getRemain = function(resource) {
         const rRows = allRows.filter(function(r) { return r.resource === resource; });
@@ -2193,7 +2202,7 @@ function BuildTracker() {
       const liveNow = Object.assign({}, nowRow, ovr);
       const liveNext = nextRow ? Object.assign({}, nextRow, nextOvr || {}) : null;
       const { shiftId: _shiftId, shiftDate: _shiftDate } = getCurrentShift(now);
-      const isDown = !!((lineDown[resource] || []).find(function(e) { return shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(_shiftDate, _shiftId); }));
+      const isDown = !!((lineDown[resource] || []).find(function(e) { return shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(_shiftDate, _shiftId); }));
       const downBadge = '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">DOWN</span>';
       const runBadge = '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">RUN</span>';
       const statusBadge = isDown ? downBadge : runBadge;
@@ -2716,7 +2725,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
             const downEntry = (() => {
               const entries = lineDown[line.resource] || [];
               const targetKey = shiftEntryKey(nowDate, nowShift);
-              return entries.find(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === targetKey) || null;
+              return entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey) || null;
             })();
             return (
               <div key={line.resource}>
@@ -2793,7 +2802,7 @@ function TimelineView({ lines, queueLayout, zoom, onSelect, selectedKey, externa
               // Re-evaluate down state for body styling
               const { shiftId: nowShift2, shiftDate: nowDate2 } = getCurrentShift(new Date());
               const isDown = ((lineDown[line.resource] || []).find(e =>
-                shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === shiftEntryKey(nowDate2, nowShift2)
+                shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === shiftEntryKey(nowDate2, nowShift2)
               )) ? true : false;
               const bgClass = isDown ? "bg-rose-100" : hasWip ? "bg-amber-100" : "bg-stone-100";
               return (
@@ -3450,7 +3459,7 @@ function LineDownModal({ resource, existing, onSave, onClear, onCancel }) {
           <button onClick={onCancel} className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-stone-100">Cancel</button>
           {existing && (
             <button
-              onClick={() => onClear(existing.shiftId, new Date(existing.shiftDateISO))}
+              onClick={() => onClear(existing.shiftId, parseLocalDate(existing.shiftDateISO))}
               className="px-3 py-2 rounded-md border border-stone-300 text-sm font-semibold text-slate-700 hover:bg-rose-50 hover:border-rose-300"
             >
               Clear down status
@@ -3883,7 +3892,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     for (const r of allRows) {
       if (selectedLeader !== "__ALL__" && r.leader !== selectedLeader) continue;
       const matchingEntries = (r.shifts || []).filter(s =>
-        shiftEntryKey(new Date(s.shiftDateISO), s.shiftId) === targetKey
+        shiftEntryKey(parseLocalDate(s.shiftDateISO), s.shiftId) === targetKey
       );
       if (matchingEntries.length > 0) {
         // Merge all entries for this WO into one: labour provides qty/eff/hrs, manual provides notes
@@ -3911,7 +3920,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
     const downLines = [];
     for (const [res, entries] of Object.entries(lineDown)) {
       if (!leaderResources.has((res||"").trim())) continue;
-      const match = entries.find(e => shiftEntryKey(new Date(e.shiftDateISO), e.shiftId) === targetKey);
+      const match = entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey);
       if (match) downLines.push({ resource: (res||"").trim(), ...match });
     }
     // Group by resource for the report
@@ -4775,7 +4784,7 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
         <div className="space-y-1.5">
           {history.map((entry, i) => {
             const shiftMeta = SHIFTS.find(s => s.id === entry.shiftId) || SHIFTS[0];
-            const entryDate = new Date(entry.shiftDateISO);
+            const entryDate = parseLocalDate(entry.shiftDateISO);
             const dateStr = entryDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
             const isLabour = entry.source === "labour";
             return (
