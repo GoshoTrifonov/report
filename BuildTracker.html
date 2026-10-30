@@ -3630,10 +3630,6 @@ function DowntimeCard({ r }) {
       statBox("Lines Down", reportData.downLines.length, reportData.downLines.length > 0 ? "#b91c1c" : "#0f172a", reportData.downLines.length > 0 ? "#fee2e2" : "#f8fafc") +
       `</tr></table>`;
 
-    // Build downtime lookup: resource name → downLine entry
-    const downMap = new Map();
-    for (const d of reportData.downLines) downMap.set((d.resource||"").trim(), d);
-
     let woRowsHtml = "";
     let hasAnyData = false;
     for (const [res, data] of reportData.byResource.entries()) {
@@ -3648,10 +3644,13 @@ function DowntimeCard({ r }) {
           ? `<span style="background:${effBg(entry.eff)};color:${effColor(entry.eff)};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${entry.eff.toFixed(1)}%</span>`
           : `<span style="color:#94a3b8">—</span>`;
         const hrsCell = entry.hrs > 0 ? `${entry.hrs.toFixed(1)}h` : `<span style="color:#94a3b8">—</span>`;
-        const downEntry = downMap.get(res);
-        const downtimeCell = downEntry
-          ? `<span style="background:#dc2626;color:white;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${downEntry.reason||"Down"}</span>` +
-            (downEntry.duration > 0 ? ` <span style="background:#fecaca;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700">${downEntry.duration}h</span>` : "")
+        // Downtime column = only the downtime logged inline with this WO entry (WO drawer)
+        // Line-down markers (lineDown) are a separate concept and appear in their own section below
+        const entryDownReason = entry.downtimeReason || "";
+        const entryDownDuration = entry.downtimeDuration || 0;
+        const downtimeCell = entryDownReason
+          ? `<span style="background:#dc2626;color:white;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${entryDownReason}</span>` +
+            (entryDownDuration > 0 ? ` <span style="background:#fecaca;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700">${entryDownDuration}h</span>` : "")
           : `<span style="color:#cbd5e1">—</span>`;
         const reasonHtml = entry.reason
           ? `<br><span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600">${entry.reason}</span>`
@@ -3908,6 +3907,9 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
           by:     manualEntries.length > 0 ? manualEntries.map(e => e.by).filter(Boolean).join(", ") : (labourEntry?.by || ""),
           notes:  manualEntries.map(e => e.notes).filter(Boolean).join(" | "),
           reason: manualEntries.map(e => e.reason).filter(Boolean).join(", "),
+          // Downtime logged inline with the shift entry (WO drawer)
+          downtimeReason: manualEntries.map(e => e.downtimeReason).filter(Boolean).join(", "),
+          downtimeDuration: manualEntries.reduce((s, e) => s + (e.downtimeDuration || 0), 0),
         };
         woEntries.push({ row: r, entry: merged });
       }
@@ -4227,6 +4229,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                                 {item.entry.lost !== 0 && <div className="text-[10px] text-slate-500 font-semibold">{item.entry.lost.toFixed(1)}h {item.entry.lost > 0 ? "earned" : "lost"}</div>}
                               </div>
                             )}
+                            {item.entry.downtimeReason && <div className="mt-1.5 inline-flex items-center gap-1"><span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">⚠️ {item.entry.downtimeReason}</span>{item.entry.downtimeDuration > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">{item.entry.downtimeDuration}h</span>}</div>}
                             {item.entry.reason && <div className="mt-1.5 inline-block text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-900">💬 {item.entry.reason}</div>}
                             {item.entry.notes && (
                               <div className="mt-1.5 text-[12px] text-slate-700 leading-snug bg-stone-50 border-l-2 border-stone-300 pl-2 py-1">
