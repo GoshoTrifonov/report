@@ -75,10 +75,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .resource-block:first-child .resource-header-row { border-radius: 6px 6px 0 0; }
 .resource-block:last-child .totals-row { border-radius: 0 0 10px 10px; }
 
-/* ── GRID: 9 cols (DAY removed — day label now inside first col) ──────────────
-   Resource/Line | Shift | Plan | Actual | Hrs | Eff% | SKU/WO | Notes | Comments */
+/* ── GRID: 10 cols (DAY removed — day label now inside first col) ──────────────
+   Resource/Line | Shift | Plan | Actual | Hrs | Eff% | SKU/WO | Notes | Downtime | Comments */
 :root {
-  --grid: 180px 44px 80px 80px 60px 70px 330px 1fr 150px;
+  --grid: 180px 44px 80px 80px 60px 70px 330px 1fr 72px 150px;
 }
 
 /* Column headers */
@@ -136,8 +136,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); min-
 .shift-row:hover { background: #f8fafc; }
 .shift-row.green-row { background: rgba(22,163,74,0.06); }
 .shift-row.red-row   { background: rgba(220,38,38,0.05); }
-.shift-row.down-row  { background: #fef2f2; }
-.shift-row.down-row:hover { background: #fee2e2; }
 
 .cell { font-size: 12px; font-family: var(--mono); text-align: right; color: var(--text); padding-top: 2px; }
 .cell.left { text-align: left; font-family: var(--sans); }
@@ -470,7 +468,6 @@ function App() {
   // actuals: { "resourceName|YYYY-MM-DD|shiftId": { qty, hrs, sku, notes } }
   const [resources,  setResources]  = useState([]);
   const [actuals,    setActuals]    = useState({});
-  const [down,       setDown]       = useState({});
   const [comments,   setComments]   = useState({});
 
   const dates = weekDates(currentDay); // ["2026-09-28", ..., "2026-10-04"]
@@ -516,8 +513,6 @@ function App() {
 
       // actuals map: "resource|date|shiftId" -> { qty, hrs, sku, notes, bu }
       const actualsMap = {};
-      // down map: "resource|date|shiftId" -> { reason, notes, by, duration }
-      const downMap = {};
       // Also collect non-VER resources seen in shift reports
       const extraResources = {}; // name -> { bu }
 
@@ -531,25 +526,21 @@ function App() {
           if (!res) return;
           const key = `${res}|${d.date}|${shiftId}`;
           if (!actualsMap[key]) {
-            actualsMap[key] = { qty:0, hrs:0, earned:0, sku:"", notes:"", bu };
+            actualsMap[key] = { qty:0, hrs:0, earned:0, sku:"", notes:"", downtime:0, bu };
           }
           actualsMap[key].qty    += Number(w.qty    || 0);
           actualsMap[key].hrs    += Number(w.hrs    || 0);
           actualsMap[key].earned += Number(w.earned || 0);
           actualsMap[key].sku    = w.descr || actualsMap[key].sku;
           actualsMap[key].notes  = w.notes || actualsMap[key].notes;
+          if (w.downtimeReason && Number(w.downtimeDuration) > 0) {
+            actualsMap[key].downtime = (actualsMap[key].downtime || 0) + Number(w.downtimeDuration);
+          }
           // Track non-VER resources (skip any that are already in our VER mapped set)
           const isVerLine = Object.values(VER_PLAN_TO_LABOUR).includes(res);
           if (!isVerLine && bu) {
             if (!extraResources[res]) extraResources[res] = { bu };
           }
-        });
-        // Build down map from linesDown array
-        (d.linesDown || []).forEach(ld => {
-          const res = (ld.resource||"").trim();
-          if (!res) return;
-          const key = `${res}|${d.date}|${shiftId}`;
-          downMap[key] = { reason: ld.reason||"", notes: ld.notes||"", by: ld.by||"", duration: ld.duration||"" };
         });
       });
 
@@ -568,7 +559,6 @@ function App() {
 
       setResources(allResources);
       setActuals(actualsMap);
-      setDown(downMap);
       setComments(savedComments);
       setLastRefresh(dayjs());
     } catch(err) {
@@ -726,7 +716,13 @@ function App() {
                 const rPPH  = rHrs > 0 ? (rActual/rHrs).toFixed(2) : "—";
                 lines.push(`\n${r.name} (${r.bu})`);
                 lines.push(`  Plan: ${rPlan > 0 ? rPlan.toLocaleString() : "—"} | Actual: ${rActual.toLocaleString()} | Attainment: ${rAtt}`);
-                lines.push(`  Hours: ${rHrs.toFixed(1)} | Eff%: ${rEff} | PPH: ${rPPH}`);
+                // Accumulate downtime for prompt
+                let rDowntime = 0;
+                visibleDates.forEach(date => [1,2,3].forEach(sid => {
+                  const a = actuals[`${r.id}|${date}|${sid}`];
+                  if (a) rDowntime += a.downtime||0;
+                }));
+                lines.push(`  Hours: ${rHrs.toFixed(1)} | Eff%: ${rEff} | PPH: ${rPPH}${rDowntime > 0 ? ` | Downtime: ${rDowntime.toFixed(1)}h` : ""}`);
                 if (notesList.length > 0) lines.push(`  Notes: ${notesList.join("; ")}`);
               });
 
@@ -788,6 +784,7 @@ function App() {
             <div className="col-h">Eff %</div>
             <div className="col-h left hide-mobile">Description</div>
             <div className="col-h left hide-mobile">Notes</div>
+            <div className="col-h hide-mobile">Downtime</div>
             <div className="col-h left hide-mobile">Comments</div>
           </div>
         )}
@@ -802,10 +799,10 @@ function App() {
 
             {filteredResources.map((r) => {
               // compute week totals for this resource
-              let wActual=0, wHrs=0, wEarned=0;
+              let wActual=0, wHrs=0, wEarned=0, wDowntime=0;
               visibleDates.forEach(date => [1,2,3].forEach(sid => {
                 const a = actuals[`${r.id}|${date}|${sid}`];
-                if (a) { wActual += a.qty||0; wHrs += a.hrs||0; wEarned += a.earned||0; }
+                if (a) { wActual += a.qty||0; wHrs += a.hrs||0; wEarned += a.earned||0; wDowntime += a.downtime||0; }
               }));
 
               return (
@@ -843,10 +840,8 @@ function App() {
                       const a = actuals[`${r.id}|${date}|${sid}`] || { qty:0, hrs:0, earned:0, sku:"", notes:"" };
                       const hasData = (a.qty||0) > 0 || (a.hrs||0) > 0;
                       const effVal  = a.hrs > 0 ? (a.earned||0) / a.hrs * 100 : null;
+                      const rowCls  = !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const commKey = `${r.id}|${date}|${sid}`;
-                      const downEntry = down[commKey] || null;
-                      const isDown = !hasData && !!downEntry;
-                      const rowCls  = isDown ? "down-row" : !hasData ? "" : effVal === null ? "" : effVal >= EFF_TARGET ? "green-row" : "red-row";
                       const isFirstShiftOfDay = si===0;
 
                       return (
@@ -869,24 +864,15 @@ function App() {
                           <div className="cell muted">{hasData ? (a.hrs||0) : <span className="dim">—</span>}</div>
                           {/* Eff% */}
                           <div className="cell"><EffBadge earned={a.earned||0} hrs={a.hrs||0}/></div>
-                          {/* SKU / Down reason — hidden on mobile */}
-                          <div className="cell left hide-mobile">
-                            {isDown
-                              ? <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
-                                  <span style={{background:"#dc2626",color:"#fff",fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,letterSpacing:"0.03em",flexShrink:0}}>DOWN</span>
-                                  {downEntry.reason && <span style={{color:"#991b1b",fontWeight:700,fontSize:11}}>{downEntry.reason}</span>}
-                                </span>
-                              : <span className="sku-text">{a.sku||""}</span>
-                            }
-                          </div>
-                          {/* Notes / Down notes — hidden on mobile */}
-                          <div className="cell left hide-mobile">
-                            {isDown
-                              ? <span style={{color:"#7f1d1d",fontSize:11,fontStyle:"italic"}}>
-                                  {downEntry.notes||""}
-                                  {downEntry.by && <span style={{color:"#94a3b8",fontSize:10,marginLeft:4}}>— {downEntry.by}</span>}
-                                </span>
-                              : <span className="notes-text">{a.notes||""}</span>
+                          {/* SKU — hidden on mobile */}
+                          <div className="cell left hide-mobile"><span className="sku-text">{a.sku||""}</span></div>
+                          {/* Notes — hidden on mobile */}
+                          <div className="cell left hide-mobile"><span className="notes-text">{a.notes||""}</span></div>
+                          {/* Downtime — hidden on mobile */}
+                          <div className="cell hide-mobile">
+                            {(a.downtime||0) > 0
+                              ? <span style={{fontSize:11,fontFamily:"var(--mono)",fontWeight:600,color:"#dc2626"}}>{(a.downtime).toFixed(1)}h</span>
+                              : <span style={{color:"var(--text-dim)"}}>—</span>
                             }
                           </div>
                           {/* Comments — hidden on mobile */}
@@ -917,7 +903,14 @@ function App() {
                     {/* Col 7: Attainment on mobile (visible), SKU col on desktop */}
                     <div className="cell hide-mobile"/>
                     <div className="cell hide-mobile"/>
-                    {/* Col 9: PPH in comments col */}
+                    {/* Col 9: Downtime total */}
+                    <div className="cell hide-mobile">
+                      {wDowntime > 0
+                        ? <span style={{fontSize:12,fontFamily:"var(--mono)",fontWeight:700,color:"#dc2626"}}>{wDowntime.toFixed(1)}h</span>
+                        : <span style={{color:"var(--text-dim)"}}>—</span>
+                      }
+                    </div>
+                    {/* Col 10: PPH in comments col */}
                     <div className="cell left hide-mobile" style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--sans)"}}>
                       {wHrs > 0 ? <span>PPH: <PPHBadge actual={wActual} hrs={wHrs}/></span> : ""}
                     </div>
