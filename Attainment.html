@@ -543,16 +543,16 @@ function App() {
           }
         });
         // Read linesDown[] for this shift doc — mark that resource+date+shift as "line down"
-        for (const d of (doc.linesDown || [])) {
-          if (!d.resource || !d.reason || d.reason === "Not Scheduled") continue;
-          const ldKey = `${d.resource}|${date}|${doc.shiftId}`;
+        for (const ld of (d.linesDown || [])) {
+          if (!ld.resource || !ld.reason || ld.reason === "Not Scheduled") continue;
+          const ldKey = `${ld.resource}|${d.date}|${shiftId}`;
           if (!actualsMap[ldKey]) {
             actualsMap[ldKey] = { qty:0, hrs:0, earned:0, sku:"", notes:"", downtime:0, lineDown:false, lineDownReason:"", bu };
           }
           actualsMap[ldKey].lineDown = true;
-          actualsMap[ldKey].lineDownReason = actualsMap[ldKey].lineDownReason || d.reason;
-          if (d.duration > 0) {
-            actualsMap[ldKey].downtime = (actualsMap[ldKey].downtime || 0) + d.duration;
+          actualsMap[ldKey].lineDownReason = actualsMap[ldKey].lineDownReason || ld.reason;
+          if (ld.duration > 0) {
+            actualsMap[ldKey].downtime = (actualsMap[ldKey].downtime || 0) + ld.duration;
           }
         }
       });
