@@ -1691,7 +1691,7 @@ function renderMoldingCoverage() {
   // Auto machines section
   const autoTitle = document.createElement('div');
   autoTitle.className = 'molding-section-title';
-  autoTitle.textContent = `Auto machines (${autoLines.length}) &mdash; tap to toggle, tap mode to change`;
+  autoTitle.textContent = `Auto machines (${autoLines.length}) — tap to toggle, tap mode to change`;
   list.appendChild(autoTitle);
 
   const autoMachList = document.createElement('div');
@@ -1702,7 +1702,7 @@ function renderMoldingCoverage() {
   // Dedicated machines section
   const dedTitle = document.createElement('div');
   dedTitle.className = 'molding-section-title';
-  dedTitle.textContent = `Dedicated machines (${dedicatedLines.length}) &mdash; tap to toggle`;
+  dedTitle.textContent = `Dedicated machines (${dedicatedLines.length}) — tap to toggle`;
   list.appendChild(dedTitle);
 
   const dedMachList = document.createElement('div');
@@ -1713,7 +1713,7 @@ function renderMoldingCoverage() {
   // Auto-assign button
   const assignBtn = document.createElement('button');
   assignBtn.className = 'molding-auto-btn';
-  assignBtn.textContent = '&#9889; Auto-assign zones';
+  assignBtn.textContent = '⚡ Auto-assign zones';
   assignBtn.onclick = () => {
     autoAssignMolding();
     renderMoldingCoverage();
@@ -1726,7 +1726,7 @@ function renderMoldingCoverage() {
     zonesTitle.className = 'molding-section-title';
     const totalOps = moldingZones.filter(z => z.opName).length;
     const totalMach = moldingZones.reduce((s, z) => s + z.machines.length, 0);
-    zonesTitle.textContent = `Coverage zones &mdash; ${totalOps} operators, ${totalMach} machines`;
+    zonesTitle.textContent = `Coverage zones — ${totalOps} operators, ${totalMach} machines`;
     list.appendChild(zonesTitle);
 
     const zonesWrap = document.createElement('div');
@@ -2260,7 +2260,7 @@ function renderAssignments() {
   const now = new Date();
   const dateStr = now.toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
   const timeStr = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  document.getElementById('print-h1').textContent = `Shift Assignment &mdash; ${shiftLabel(state.currentShift)} Shift`;
+  document.getElementById('print-h1').textContent = `Shift Assignment — ${shiftLabel(state.currentShift)} Shift`;
   document.getElementById('print-meta').innerHTML =
     `${dateStr}<br>Generated ${timeStr} &nbsp;&middot;&nbsp; ` +
     `${state.running.size} lines &middot; ${OPERATORS.length - state.absent.size}/${OPERATORS.length} available`;
@@ -2276,7 +2276,7 @@ function openSwapModal(lineId, slotIdx) {
   const line = LINES.find(l => l.id === lineId);
   const slot = state.assignments[lineId][slotIdx];
   modalCtx = { type: 'slot', lineId, slotIdx };
-  document.getElementById('modal-title').textContent = `${line.id} &bull; P${slotIdx+1}${slot.isPack ? ' (Pack)' : ''}`;
+  document.getElementById('modal-title').textContent = `${line.id} • P${slotIdx+1}${slot.isPack ? ' (Pack)' : ''}`;
   document.getElementById('modal-ctx').textContent = slot.isPack ? `Requires: ${line.packReq}` : `Requires: ${line.trainingKey}`;
   renderModalCandidates();
   document.getElementById('modal').classList.add('open');
@@ -2438,7 +2438,7 @@ function exportPlain() {
 
 /* ===================== RESET ===================== */
 function resetAll() {
-  if (!confirm(`Reset current shift for ${state.currentBU}?\n\nThis clears absent list, lines, headcounts, and assignments for ${state.currentBU} only &mdash; other BUs' state and rotation history are kept.`)) return;
+  if (!confirm(`Reset current shift for ${state.currentBU}?\n\nThis clears absent list, lines, headcounts, and assignments for ${state.currentBU} only — other BUs' state and rotation history are kept.`)) return;
   state.absent.clear();
   state.running.clear();
   state.assignments = {};
@@ -2451,7 +2451,7 @@ function resetAll() {
 
 /* ===================== SHIFT HISTORY ===================== */
 function saveShift() {
-  if (state.running.size === 0) { alert('Nothing to save &mdash; no lines are running.'); return; }
+  if (state.running.size === 0) { alert('Nothing to save — no lines are running.'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const existingIdx = state.history.findIndex(h => h.date === today && (h.shift || 'day') === state.currentShift);
   if (existingIdx >= 0) {
@@ -2484,7 +2484,7 @@ function saveShift() {
   const btn = event?.target;
   if (btn) {
     const prev = btn.textContent;
-    btn.textContent = '&#10003; Saved!';
+    btn.textContent = '✓ Saved!';
     setTimeout(() => { btn.textContent = prev; }, 1500);
   }
 }
