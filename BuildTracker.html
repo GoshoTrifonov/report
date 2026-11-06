@@ -3716,7 +3716,7 @@ function DowntimeCard({ r }) {
       ).join("");
       downHtml =
         `<div style="margin-bottom:18px">` +
-        `<div style="background:#dc2626;color:white;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
+        `<div style="background:#dc2626;color:white;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
         `🔴 Lines Down This Shift (${reportData.downLines.length})</div>` +
         `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #fecaca;border-top:none;background:#fff1f2">` +
         `<thead><tr style="background:#fee2e2">` +
@@ -3747,7 +3747,7 @@ function DowntimeCard({ r }) {
       }).join("");
       incidentHtml =
         `<div style="margin-bottom:18px">` +
-        `<div style="background:#374151;color:white;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
+        `<div style="background:#374151;color:white;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-radius:6px 6px 0 0">` +
         `⚠️ Safety / NC / Plantwide Incidents (${allInc.length})</div>` +
         `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;border-top:none">` +
         `<thead><tr style="background:#f8fafc">` +
@@ -3767,7 +3767,7 @@ function DowntimeCard({ r }) {
         .join("");
       reasonsHtml =
         `<div style="margin-bottom:18px;padding:12px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px">` +
-        `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:8px">Underperformance Reasons</div>` +
+        `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:8px">Underperformance Reasons</div>` +
         chips + `</div>`;
     }
 
@@ -3823,9 +3823,12 @@ function DowntimeCard({ r }) {
     ${mainTableHtml}
     ${downHtml}
     ${reasonsHtml}
-    <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:10px;display:flex;justify-content:space-between">
-      <span>SMI Build Plan Tracker · Auto-generated shift report</span>
-      <span>${buLabel} · ${shiftMeta.label} · ${dateStr}</span>
+    <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:10px;color:#94a3b8">SMI Build Plan Tracker · Auto-generated shift report</span>
+      <span style="font-size:10px;color:#94a3b8">${buLabel} · ${shiftMeta.label} · ${dateStr}</span>
+    </div>
+    <div style="margin-top:10px;text-align:center;padding:10px 0">
+      <a href="https://goshotrifonov.github.io/report/" target="_blank" style="font-size:11px;font-weight:700;color:#0ea5e9;text-decoration:none;border:1px solid #bae6fd;padding:6px 16px;border-radius:20px;display:inline-block">📊 Shift Report History &rarr;</a>
     </div>
   </div>
 </div>
