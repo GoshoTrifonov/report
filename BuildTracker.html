@@ -3663,13 +3663,13 @@ function DowntimeCard({ r }) {
           `<tr style="background:${rowBg};border-bottom:1px solid #f1f5f9">` +
           `<td style="padding:7px 10px;font-weight:700;font-size:12px;color:#0f172a;white-space:nowrap">${res}</td>` +
           `<td style="padding:7px 10px;font-family:monospace;font-size:12px;font-weight:700;color:#1e40af">${row.wo||"—"}</td>` +
-          `<td style="padding:7px 10px;font-size:11px;color:#475569;max-width:180px">${row.descr||row.part||"—"}</td>` +
+          `<td style="padding:7px 10px;font-size:11px;color:#475569;min-width:140px">${row.descr||row.part||"—"}</td>` +
           `<td style="padding:7px 10px;font-size:13px;font-weight:800;color:#047857;text-align:right;white-space:nowrap">+${(entry.qty||0).toLocaleString()}</td>` +
           `<td style="padding:7px 10px;font-size:11px;color:#64748b;text-align:center">${(row.comp_qty||0).toLocaleString()} / ${(row.start_qty||0).toLocaleString()}<br>${progressBar}</td>` +
           `<td style="padding:7px 10px;text-align:center">${effCell}</td>` +
           `<td style="padding:7px 10px;text-align:center;font-size:11px;color:#475569">${hrsCell}</td>` +
           `<td style="padding:7px 10px;white-space:nowrap">${downtimeCell}</td>` +
-          `<td style="padding:7px 10px;font-size:11px">${notesHtml}${reasonHtml}` +
+          `<td style="padding:7px 10px;font-size:11px;min-width:280px">${notesHtml}${reasonHtml}` +
           (entry.by && entry.source !== "labour" ? `<br><span style="font-size:10px;color:#94a3b8;font-weight:600">${entry.by}</span>` : "") +
           `</td></tr>`;
       }
@@ -3692,13 +3692,13 @@ function DowntimeCard({ r }) {
       `<thead><tr style="background:#0f172a;color:#ffffff">` +
       `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Resource</th>` +
       `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Work Order</th>` +
-      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Description</th>` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;min-width:140px">Description</th>` +
       `<th style="padding:8px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Units This Shift</th>` +
       `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Built / WO Qty</th>` +
       `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Eff%</th>` +
       `<th style="padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Hrs</th>` +
       `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Downtime</th>` +
-      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Notes / Reason</th>` +
+      `<th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;min-width:280px">Notes / Reason</th>` +
       `</tr></thead><tbody>${woRowsHtml}</tbody></table>`;
 
     let downHtml = "";
