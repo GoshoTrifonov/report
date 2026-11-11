@@ -3928,9 +3928,17 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       const match = entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey);
       if (match) downLines.push({ resource: (res||"").trim(), ...match });
     }
+    // Deduplicate woEntries by resource+WO — same WO can appear in multiple build plan slots
+    const seenWoKeys = new Set();
+    const dedupedEntries = woEntries.filter(item => {
+      const k = `${(item.row.resource||"").trim()}|${item.row.wo||""}`;
+      if (seenWoKeys.has(k)) return false;
+      seenWoKeys.add(k);
+      return true;
+    });
     // Group by resource for the report
     const byResource = new Map();
-    for (const item of woEntries) {
+    for (const item of dedupedEntries) {
       const key = (item.row.resource || "").trim();
       if (!byResource.has(key)) byResource.set(key, { entries: [], statusOnly: [] });
       byResource.get(key).entries.push(item);
@@ -3940,15 +3948,15 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       if (!byResource.has(key)) byResource.set(key, { entries: [], statusOnly: [] });
       byResource.get(key).statusOnly.push(r);
     }
-    // Aggregate stats
-    const totalUnits = woEntries.reduce((s, x) => s + (x.entry.qty || 0), 0);
-    const totalEntries = woEntries.length;
-    const totalHrs    = woEntries.reduce((s, x) => s + (x.entry.hrs    || 0), 0);
-    const totalEarned = woEntries.reduce((s, x) => s + (x.entry.earned || 0), 0);
-    const totalLost   = woEntries.reduce((s, x) => s + (x.entry.lost   || 0), 0);
+    // Aggregate stats (use deduped entries so same WO isn't counted twice)
+    const totalUnits = dedupedEntries.reduce((s, x) => s + (x.entry.qty || 0), 0);
+    const totalEntries = dedupedEntries.length;
+    const totalHrs    = dedupedEntries.reduce((s, x) => s + (x.entry.hrs    || 0), 0);
+    const totalEarned = dedupedEntries.reduce((s, x) => s + (x.entry.earned || 0), 0);
+    const totalLost   = dedupedEntries.reduce((s, x) => s + (x.entry.lost   || 0), 0);
     const totalEff    = totalHrs > 0 ? Math.round((totalEarned / totalHrs * 100) * 10) / 10 : null;
     const reasonsCount = {};
-    for (const x of woEntries) {
+    for (const x of dedupedEntries) {
       if (x.entry.reason) {
         reasonsCount[x.entry.reason] = (reasonsCount[x.entry.reason] || 0) + 1;
       }
