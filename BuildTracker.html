@@ -1059,6 +1059,9 @@ function BuildTracker() {
         // -- Auto-save shift reports ----------------------------------------
         try {
           const reportMap = {};
+          // Track which resource|wo combos have already been added per report key
+          // to prevent duplicates when the same WO appears in multiple build plan slots (NOW/NEXT/THEN)
+          const reportWoSeen = {}; // rKey -> Set of "resource|wo"
           sourceRows.forEach(row => {
             const key = rowKey(row);
             const o = nextOverrides[key] || {};
@@ -1071,6 +1074,11 @@ function BuildTracker() {
               const dateISO = s.shiftDateISO ? s.shiftDateISO.slice(0, 10) : uploadedAt.slice(0, 10);
               const rKey = `${leader}||${dateISO}||${s.shiftId}`;
               if (!reportMap[rKey]) reportMap[rKey] = { leader, dateISO, shiftId: s.shiftId, wos: [], totalUnits: 0, totalHrs: 0, totalEarned: 0, totalLost: 0 };
+              if (!reportWoSeen[rKey]) reportWoSeen[rKey] = new Set();
+              // Skip if this resource+WO already added for this shift report
+              const woDedupeKey = `${row.resource}|${row.wo}`;
+              if (reportWoSeen[rKey].has(woDedupeKey)) return;
+              reportWoSeen[rKey].add(woDedupeKey);
               const entry = reportMap[rKey];
               // Collect manual notes for this WO on the same date+shift
               const manualForThisShift = manualShifts.filter(m => {
