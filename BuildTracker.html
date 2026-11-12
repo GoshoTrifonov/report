@@ -912,6 +912,19 @@ function BuildTracker() {
         const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
         const rows = parseBuildPlan(wb);
         if (!rows) { setUploadStatus({ type: "build", msg: "No rows found   check sheet name 'Database Query'", ok: false }); return; }
+        // Check for duplicate resource+WO combinations — same WO in multiple slots causes doubled data
+        const woCounts = {};
+        for (const r of rows) {
+          const k = `${r.resource}|${r.wo}`;
+          woCounts[k] = (woCounts[k] || 0) + 1;
+        }
+        const dupes = Object.entries(woCounts).filter(([, c]) => c > 1).map(([k]) => k);
+        if (dupes.length > 0) {
+          const dupeList = dupes.slice(0, 5).map(k => { const [res, wo] = k.split("|"); return `${res} / ${wo}`; }).join(", ");
+          const more = dupes.length > 5 ? ` (+${dupes.length - 5} more)` : "";
+          setUploadStatus({ type: "build", msg: `⚠️ Duplicate WOs found in build plan — same WO appears more than once on the same resource. This will cause doubled data in shift reports. Please fix before uploading.\n\nDuplicates: ${dupeList}${more}`, ok: false });
+          e.target.value = ""; return;
+        }
         await fbSave(BT_BUILDPLAN_REF, { rows, fileName: file.name, uploadedAt: new Date().toISOString() });
         const validKeys = new Set(rows.map(r => rowKey(r)));
         const cutoffPrune = new Date(); cutoffPrune.setDate(cutoffPrune.getDate() - 62);
