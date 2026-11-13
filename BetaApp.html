@@ -1112,6 +1112,23 @@ const PRIORITY_KEY = 'priorities_v1';
 const MODE_KEY    = 'assign_mode_v1';   // 'auto' | 'manual'
 const ROTATION_WINDOW = 5;
 
+// Pairs of operators who must never be placed on the same line.
+// Add more pairs as needed: ['Name1', 'Name2']
+const RELATIVE_PAIRS = [
+  ['Ashlee', 'Maddie'],
+];
+
+// Returns true if placing `opName` on `lineId` would put them on the same
+// line as one of their relatives (checks current state.assignments).
+function isRelativeConflict(opName, lineId) {
+  const lineAssigned = (state.assignments[lineId] || []).map(s => s && s.name).filter(Boolean);
+  return RELATIVE_PAIRS.some(pair => {
+    if (!pair.includes(opName)) return false;
+    const other = pair.find(n => n !== opName);
+    return lineAssigned.includes(other);
+  });
+}
+
 /* Default priority ordering per shift. Variable-headcount lines appear twice:
    once at their preferred (larger) headcount near the top, and once at the
    fallback (smaller) headcount near the bottom &mdash; so the auto-scheduler tries
@@ -1984,10 +2001,11 @@ function runAssignment() {
     if (line.fracOptions) return; // handled by fracGroups
     const hc = state.headcount[line.id];
     if (!line.packReq || hc < 4) return;
-    // Pack training stands alone &mdash; no line training required to occupy the pack slot
+    // Pack training stands alone — no line training required to occupy the pack slot
     const candidates = pool.filter(o =>
       !used.has(o.name) &&
-      o.training[line.packReq]
+      o.training[line.packReq] &&
+      !isRelativeConflict(o.name, line.id)
     );
     // Rotate first: prefer ops who haven't been on this line recently
     // Tiebreak: prefer specialists so multi-skilled stay free for harder placements
@@ -2012,7 +2030,8 @@ function runAssignment() {
       if (state.assignments[line.id][i].name) continue; // already filled (pack slot)
       const candidates = pool.filter(o =>
         !used.has(o.name) &&
-        o.training[line.trainingKey]
+        o.training[line.trainingKey] &&
+        !isRelativeConflict(o.name, line.id)
       );
       candidates.sort((a, b) => {
         const ra = rotationScore(a.name, line.id), rb = rotationScore(b.name, line.id);
@@ -2313,7 +2332,12 @@ function renderModalCandidates() {
     qualifiedFilter = o => o.training['Floaters'];
   }
 
-  const qualified = OPERATORS.filter(o => !state.absent.has(o.name) && qualifiedFilter(o));
+  const qualified = OPERATORS.filter(o =>
+    !state.absent.has(o.name) &&
+    qualifiedFilter(o) &&
+    // Exclude relatives when doing a line slot assignment
+    !(modalCtx.type === 'slot' && isRelativeConflict(o.name, modalCtx.lineId) && o.name !== currentName)
+  );
 
   // Helper: compute rotation score appropriate to this slot type
   const scoreOf = (name) => {
