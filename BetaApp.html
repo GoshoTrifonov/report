@@ -946,6 +946,19 @@
     <select id="roster-shift-filter" class="roster-filter"></select>
   </div>
   <div class="roster-body" id="roster-body"></div>
+  <!-- Relative pairs section -->
+  <div style="padding:12px 16px 0;border-top:1px solid var(--line);margin-top:8px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px;">
+      &#128683; Same-line restrictions
+    </div>
+    <div id="relative-pairs-body" style="margin-bottom:10px;"></div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <input id="rel-name-a" type="text" placeholder="Name 1" style="flex:1;min-width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg-sunken);color:var(--ink);font-size:13px;" />
+      <span style="font-size:11px;color:var(--ink-faint);white-space:nowrap;">never same line as</span>
+      <input id="rel-name-b" type="text" placeholder="Name 2" style="flex:1;min-width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg-sunken);color:var(--ink);font-size:13px;" />
+      <button onclick="addRelativePair()" class="roster-add" style="white-space:nowrap;">+ Add</button>
+    </div>
+  </div>
   <div class="roster-footer">
     <button onclick="document.getElementById('roster-import-file').click()" class="hist-btn">&#128229; Import .xlsx / .json</button>
     <button onclick="exportRoster()" class="hist-btn">&#128228; Export backup</button>
@@ -1112,11 +1125,15 @@ const PRIORITY_KEY = 'priorities_v1';
 const MODE_KEY    = 'assign_mode_v1';   // 'auto' | 'manual'
 const ROTATION_WINDOW = 5;
 
+const RELATIVE_PAIRS_KEY = 'relative_pairs_v1';
+
 // Pairs of operators who must never be placed on the same line.
-// Add more pairs as needed: ['Name1', 'Name2']
-const RELATIVE_PAIRS = [
-  ['Ashlee', 'Maddie'],
-];
+// Stored in localStorage so supervisors can manage them in the Roster screen.
+let RELATIVE_PAIRS = Storage.load(RELATIVE_PAIRS_KEY, [['Ashlee', 'Maddie']]);
+
+function saveRelativePairs() {
+  Storage.save(RELATIVE_PAIRS_KEY, RELATIVE_PAIRS);
+}
 
 // Returns true if placing `opName` on `lineId` would put them on the same
 // line as one of their relatives (checks current state.assignments).
@@ -1127,6 +1144,49 @@ function isRelativeConflict(opName, lineId) {
     const other = pair.find(n => n !== opName);
     return lineAssigned.includes(other);
   });
+}
+
+function renderRelativePairs() {
+  const body = document.getElementById('relative-pairs-body');
+  if (!body) return;
+  body.innerHTML = '';
+  if (RELATIVE_PAIRS.length === 0) {
+    body.innerHTML = '<div style="color:var(--ink-faint);font-size:12px;padding:4px 0;">No pairs set.</div>';
+    return;
+  }
+  RELATIVE_PAIRS.forEach((pair, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);';
+    row.innerHTML = `
+      <span style="flex:1;font-size:13px;font-weight:500;">${pair[0]}</span>
+      <span style="font-size:11px;color:var(--ink-faint);">never same line as</span>
+      <span style="flex:1;font-size:13px;font-weight:500;">${pair[1]}</span>
+      <button onclick="removeRelativePair(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;" title="Remove">&times;</button>`;
+    body.appendChild(row);
+  });
+}
+
+function removeRelativePair(idx) {
+  RELATIVE_PAIRS.splice(idx, 1);
+  saveRelativePairs();
+  renderRelativePairs();
+}
+
+function addRelativePair() {
+  const a = document.getElementById('rel-name-a').value.trim();
+  const b = document.getElementById('rel-name-b').value.trim();
+  if (!a || !b) { alert('Please enter both names.'); return; }
+  if (a.toLowerCase() === b.toLowerCase()) { alert('Names must be different.'); return; }
+  const already = RELATIVE_PAIRS.some(p =>
+    (p[0].toLowerCase() === a.toLowerCase() && p[1].toLowerCase() === b.toLowerCase()) ||
+    (p[0].toLowerCase() === b.toLowerCase() && p[1].toLowerCase() === a.toLowerCase())
+  );
+  if (already) { alert('This pair already exists.'); return; }
+  RELATIVE_PAIRS.push([a, b]);
+  saveRelativePairs();
+  document.getElementById('rel-name-a').value = '';
+  document.getElementById('rel-name-b').value = '';
+  renderRelativePairs();
 }
 
 /* Default priority ordering per shift. Variable-headcount lines appear twice:
@@ -2805,6 +2865,7 @@ function openRosterScreen() {
   populateRosterBUFilter();
   populateRosterFilter();
   renderRoster();
+  renderRelativePairs();
   document.getElementById('roster-screen').classList.add('open');
 }
 function closeRosterScreen() {
