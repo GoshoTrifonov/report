@@ -234,6 +234,8 @@
   .slot .pos.pack { color: var(--blue); font-weight: 700; }
   .slot .person { flex: 1; font-size: 14px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .slot.unfilled .person { color: var(--red); font-style: italic; font-weight: 400; }
+  .slot .person.scrambling { font-family: 'IBM Plex Mono', monospace; color: var(--blue); letter-spacing: 0.05em; }
+  @keyframes scramble-flash { 0%,100%{opacity:1} 50%{opacity:0.5} }
   .slot .badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.08em; flex-shrink: 0; }
   .slot .badge.pack { background: var(--blue-soft); color: var(--blue); }
   .slot .chev { color: var(--ink-faint); font-size: 16px; }
@@ -875,7 +877,7 @@
       <p>Auto-generated based on training. Tap any slot to swap. <span class="mono" style="color: var(--blue); font-weight: 600;">PACK</span> slots require pack-trained operators.</p>
     </div>
     <div class="quick-actions">
-      <button onclick="runAssignment()">&#8635; Re-run auto-assign</button>
+      <button onclick="runAssignment(true)">&#8635; Re-run auto-assign</button>
       <button onclick="saveShift()" style="background: var(--green-soft); border-color: var(--green); color: var(--green); font-weight: 600;">&#10003; Save shift</button>
       <button onclick="printAll()">&#128424; Print</button>
       <button onclick="exportPlain()">Export text</button>
@@ -1599,7 +1601,7 @@ function goStep(n, skipAssign) {
   // When entering step 4, run assignment unless we're restoring a saved shift.
   if (n === 4 && !skipAssign) {
     if (state.assignMode === 'auto') autoScheduleLines();
-    runAssignment();
+    runAssignment(true);
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1976,7 +1978,7 @@ function availableOps() {
   );
 }
 
-function runAssignment() {
+function runAssignment(animate = false) {
   // reset
   state.assignments = {};
   state.floaters = [];
@@ -2127,7 +2129,7 @@ function runAssignment() {
   // (handles cases where bench has qualified ops but greedy assignment trapped them)
   fillGapsWithChainSwaps(floatersNeeded);
 
-  renderAssignments();
+  renderAssignments(animate);
 }
 
 /* ----- Chain-swap (bipartite augmenting path) -----
@@ -2237,7 +2239,67 @@ function fillGapsWithChainSwaps(floatersNeeded) {
     .map(s => s.currentName);
 }
 
-function renderAssignments() {
+/* ---- Name scramble reveal animation ---- */
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ▓▒░█▄▀#@&?!*%$';
+let _scrambleActive = false;
+
+function scrambleReveal(elements, finalNames) {
+  if (!elements.length) return;
+  _scrambleActive = true;
+  const DURATION = 1800;   // total ms before all names settle
+  const FRAME_MS = 45;     // ms per random frame
+  const start = performance.now();
+
+  // Each element gets its own settle time, staggered
+  const settleAt = elements.map((_, i) =>
+    300 + Math.random() * (DURATION - 400) + i * 30
+  );
+
+  elements.forEach(el => {
+    el.classList.add('scrambling');
+    el.style.animation = `scramble-flash ${FRAME_MS * 2}ms infinite`;
+  });
+
+  const tick = (now) => {
+    const elapsed = now - start;
+    let anyRunning = false;
+
+    elements.forEach((el, i) => {
+      if (elapsed >= settleAt[i]) {
+        // Settled — show real name
+        el.textContent = finalNames[i];
+        el.classList.remove('scrambling');
+        el.style.animation = '';
+      } else {
+        anyRunning = true;
+        // Random scramble of same length as final name
+        const len = Math.max(finalNames[i].length, 3 + Math.floor(Math.random() * 4));
+        let scrambled = '';
+        for (let c = 0; c < len; c++) {
+          // Gradually lock in characters from left as we approach settle time
+          const lockRatio = elapsed / settleAt[i];
+          const lockUpTo = Math.floor(lockRatio * finalNames[i].length * 0.6);
+          if (c < lockUpTo && c < finalNames[i].length) {
+            scrambled += finalNames[i][c];
+          } else {
+            scrambled += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+          }
+        }
+        el.textContent = scrambled;
+      }
+    });
+
+    if (anyRunning) {
+      setTimeout(() => requestAnimationFrame(tick), FRAME_MS);
+    } else {
+      _scrambleActive = false;
+    }
+  };
+
+  requestAnimationFrame(tick);
+}
+
+function renderAssignments(animate = false) {
   const wrap = document.getElementById('assignments');
   const warnWrap = document.getElementById('warnings');
   wrap.innerHTML = '';
@@ -2347,6 +2409,25 @@ function renderAssignments() {
   document.getElementById('print-absent').innerHTML = absentList.length
     ? `<strong>Absent (${absentList.length}):</strong> ${absentList.join(' &middot; ')}`
     : `<strong>Absent:</strong> none`;
+
+  // Scramble reveal animation on fresh auto-assign
+  if (animate) {
+    const personEls = [];
+    const finalNames = [];
+    wrap.querySelectorAll('.slot:not(.unfilled) .person').forEach(el => {
+      const name = el.textContent.trim();
+      if (name && name !== 'Unassigned') {
+        personEls.push(el);
+        finalNames.push(name);
+      }
+    });
+    // Also scramble floater chips
+    document.getElementById('floater-chips').querySelectorAll('.chip.floater').forEach(el => {
+      personEls.push(el);
+      finalNames.push(el.textContent.trim());
+    });
+    if (personEls.length) scrambleReveal(personEls, finalNames);
+  }
 }
 
 /* ===================== SWAP MODAL ===================== */
