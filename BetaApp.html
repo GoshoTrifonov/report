@@ -50,6 +50,37 @@
   }
   .appbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .appbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  /* Recent shifts dropdown in appbar */
+  .recent-shifts-wrap { position: relative; }
+  .recent-shifts-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.75);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 5px 9px; border-radius: 4px;
+    cursor: pointer; letter-spacing: 0.05em; white-space: nowrap; display: flex; align-items: center; gap: 5px;
+  }
+  .recent-shifts-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+  .recent-shifts-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 300;
+    background: var(--bg-card); border: 1px solid var(--line); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18); min-width: 260px; overflow: hidden;
+  }
+  .recent-shifts-dropdown.open { display: block; }
+  .recent-shifts-dropdown .rsd-header {
+    padding: 8px 12px; font-size: 10px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--line);
+  }
+  .recent-shifts-dropdown .rsd-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    cursor: pointer; transition: background 0.1s; border-bottom: 1px solid var(--line);
+  }
+  .recent-shifts-dropdown .rsd-item:last-child { border-bottom: none; }
+  .recent-shifts-dropdown .rsd-item:hover { background: var(--bg-sunken); }
+  .recent-shifts-dropdown .rsd-badge {
+    width: 22px; height: 22px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;
+  }
+  .recent-shifts-dropdown .rsd-info { flex: 1; min-width: 0; }
+  .recent-shifts-dropdown .rsd-date { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .recent-shifts-dropdown .rsd-meta { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
   .appbar h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; }
   .beta-badge {
     display: inline-block; background: #7c3aed; color: white;
@@ -789,6 +820,16 @@
     <select class="shift-select" id="bu-select" onchange="onBUChange(this.value)" aria-label="Active business unit"></select>
     <select class="shift-select" id="shift-select" onchange="onShiftChange(this.value)" aria-label="Active shift"></select>
    </div>
+  <div class="recent-shifts-wrap" id="recent-shifts-wrap">
+    <button class="recent-shifts-btn" id="recent-shifts-btn" onclick="toggleRecentShiftsDropdown()" title="Recent saved shifts">
+      &#128194; Recent
+      <span id="recent-shifts-count" style="font-size:10px;opacity:0.7;"></span>
+    </button>
+    <div class="recent-shifts-dropdown" id="recent-shifts-dropdown">
+      <div class="rsd-header">Last saved shifts</div>
+      <div id="recent-shifts-list"></div>
+    </div>
+  </div>
   <div class="appbar-right">
     <span class="cloud-status" id="cloud-status" title="Sync status"><span class="cloud-dot"></span><span id="cloud-label">&hellip;</span></span>
     <button class="reset-btn" onclick="openPriorityScreen()">&#9889; Priority</button>
@@ -2245,6 +2286,71 @@ const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ▓▒░█▄▀#@&?!*%$';
 let _scrambleActive = false;
 let scrambleEnabled = Storage.load('scramble_enabled_v1', true);
 
+/* ── Recent Shifts Dropdown ───────────────────────────────── */
+const SHIFT_BADGE_COLORS = {
+  'Day': '#2563eb', 'Swing': '#7c3aed', 'Midnight': '#0f766e', 'Graveyard': '#1e3a5f'
+};
+
+function updateRecentShiftsDropdown() {
+  const list = document.getElementById('recent-shifts-list');
+  const countEl = document.getElementById('recent-shifts-count');
+  if (!list) return;
+  const recent = (state.history || []).slice().reverse().slice(0, 10);
+  if (countEl) countEl.textContent = recent.length ? `(${recent.length})` : '';
+  if (!recent.length) {
+    list.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--ink-faint);text-align:center;">No saved shifts yet</div>';
+    return;
+  }
+  list.innerHTML = recent.map((h, i) => {
+    const realIdx = state.history.length - 1 - i;
+    const dateStr = h.date ? formatDateShort(h.date) : '—';
+    const shift = h.shift || '';
+    const bu = h.bu || '';
+    const lines = h.assignments ? Object.keys(h.assignments).length : 0;
+    const color = SHIFT_BADGE_COLORS[shift] || '#6b7280';
+    const shiftAbbr = shift ? shift.slice(0, 2).toUpperCase() : '??';
+    return `<div class="rsd-item" onclick="loadRecentShift(${realIdx})">
+      <div class="rsd-badge" style="background:${color}">${shiftAbbr}</div>
+      <div class="rsd-info">
+        <div class="rsd-date">${dateStr} · ${shift || 'Unknown'}</div>
+        <div class="rsd-meta">${bu}${lines ? ' · ' + lines + ' lines' : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDateShort(iso) {
+  if (!iso) return '—';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const parts = iso.split('-');
+  if (parts.length < 3) return iso;
+  return months[parseInt(parts[1], 10) - 1] + ' ' + parseInt(parts[2], 10);
+}
+
+function toggleRecentShiftsDropdown() {
+  const dd = document.getElementById('recent-shifts-dropdown');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  if (!isOpen) updateRecentShiftsDropdown();
+  dd.classList.toggle('open', !isOpen);
+}
+
+function closeRecentShiftsDropdown() {
+  const dd = document.getElementById('recent-shifts-dropdown');
+  if (dd) dd.classList.remove('open');
+}
+
+function loadRecentShift(idx) {
+  closeRecentShiftsDropdown();
+  loadSavedShift(idx);
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('recent-shifts-wrap');
+  if (wrap && !wrap.contains(e.target)) closeRecentShiftsDropdown();
+});
+
 function toggleScramble() {
   scrambleEnabled = !scrambleEnabled;
   Storage.save('scramble_enabled_v1', scrambleEnabled);
@@ -2657,6 +2763,7 @@ function saveShift() {
     else state.history.push(snapshot);
     Storage.save(HISTORY_KEY, state.history);
     renderHistory();
+    updateRecentShiftsDropdown();
   }
   const btn = event?.target;
   if (btn) {
@@ -2822,6 +2929,7 @@ function loadSavedShift(idx) {
 function renderHistory() {
   const list = document.getElementById('history-list');
   const count = document.getElementById('history-count');
+  updateRecentShiftsDropdown();
   if (!list) return;
   count.textContent = `${state.history.length} saved`;
   list.innerHTML = '';
