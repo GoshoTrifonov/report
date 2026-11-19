@@ -881,6 +881,7 @@
       <button onclick="saveShift()" style="background: var(--green-soft); border-color: var(--green); color: var(--green); font-weight: 600;">&#10003; Save shift</button>
       <button onclick="printAll()">&#128424; Print</button>
       <button onclick="exportPlain()">Export text</button>
+      <button id="scramble-toggle-btn" onclick="toggleScramble()">✨ Reveal FX: ON</button>
     </div>
     <div id="warnings"></div>
     <div id="assignments"></div>
@@ -2242,6 +2243,17 @@ function fillGapsWithChainSwaps(floatersNeeded) {
 /* ---- Name scramble reveal animation ---- */
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ▓▒░█▄▀#@&?!*%$';
 let _scrambleActive = false;
+let scrambleEnabled = Storage.load('scramble_enabled_v1', true);
+
+function toggleScramble() {
+  scrambleEnabled = !scrambleEnabled;
+  Storage.save('scramble_enabled_v1', scrambleEnabled);
+  const btn = document.getElementById('scramble-toggle-btn');
+  if (btn) {
+    btn.textContent = scrambleEnabled ? '✨ Reveal FX: ON' : '✨ Reveal FX: OFF';
+    btn.style.opacity = scrambleEnabled ? '1' : '0.5';
+  }
+}
 
 function scrambleReveal(elements, finalNames) {
   if (!elements.length) return;
@@ -2411,7 +2423,7 @@ function renderAssignments(animate = false) {
     : `<strong>Absent:</strong> none`;
 
   // Scramble reveal animation on fresh auto-assign
-  if (animate) {
+  if (animate && scrambleEnabled) {
     const personEls = [];
     const finalNames = [];
     wrap.querySelectorAll('.slot:not(.unfilled) .person').forEach(el => {
@@ -3947,6 +3959,14 @@ populateBUSelect();
 populateShiftSelect();
 updateCloudStatus('connecting');
 updateModeToggle();
+// Init scramble button label to match saved preference
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('scramble-toggle-btn');
+  if (btn) {
+    btn.textContent = scrambleEnabled ? '✨ Reveal FX: ON' : '✨ Reveal FX: OFF';
+    btn.style.opacity = scrambleEnabled ? '1' : '0.5';
+  }
+});
 updateStepperForMode();
 renderStep1();      // instant first paint from localStorage cache
 renderStep2();
