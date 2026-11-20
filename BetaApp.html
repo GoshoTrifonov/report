@@ -2304,7 +2304,7 @@ function updateRecentShiftsDropdown() {
   }
   list.innerHTML = recent.map((h, i) => {
     const realIdx = state.history.length - 1 - i;
-    const dateStr = h.date ? formatDateShort(h.date) : '—';
+    const dateStr = h.label || (h.date ? formatDateShort(h.date) : '—');
     const shift = h.shift || '';
     const bu = h.bu || '';
     const lines = h.assignments ? Object.keys(h.assignments).length : 0;
@@ -2763,40 +2763,87 @@ function saveShift() {
   if (state.running.size === 0) { alert('Nothing to save — no lines are running.'); return; }
   const today = new Date().toISOString().slice(0, 10);
   const existingIdx = state.history.findIndex(h => h.date === today && (h.shift || 'day') === state.currentShift);
-  if (existingIdx >= 0) {
-    if (!confirm(`A ${shiftLabel(state.currentShift)} shift is already saved for ${today}. Replace it?`)) return;
-  }
-  const snapshot = {
-    date: today,
-    shift: state.currentShift,
-    bu: state.currentBU,
-    savedAt: new Date().toISOString(),
-    assignments: JSON.parse(JSON.stringify(state.assignments)),
-    floaters: [...state.floaters],
-    absent: Array.from(state.absent),
-    running: Array.from(state.running),
-    headcount: {...state.headcount},
-  };
-
-  if (db) {
-    // Cloud mode &mdash; write one doc per date+shift; the listener echoes it back to state.history
-    const docId = `${today}_${state.currentShift}`;
-    db.collection('history').doc(docId).set(snapshot)
-      .catch(e => { alert('Could not save to the shared database: ' + e.message); });
-  } else {
-    // Local-only fallback
-    if (existingIdx >= 0) state.history[existingIdx] = snapshot;
-    else state.history.push(snapshot);
-    Storage.save(HISTORY_KEY, state.history);
-    renderHistory();
-    updateRecentShiftsDropdown();
-  }
   const btn = event?.target;
-  if (btn) {
-    const prev = btn.textContent;
-    btn.textContent = '✓ Saved!';
-    setTimeout(() => { btn.textContent = prev; }, 1500);
+
+  function doSave(asNew) {
+    const now = new Date();
+    const timeStr = now.toTimeString().slice(0, 5).replace(':', 'h'); // e.g. "14h30"
+    const snapshot = {
+      date: today,
+      shift: state.currentShift,
+      bu: state.currentBU,
+      savedAt: now.toISOString(),
+      label: asNew ? `${shiftLabel(state.currentShift)} ${timeStr}` : null,
+      assignments: JSON.parse(JSON.stringify(state.assignments)),
+      floaters: [...state.floaters],
+      absent: Array.from(state.absent),
+      running: Array.from(state.running),
+      headcount: {...state.headcount},
+    };
+
+    if (db) {
+      const docId = asNew
+        ? `${today}_${state.currentShift}_${timeStr}`
+        : `${today}_${state.currentShift}`;
+      db.collection('history').doc(docId).set(snapshot)
+        .catch(e => { alert('Could not save to the shared database: ' + e.message); });
+    } else {
+      if (!asNew && existingIdx >= 0) state.history[existingIdx] = snapshot;
+      else state.history.push(snapshot);
+      Storage.save(HISTORY_KEY, state.history);
+      renderHistory();
+      updateRecentShiftsDropdown();
+    }
+
+    if (btn) {
+      const prev = btn.textContent;
+      btn.textContent = '✓ Saved!';
+      setTimeout(() => { btn.textContent = prev; }, 1500);
+    }
   }
+
+  if (existingIdx >= 0) {
+    showSaveConflictDialog(today, doSave);
+  } else {
+    doSave(false);
+  }
+}
+
+function showSaveConflictDialog(date, doSave) {
+  // Build a small inline modal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg-card);border-radius:12px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.25);font-family:inherit;';
+  box.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;">Shift already saved</div>
+    <div style="font-size:13px;color:var(--ink-soft);margin-bottom:20px;">
+      A <strong>${shiftLabel(state.currentShift)}</strong> shift is already saved for <strong>${date}</strong>.
+      What would you like to do?
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button id="scd-replace" style="padding:10px 14px;border-radius:7px;border:1.5px solid var(--amber);background:var(--amber-soft);color:var(--amber);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;">
+        &#8635; Replace existing record
+        <div style="font-size:11px;font-weight:400;opacity:0.8;">Overwrites the saved shift for today</div>
+      </button>
+      <button id="scd-new" style="padding:10px 14px;border-radius:7px;border:1.5px solid var(--blue);background:var(--blue-soft);color:var(--blue);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;">
+        &#43; Save as new record
+        <div style="font-size:11px;font-weight:400;opacity:0.8;">Keeps both — new one labelled with current time</div>
+      </button>
+      <button id="scd-cancel" style="padding:9px 14px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--ink-soft);font-size:13px;cursor:pointer;font-family:inherit;">
+        Cancel
+      </button>
+    </div>`;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const close = () => document.body.removeChild(overlay);
+  box.querySelector('#scd-replace').onclick = () => { close(); doSave(false); };
+  box.querySelector('#scd-new').onclick    = () => { close(); doSave(true);  };
+  box.querySelector('#scd-cancel').onclick = () => close();
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 }
 
 function deleteHistoryEntry(idx) {
@@ -2974,7 +3021,7 @@ function renderHistory() {
     const row = document.createElement('div');
     row.className = 'hist-row';
     row.innerHTML = `
-      <span class="when">${fmtShiftDate(h.date)}</span>
+      <span class="when">${h.label || fmtShiftDate(h.date)}</span>
       <div class="shift-badge ${sObj.short} active" style="width:18px;height:18px;line-height:18px;font-size:9px;">${sObj.short}</div>
       <span class="desc"><strong>${(h.running || []).length}</strong> lines &middot; <strong>${totalOps}</strong> ops &middot; <strong>${(h.absent || []).length}</strong> absent</span>
       <button class="load-btn" onclick="loadSavedShift(${realIdx})">Open</button>
