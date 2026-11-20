@@ -2671,11 +2671,19 @@ function renderModalCandidates() {
   });
 
   if (currentName) {
+    // Mark Absent option
+    const ab = document.createElement('div');
+    ab.className = 'op-pick';
+    ab.style.cssText = 'color:var(--red);font-weight:600;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:4px;';
+    ab.innerHTML = `<span>&#128683; Mark ${currentName} Absent</span><span class="tags">removes from shift</span>`;
+    ab.onclick = () => { markAbsentFromSlot(currentName); };
+    body.appendChild(ab);
+
     const rm = document.createElement('div');
     rm.className = 'op-pick';
-    rm.style.color = 'var(--red)';
+    rm.style.color = 'var(--ink-soft)';
     rm.style.fontWeight = '500';
-    rm.innerHTML = `<span>&#10005; Remove ${currentName}</span>`;
+    rm.innerHTML = `<span>&#10005; Remove ${currentName} from slot</span><span class="tags">stays available</span>`;
     rm.onclick = () => { applySwap(null); };
     body.appendChild(rm);
   }
@@ -2724,6 +2732,24 @@ function applySwap(newName) {
     }
   }
   closeModal();
+  renderAssignments();
+}
+
+function markAbsentFromSlot(name) {
+  // Add to absent set
+  state.absent.add(name);
+  Storage.save(ABSENT_KEY, Array.from(state.absent));
+
+  // Remove from all slots in current assignments
+  Object.values(state.assignments).forEach(arr => {
+    arr.forEach(s => { if (s && s.name === name) s.name = null; });
+  });
+  // Remove from floaters too
+  const fi = state.floaters.indexOf(name);
+  if (fi >= 0) state.floaters.splice(fi, 1);
+
+  closeModal();
+  renderStep1();      // update absent checkmarks in Step 1
   renderAssignments();
 }
 
