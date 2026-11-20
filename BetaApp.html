@@ -51,6 +51,26 @@
   .appbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .appbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   /* Recent shifts dropdown in appbar */
+  /* Edit-saved-shift banner */
+  .edit-banner {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--amber-soft); border: 1.5px solid var(--amber);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
+    font-size: 13px; color: var(--amber);
+  }
+  .edit-banner.visible { display: flex; }
+  .edit-banner strong { font-weight: 700; }
+  .edit-banner .edit-banner-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  .edit-banner button {
+    font-size: 12px; padding: 5px 11px; border-radius: 5px; cursor: pointer; border: 1.5px solid currentColor;
+    font-family: inherit; background: transparent; font-weight: 600;
+  }
+  .edit-banner .btn-absent { color: var(--blue); border-color: var(--blue); }
+  .edit-banner .btn-absent:hover { background: var(--blue-soft); }
+  .edit-banner .btn-reassign { color: var(--green, #15803d); border-color: var(--green, #15803d); }
+  .edit-banner .btn-reassign:hover { background: var(--green-soft); }
+  .edit-banner .btn-cancel { color: var(--ink-faint); border-color: var(--ink-faint); }
+  .edit-banner .btn-cancel:hover { background: var(--bg-sunken); color: var(--ink); }
   .recent-shifts-wrap { position: relative; }
   .recent-shifts-btn {
     background: transparent; border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.75);
@@ -924,6 +944,14 @@
       <button onclick="exportPlain()">Export text</button>
       <button id="scramble-toggle-btn" onclick="toggleScramble()">✨ Reveal FX: ON</button>
     </div>
+    <div class="edit-banner" id="edit-banner">
+      <span>&#9998; <strong>Viewing saved shift</strong> &mdash; you can edit absent operators or re-run assignment.</span>
+      <div class="edit-banner-actions">
+        <button class="btn-absent" onclick="editSavedAbsent()">&#9998; Edit Absent</button>
+        <button class="btn-reassign" onclick="editSavedReassign()">&#8635; Re-assign</button>
+        <button class="btn-cancel" onclick="cancelEditSaved()">&#10005; Cancel edit</button>
+      </div>
+    </div>
     <div id="warnings"></div>
     <div id="assignments"></div>
     <div class="floaters-card" id="floaters-card">
@@ -1644,7 +1672,12 @@ function goStep(n, skipAssign) {
   if (n === 4 && !skipAssign) {
     if (state.assignMode === 'auto') autoScheduleLines();
     runAssignment(true);
+    // If we came here by editing a saved shift, keep the banner visible
+    if (_editingHistoryIdx >= 0) showEditBanner(true);
   }
+  // When moving away from step 4 (into edit flow), keep banner state as-is
+  // Hide banner if jumping back to step 1 fresh (not in edit mode)
+  if (n === 1 && _editingHistoryIdx < 0) showEditBanner(false);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 document.querySelectorAll('.stepper button').forEach(b => {
@@ -2728,6 +2761,8 @@ function resetAll() {
   state.floaters = [];
   state.headcount = {};
   visibleLines().forEach(l => { state.headcount[l.id] = l.variable ? l.options[0] : l.headcount; });
+  _editingHistoryIdx = -1;
+  showEditBanner(false);
   renderStep1(); renderStep2(); updateCounters();
   goStep(1);
 }
@@ -2924,6 +2959,36 @@ function loadSavedShift(idx) {
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Show the edit banner so user knows they're viewing a saved shift
+  _editingHistoryIdx = idx;
+  showEditBanner(true);
+}
+
+/* ── Edit Saved Shift ─────────────────────────────────────── */
+let _editingHistoryIdx = -1;   // -1 = not editing a saved shift
+
+function showEditBanner(show) {
+  const banner = document.getElementById('edit-banner');
+  if (banner) banner.classList.toggle('visible', !!show);
+}
+
+function editSavedAbsent() {
+  // Go back to Step 1 (Absent) — state is already loaded, user edits there
+  // When they click through to Step 4, it will re-run assignment with the new absent list
+  goStep(1);
+}
+
+function editSavedReassign() {
+  // Keep current absent/state, just re-run auto-assign fresh
+  if (state.assignMode === 'auto') autoScheduleLines();
+  runAssignment(true);
+  showEditBanner(true);   // keep banner visible
+}
+
+function cancelEditSaved() {
+  _editingHistoryIdx = -1;
+  showEditBanner(false);
 }
 
 function renderHistory() {
