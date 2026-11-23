@@ -361,7 +361,7 @@ function App() {
         <input type="text" placeholder="Search part, description◆" value={search} onChange={e=>setSearch(e.target.value)}
           style={{flex:1,minWidth:180,background:'#e2e8f0',border:'1px solid #cbd5e1',borderRadius:7,padding:'7px 12px',fontSize:13,color:'#0f172a',outline:'none'}}/>
         <div style={{display:'flex',borderRadius:7,overflow:'hidden',border:'1px solid #cbd5e1',flexShrink:0}}>
-          {[['week','Week View'],['table','Multi-Week'],['avg','Avg / Resource'],['camera','By Camera']].map(([m,label]) => (
+          {[['week','Week View'],['table','Multi-Week'],['avg','Avg / Resource'],['camera','By Camera'],['summary','Table']].map(([m,label]) => (
             <button key={m} onClick={()=>setViewMode(m)}
               style={{padding:'7px 14px',fontSize:13,fontWeight:500,cursor:'pointer',border:'none',background:viewMode===m?'#2563eb':'#e2e8f0',color:viewMode===m?'#fff':'#64748b'}}>
               {label}
@@ -371,7 +371,7 @@ function App() {
       </div>
 
       {/* Week selector */}
-      {viewMode === 'week' && (
+      {(viewMode === 'week' || viewMode === 'summary') && (
         <div style={{background:'#f1f5f9',borderBottom:'1px solid #e2e8f0',padding:'8px 20px',overflowX:'auto'}}>
           <div style={{display:'flex',alignItems:'center',gap:6,minWidth:'max-content'}}>
             <span style={{fontSize:11,color:'#94a3b8',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginRight:4,flexShrink:0}}>Week:</span>
@@ -397,6 +397,8 @@ function App() {
           ? <AvgView rows={filtered} weeks={visibleWeeks} allResources={allResources.slice(1)} />
           : viewMode === 'camera'
           ? <CameraView rows={filtered} weeks={visibleWeeks} allWeeks={allWeeks} />
+          : viewMode === 'summary'
+          ? <TableSummaryView rows={weekRows} week={currentWeek} actuals={actuals} actualsLoading={actualsLoading} allResources={allResources.slice(1)} />
           : <TableView rows={filtered} weeks={visibleWeeks} allWeeks={allWeeks} allResources={allResources.slice(1)} />}
       </div>
     </div>
@@ -528,6 +530,115 @@ function WeekView({ rows, week, allResources, actuals, actualsLoading }) {
           </div>
         );
       })}
+      </div>
+    </div>
+  );
+}
+
+function TableSummaryView({ rows, week, actuals, actualsLoading, allResources }) {
+  if (!week) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No week selected.</div>;
+  if (rows.length === 0) return <div style={{textAlign:'center',color:'#94a3b8',paddingTop:60}}>No build plan for this week.</div>;
+
+  // Group rows by resource
+  const groups = [];
+  const seen = {};
+  rows.forEach(r => {
+    if (!seen[r.resource]) { seen[r.resource] = []; groups.push(r.resource); }
+    seen[r.resource].push(r);
+  });
+
+  const weekLabel = (() => {
+    const d = new Date(week + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  })();
+
+  return (
+    <div style={{maxWidth:900,margin:'0 auto'}}>
+      {/* Header */}
+      <div style={{marginBottom:18,display:'flex',alignItems:'baseline',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+        <div>
+          <span style={{fontSize:18,fontWeight:800,color:'#0f172a',letterSpacing:'-0.5px'}}>Weekly Summary</span>
+          <span style={{fontSize:13,color:'#94a3b8',marginLeft:12}}>Week of {weekLabel}</span>
+        </div>
+        {actualsLoading && <span style={{fontSize:12,color:'#94a3b8'}}>⏳ Loading actuals…</span>}
+      </div>
+
+      {/* Table */}
+      <div style={{borderRadius:12,overflow:'hidden',border:'1px solid #e2e8f0',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr style={{background:'#1e293b'}}>
+              <th style={{padding:'13px 20px',textAlign:'left',color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',width:'50%'}}>Line</th>
+              <th style={{padding:'13px 16px',textAlign:'right',color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>Plan</th>
+              <th style={{padding:'13px 16px',textAlign:'right',color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>Actual</th>
+              <th style={{padding:'13px 20px',textAlign:'right',color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',minWidth:110}}>Attainment</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((res, idx) => {
+              const parts = seen[res];
+              const plan = parts.reduce((s,r) => s+(r.weeks[week]||0), 0);
+              const actual = actualsLoading ? null : parts.reduce((s,r) => s+((actuals[r.part_id]||{})[week]||0), 0);
+              const pct = (!actualsLoading && plan > 0 && actual !== null) ? Math.round(actual/plan*100) : null;
+              const attColor = pct === null ? '#94a3b8' : pct >= 100 ? '#16a34a' : pct >= 90 ? '#2563eb' : '#f97316';
+              const isEven = idx % 2 === 0;
+              return (
+                <tr key={res} style={{background: isEven ? '#ffffff' : '#f8fafc', borderTop:'1px solid #f1f5f9'}}>
+                  <td style={{padding:'14px 20px'}}>
+                    <span style={{fontSize:14,fontWeight:700,color:'#0f172a'}}>{res}</span>
+                  </td>
+                  <td style={{padding:'14px 16px',textAlign:'right'}}>
+                    <span style={{fontSize:15,fontWeight:700,color:'#334155'}}>{plan > 0 ? plan.toLocaleString() : '—'}</span>
+                  </td>
+                  <td style={{padding:'14px 16px',textAlign:'right'}}>
+                    {actualsLoading
+                      ? <span style={{fontSize:12,color:'#cbd5e1'}}>…</span>
+                      : <span style={{fontSize:15,fontWeight:700,color: actual > 0 ? '#334155' : '#cbd5e1'}}>{actual !== null ? actual.toLocaleString() : '—'}</span>
+                    }
+                  </td>
+                  <td style={{padding:'14px 20px',textAlign:'right'}}>
+                    {pct !== null
+                      ? (
+                        <div style={{display:'inline-flex',alignItems:'center',gap:8,justifyContent:'flex-end'}}>
+                          <div style={{width:60,height:6,background:'#e2e8f0',borderRadius:4,overflow:'hidden'}}>
+                            <div style={{height:'100%',width:Math.min(100,pct)+'%',background:attColor,borderRadius:4}}/>
+                          </div>
+                          <span style={{fontSize:15,fontWeight:800,color:attColor,minWidth:44,textAlign:'right'}}>{pct}%</span>
+                        </div>
+                      )
+                      : <span style={{fontSize:13,color:'#cbd5e1'}}>—</span>
+                    }
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Grand total row */}
+            {!actualsLoading && (() => {
+              const totalPlan = groups.reduce((s,res)=>s+seen[res].reduce((ss,r)=>ss+(r.weeks[week]||0),0),0);
+              const totalActual = groups.reduce((s,res)=>s+seen[res].reduce((ss,r)=>ss+((actuals[r.part_id]||{})[week]||0),0),0);
+              const totalPct = totalPlan > 0 ? Math.round(totalActual/totalPlan*100) : null;
+              const totColor = totalPct === null ? '#94a3b8' : totalPct >= 100 ? '#16a34a' : totalPct >= 90 ? '#2563eb' : '#f97316';
+              return (
+                <tr style={{background:'#1e293b',borderTop:'2px solid #334155'}}>
+                  <td style={{padding:'14px 20px'}}>
+                    <span style={{fontSize:13,fontWeight:700,color:'#f8fafc',textTransform:'uppercase',letterSpacing:'0.05em'}}>Total</span>
+                  </td>
+                  <td style={{padding:'14px 16px',textAlign:'right'}}>
+                    <span style={{fontSize:15,fontWeight:800,color:'#f8fafc'}}>{totalPlan.toLocaleString()}</span>
+                  </td>
+                  <td style={{padding:'14px 16px',textAlign:'right'}}>
+                    <span style={{fontSize:15,fontWeight:800,color:'#f8fafc'}}>{totalActual.toLocaleString()}</span>
+                  </td>
+                  <td style={{padding:'14px 20px',textAlign:'right'}}>
+                    {totalPct !== null && (
+                      <span style={{fontSize:16,fontWeight:900,color:totColor}}>{totalPct}%</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })()}
+          </tbody>
+        </table>
       </div>
     </div>
   );
