@@ -572,34 +572,34 @@ const readyCount = (row) => {
 //   1: 11pm-7am (overnight)   wall-clock window [23, 24) ? [0, 7)
 //   2: 7am-3pm (day)
 //   3: 3pm-11pm (evening)
-// Grace window: 1 hour past end of a shift, the system still defaults to that ended shift
-// (lets supervisors log the shift they just finished).
+// Shift schedule: S1 11pm-7:30am, S2 7am-3:30pm, S3 3pm-11:30pm
+// Grace window extended to 8am / 4pm / midnight so outgoing supervisor
+// has time to add notes after handoff.
 const SHIFTS = [
-  { id: 1, label: "Shift 1", time: "11pm-7am" },
-  { id: 2, label: "Shift 2", time: "7am-3pm" },
-  { id: 3, label: "Shift 3", time: "3pm-11pm" },
+  { id: 1, label: "Shift 1", time: "11pm-7:30am" },
+  { id: 2, label: "Shift 2", time: "7am-3:30pm" },
+  { id: 3, label: "Shift 3", time: "3pm-11:30pm" },
 ];
 // Returns { shiftId, shiftDate } where shiftDate is the calendar date that "owns" this shift.
 // (For Shift 1 in early-morning hours, the shift began the previous evening.)
 const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
-  // 1-hour grace: shift "just ended" still defaults to that shift
-  // Active windows + grace:
-  // Shift 1 active: 23:00-06:59, grace until 07:59
-  // Shift 2 active: 07:00-14:59, grace until 15:59
-  // Shift 3 active: 15:00-22:59, grace until 23:59 (already covers full window)
+  // Flip points (outgoing shift holds until supervisor grace expires):
+  // Shift 1 holds until 08:00  → S2 starts at 08:00
+  // Shift 2 holds until 16:00  → S3 starts at 16:00
+  // Shift 3 holds until 24:00  → S1 starts at 00:00 (midnight)
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
-  if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 active or just ended
-  else if (h >= 16 && h < 23) shiftId = 3; // Shift 3 active
+  if (h >= 8 && h < 16) shiftId = 2;       // Shift 2
+  else if (h >= 16 && h < 24) shiftId = 3; // Shift 3
   else {
-    // Shift 1 (overnight). Owns date = the *evening start* date.
+    // Shift 1 (overnight: midnight-8am, and 11pm onward).
     shiftId = 1;
     if (h < 8) {
-      // Early morning   shift started yesterday evening
+      // Early morning — shift started yesterday evening
       shiftDate.setDate(shiftDate.getDate() - 1);
     }
-    // h >= 23   shift just started this evening, shiftDate = today (already correct)
+    // h >= 23 — shift just started this evening, shiftDate = today (already correct)
   }
   return { shiftId, shiftDate };
 };
@@ -2165,11 +2165,11 @@ function BuildTracker() {
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const hr = now.getHours();
     // Shift detection based on actual shift hours:
-    // MID: 11pm - 7:30am  (23:00 - 07:30)
-    // DAY: 7am  - 3:30pm  (07:00 - 15:30)
-    // AFT: 3pm  - 11:30pm (15:00 - 23:30)
+    // MID: 11pm - 7:30am  (holds until 08:00)
+    // DAY: 7am  - 3:30pm  (holds until 16:00)
+    // AFT: 3pm  - 11:30pm (holds until 00:00)
     const mins = hr * 60 + now.getMinutes();
-    const shiftNowId = (mins >= 7*60 && mins < 15*60+30) ? "DAY" : (mins >= 15*60 && mins < 23*60+30) ? "AFT" : "MID";
+    const shiftNowId = (mins >= 8*60 && mins < 16*60) ? "DAY" : (mins >= 16*60) ? "AFT" : "MID";
     const shiftNextId = shiftNowId === "MID" ? "DAY" : shiftNowId === "DAY" ? "AFT" : "MID";
     const shiftNow = shiftNowId;
     const shiftNext = shiftNextId;
