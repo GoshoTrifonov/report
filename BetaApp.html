@@ -270,6 +270,9 @@
   @keyframes scramble-flash { 0%,100%{opacity:1} 50%{opacity:0.5} }
   .slot .badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.08em; flex-shrink: 0; }
   .slot .badge.pack { background: var(--blue-soft); color: var(--blue); }
+  .slot .badge.cam  { background: #fce7f3; color: #9d174d; }
+  .slot .badge.weld { background: #fef3c7; color: #92400e; }
+  .slot .badge.seal { background: #d1fae5; color: #065f46; }
   .slot .chev { color: var(--ink-faint); font-size: 16px; }
 
   .floaters-card, .bench-card {
@@ -662,7 +665,7 @@
     .slot .person { font-size: 9pt; line-height: 1.2; }
     .slot.unfilled .person { color: black; font-weight: 600; }
     .slot.unfilled .person::after { content: ' [GAP]'; font-size: 7pt; }
-    .slot .badge.pack {
+    .slot .badge.pack, .slot .badge.cam, .slot .badge.weld, .slot .badge.seal {
       background: black; color: white; font-size: 6.5pt; padding: 1px 3px;
     }
     .slot .chev { display: none; }
@@ -2446,10 +2449,14 @@ function renderAssignments(animate = false) {
       const row = document.createElement('div');
       row.className = 'slot' + (slot.name ? '' : ' unfilled');
       const groupBadge = slot.groupLabel ? `<div class="badge" style="background:var(--blue);color:white;font-size:10px">${slot.groupLabel}</div>` : '';
+      const LOPRO_SLOT_BADGES = { 0: ['cam','Camera'], 1: ['weld','Weld'], 2: ['seal','Seal'] };
+      const loproBadge = (line.group === 'lopro' && !slot.isPack && LOPRO_SLOT_BADGES[idx])
+        ? `<div class="badge ${LOPRO_SLOT_BADGES[idx][0]}">${LOPRO_SLOT_BADGES[idx][1]}</div>` : '';
       row.innerHTML = `
         <div class="pos ${slot.isPack ? 'pack' : ''}">P${idx+1}</div>
         <div class="person">${slot.name || 'Unassigned &mdash; tap to fill'}</div>
         ${slot.isPack ? '<div class="badge pack">PACK</div>' : ''}
+        ${loproBadge}
         ${groupBadge}
         <div class="chev">&rsaquo;</div>`;
       row.onclick = () => openSwapModal(line.id, idx);
