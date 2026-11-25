@@ -4689,7 +4689,7 @@ function ReportStat({ label, value }) {
   );
 }
 
-function ShiftEntryPanel({ row, logShiftEntry }) {
+function ShiftEntryPanel({ row, logShiftEntry, updateRow }) {
   const { shiftId: defaultShift, shiftDate: defaultDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [shiftId, setShiftId] = useState(defaultShift);
   const [qty, setQty] = useState("");
@@ -4741,6 +4741,21 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
     setShowDowntime(false);
     setDowntimeReason("");
     setDowntimeDuration(8);
+  };
+
+  const deleteEntry = (index) => {
+    const pwd = prompt("Enter password to delete this entry:");
+    if (pwd === null) return; // cancelled
+    if (pwd !== "chepelare") { alert("Incorrect password."); return; }
+    const entry = history[index]; // history is sorted newest-first
+    // Find the actual index in row.shifts (unsorted)
+    const rawShifts = row.shifts || [];
+    // Match by loggedAt (unique timestamp) to find the right one
+    const rawIndex = rawShifts.findIndex(s => s.loggedAt === entry.loggedAt);
+    if (rawIndex === -1) { alert("Entry not found — may have already been deleted."); return; }
+    const newShifts = rawShifts.filter((_, i) => i !== rawIndex);
+    const newComp = Math.max(0, (row.comp_qty || 0) - (entry.qty || 0));
+    updateRow(row, { shifts: newShifts, comp_qty: newComp });
   };
 
   const meta = SHIFTS.find(s => s.id === shiftId);
@@ -4955,14 +4970,21 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 {entry.notes && (
                   <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
                 )}
-                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
-                  {isLabour
-                    ? <span className="text-slate-400">🎫 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                    : entry.by
-                      ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
-                      : null
-                  }
-                  {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {isLabour
+                      ? <span className="text-slate-400">🎫 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                      : entry.by
+                        ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
+                        : null
+                    }
+                    {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                  </div>
+                  {!isLabour && updateRow && (
+                    <button onClick={() => deleteEntry(i)}
+                      className="text-[10px] text-rose-400 hover:text-rose-600 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-transparent hover:border-rose-200 transition-colors font-semibold"
+                      title="Delete entry (password required)">🗑</button>
+                  )}
                 </div>
               </div>
             );
@@ -5153,7 +5175,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
 
                     {/* Shift entry   only for production-active WOs (todo & wip) */}
           {(row.status === "todo" || row.status === "wip") && (
-            <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} />
+            <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} updateRow={updateRow} />
           )}
 
           {/* Context actions */}
