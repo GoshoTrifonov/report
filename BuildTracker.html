@@ -2146,7 +2146,7 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} nowZeroQtyList={stats.nowZeroQtyList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
-        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} overrides={overrides} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
         {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
       </div>
     );
@@ -2510,6 +2510,7 @@ function BuildTracker() {
       {showShiftReport && (
         <ShiftReportModal
           allRows={allRows}
+          overrides={overrides}
           selectedLeader={selectedLeader}
           lineDown={lineDown}
           shiftReportsRef={BT_SHIFT_REPORTS_REF}
@@ -3891,7 +3892,7 @@ function selectAll(){
 </html>`;
   };
 
-function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
+function ShiftReportModal({ allRows, overrides = {}, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
@@ -3973,6 +3974,73 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       const match = entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey);
       if (match) downLines.push({ resource: (res||"").trim(), ...match });
     }
+    // --- Second pass: pick up labour-only WOs not in BUILD_DATA ---
+    // These WOs have shifts entries stored in overrides but no matching row in allRows.
+    const allRowsWoSet = new Set(allRows.map(r => r.wo).filter(Boolean));
+    const BU_TO_LEADER_SR = {
+      "bu verathon":             "BU Verathon",
+      "bu molding":              "BU Molding",
+      "bu tier 1":               "BU Tier 1",
+      "bu tier 1 - respiratory": "BU Tier 1 - Respiratory",
+      "bu tier 1 - blades":      "BU Tier 1 - Blades",
+      "bu tier 2":               "BU Tier 2",
+      "bu tier 2 - dna":         "BU Tier 2 - DNA",
+      "bu tier 2 - flex":        "BU Tier 2 - FLEX",
+      "bu bellfarm":             "BU Bell Farm",
+      "bu bell farm":            "BU Bell Farm",
+    };
+    for (const [key, ov] of Object.entries(overrides)) {
+      const wo = (ov.wo || key.split("__")[1] || "").trim();
+      if (!wo || allRowsWoSet.has(wo)) continue; // skip WOs already handled above
+      const labourShifts = (ov.shifts || []).filter(s =>
+        s.source === "labour" &&
+        shiftEntryKey(parseLocalDate(s.shiftDateISO), s.shiftId) === targetKey
+      );
+      if (labourShifts.length === 0) continue;
+      // Determine leader from BU field on the labour entry
+      const s0 = labourShifts[0];
+      const buLower = (s0.bu || "").toLowerCase().trim();
+      let entryLeader = BU_TO_LEADER_SR[buLower] || null;
+      if (!entryLeader && buLower) {
+        entryLeader = Object.entries(BU_TO_LEADER_SR).find(([bu]) => buLower.includes(bu) || bu.includes(buLower))?.[1] || null;
+      }
+      // Filter by selected leader if not __ALL__
+      if (selectedLeader !== "__ALL__" && entryLeader && entryLeader !== selectedLeader) continue;
+      // Build a synthetic row
+      const resource = (s0.resource || ov.resource || key.split("__")[0] || "").trim();
+      const totalQty    = labourShifts.reduce((acc, s) => acc + (s.qty    || 0), 0);
+      const totalHrsS   = labourShifts.reduce((acc, s) => acc + (s.hrs    || 0), 0);
+      const totalEarnedS= labourShifts.reduce((acc, s) => acc + (s.earned || 0), 0);
+      const totalLostS  = labourShifts.reduce((acc, s) => acc + (s.lost   || 0), 0);
+      const synthRow = {
+        resource,
+        wo,
+        leader: entryLeader || selectedLeader || "",
+        part: ov.part || "",
+        descr: ov.descr || "",
+        start_qty: ov.start_qty || 0,
+        comp_qty: ov.comp_qty || totalQty,
+        status: ov.status || "wip",
+        shifts: ov.shifts || [],
+        _syntheticLabour: true,
+      };
+      const merged = {
+        qty:    totalQty,
+        hrs:    totalHrsS,
+        earned: totalEarnedS,
+        lost:   totalLostS,
+        eff:    totalHrsS > 0 ? Math.round((totalEarnedS / totalHrsS * 100) * 10) / 10 : null,
+        source: "labour",
+        by:     labourShifts.map(s => s.by).filter(Boolean).join(", "),
+        notes:  labourShifts.map(s => s.notes).filter(Boolean).join(" | "),
+        reason: labourShifts.map(s => s.reason).filter(Boolean).join(", "),
+        downtimeReason: "",
+        downtimeDuration: 0,
+      };
+      woEntries.push({ row: synthRow, entry: merged });
+    }
+    // ----------------------------------------------------------------
+
     // Deduplicate woEntries by resource+WO — same WO can appear in multiple build plan slots
     const seenWoKeys = new Set();
     const dedupedEntries = woEntries.filter(item => {
@@ -4010,7 +4078,7 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       if (d.reason) reasonsCount[d.reason] = (reasonsCount[d.reason] || 0) + 1;
     }
     return { byResource, totalUnits, totalEntries, totalHrs, totalEarned, totalLost, totalEff, reasonsCount, downLines };
-  }, [allRows, selectedLeader, reportShiftId, reportDate, lineDown]);
+  }, [allRows, overrides, selectedLeader, reportShiftId, reportDate, lineDown]);
 
   const meta = SHIFTS.find(s => s.id === reportShiftId);
   const dateLabel = reportDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
