@@ -460,10 +460,10 @@ function parseLabourTicketsForWOs(workbook) {
     const dateVal = r[COL_DATE];
     if (typeof dateVal === "number") {
       const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
-      dateISO = d.toISOString().slice(0, 10);
+      dateISO = toLocalISODate(d);
     } else if (dateVal) {
       const d = new Date(dateVal);
-      dateISO = isNaN(d) ? "" : d.toISOString().slice(0, 10);
+      dateISO = isNaN(d) ? "" : toLocalISODate(d);
     }
     if (!dateISO) continue;
     // Resolve shiftId: prefer SHIFT2 (MID/DAY/AFT), fall back to ID column.
@@ -573,7 +573,7 @@ const readyCount = (row) => {
 //   2: 7am-3pm (day)
 //   3: 3pm-11pm (evening)
 // Shift schedule: S1 11pm-7:30am, S2 7am-3:30pm, S3 3pm-11:30pm
-// Grace window extended to 8am / 4pm / midnight so outgoing supervisor
+// Grace window extended to 7am / 4pm / midnight so outgoing supervisor
 // has time to add notes after handoff.
 const SHIFTS = [
   { id: 1, label: "Shift 1", time: "11pm-7:30am" },
@@ -589,16 +589,16 @@ const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
-  if (h >= 8 && h < 16) shiftId = 2;       // Shift 2 — owns today
+  if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 — owns today (7am–4pm grace)
   else if (h >= 16 && h < 24) shiftId = 3; // Shift 3 — owns today
   else {
-    // Shift 1 (midnight–8am, or 11pm onward)
+    // Shift 1 (midnight–7am, or 11pm onward)
     shiftId = 1;
     if (h >= 23) {
       // Evening start — S1 belongs to tomorrow (the day it ends)
       shiftDate.setDate(shiftDate.getDate() + 1);
     }
-    // h < 8 — early morning, shiftDate = today already (the day S1 ends). No change needed.
+    // h < 7 — early morning, shiftDate = today already (the day S1 ends). No change needed.
   }
   return { shiftId, shiftDate };
 };
@@ -615,6 +615,13 @@ const parseLocalDate = (iso) => {
   const s = iso.slice(0, 10); // take just YYYY-MM-DD in case there's a T suffix
   const [y, m, d] = s.split("-");
   return new Date(+y, +m - 1, +d);
+};
+// Format a Date object as local YYYY-MM-DD (avoids UTC offset shifting the date)
+const toLocalISODate = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 };
 // Pretty-print a shift entry timestamp
 const shiftLabel = (entry) => {
@@ -1121,6 +1128,9 @@ function BuildTracker() {
           });
 
           // Add unmatched WOs (not in build plan OR 0-qty prep/rework) to reportMap
+          // Track matched WOs by "WO|resource" so a WO run on a machine NOT in the build plan
+          // still appears even if the same WO number exists on a different build-plan machine.
+          const matchedWOResourceSet = new Set(sourceRows.map(r => r.wo && r.resource ? `${r.wo}|${r.resource.toUpperCase()}` : null).filter(Boolean));
           const matchedWOSet = new Set(sourceRows.map(r => r.wo).filter(Boolean));
           // Build reverse zone->leader map from BUILD_DATA
           const zoneLeaderMap = {};
@@ -1128,8 +1138,12 @@ function BuildTracker() {
             if (r.resource && r.leader) zoneLeaderMap[r.resource.toUpperCase()] = r.leader;
           }
           for (const [wo, shifts] of Object.entries(shiftDetail)) {
-            if (matchedWOSet.has(wo)) continue;
             for (const s of shifts) {
+              // Skip if this exact WO+resource combination is covered by path 1 (build plan match).
+              // A WO run on a non-plan machine (e.g. Multivac) must NOT be skipped just because
+              // the same WO number exists on a different build-plan machine.
+              const woResourceKey = `${wo}|${(s.resource||"").toUpperCase()}`;
+              if (matchedWOSet.has(wo) && matchedWOResourceSet.has(woResourceKey)) continue;
               if (!s.hrs && !s.qty && !s.lost) continue;
               // Resolve leader from the BU column in the labour ticket (same as Production Report)
               const BU_TO_LEADER = {
@@ -1273,8 +1287,8 @@ function BuildTracker() {
               if (!unitLead && hrs === 0 && lost === 0) continue;
               const resource = String(r[COL_RES] || "").trim().slice(0, 50) || "(No Resource)";
               let dateVal = r[COL_DATE], dateStr = "";
-              if (typeof dateVal === "number") { const d = new Date(Math.round((dateVal-25569)*86400*1000)); dateStr = d.toISOString().slice(0,10); }
-              else if (dateVal) { const d = new Date(dateVal); dateStr = isNaN(d) ? String(dateVal).trim() : d.toISOString().slice(0,10); }
+              if (typeof dateVal === "number") { const d = new Date(Math.round((dateVal-25569)*86400*1000)); dateStr = toLocalISODate(d); }
+              else if (dateVal) { const d = new Date(dateVal); dateStr = isNaN(d) ? String(dateVal).trim() : toLocalISODate(d); }
               if (!dateStr) continue;
               const shiftCode = String(r[COL_SHIFT_PR] || "").trim().toUpperCase(); const shift = SHIFT_MAP_UC[shiftCode] || null; prRows.push({ date: dateStr, resource, hrs: Math.round(hrs*100)/100, qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100, earned: Math.round((parseFloat(r[COL_EARNED])||0)*100)/100, lost: Math.round(lost*100)/100, unitLead: unitLead || "Other", shift });
             }
@@ -1300,7 +1314,7 @@ function BuildTracker() {
                 rowCount: uploadRows.length,
               });
               // Slim doc for VERBuildPlan - only part_id+qty+date, stays under 1MB
-              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return d.toISOString().slice(0,10);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):d.toISOString().slice(0,10);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100 })).filter(r=>r.part_id&&r.date&&r.qty>0);
+              const slimRows = raw.slice(1).map(r => ({ date: (() => { const dv=r[COL_DATE]; if(typeof dv==="number"){const d=new Date(Math.round((dv-25569)*86400*1000));return toLocalISODate(d);} if(dv){const d=new Date(dv);return isNaN(d)?String(dv).trim().slice(0,10):toLocalISODate(d);}return""; })(), part_id: String(r[COL_PART_ID]||"").trim(), qty: Math.round((parseFloat(r[COL_QTY])||0)*100)/100 })).filter(r=>r.part_id&&r.date&&r.qty>0);
               if (slimRows.length > 0) {
                 // Safety valve for ver_actuals: trim oldest dates until under 950KB
                 let verRows = [...slimRows].sort((a, b) => a.date < b.date ? -1 : 1);
@@ -2164,11 +2178,11 @@ function BuildTracker() {
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const hr = now.getHours();
     // Shift detection based on actual shift hours:
-    // MID: 11pm - 7:30am  (holds until 08:00)
+    // MID: 11pm - 7:30am  (holds until 07:00)
     // DAY: 7am  - 3:30pm  (holds until 16:00)
     // AFT: 3pm  - 11:30pm (holds until 00:00)
     const mins = hr * 60 + now.getMinutes();
-    const shiftNowId = (mins >= 8*60 && mins < 16*60) ? "DAY" : (mins >= 16*60) ? "AFT" : "MID";
+    const shiftNowId = (mins >= 7*60 && mins < 16*60) ? "DAY" : (mins >= 16*60) ? "AFT" : "MID";
     const shiftNextId = shiftNowId === "MID" ? "DAY" : shiftNowId === "DAY" ? "AFT" : "MID";
     const shiftNow = shiftNowId;
     const shiftNext = shiftNextId;
@@ -3904,7 +3918,7 @@ function ShiftReportModal({ allRows, overrides = {}, selectedLeader, lineDown = 
   const [activeTab, setActiveTab] = useState("current"); // "current"|"history"|"analytics"
 
   // Check Firestore if this shift already has a saved report
-  const reportDocId = `${reportDate.toISOString().slice(0,10)}#${reportShiftId}`;
+  const reportDocId = `${toLocalISODate(reportDate)}#${reportShiftId}`;
   useEffect(() => {
     if (!shiftReportsRef) return;
     setSaveState("idle");
@@ -3917,7 +3931,7 @@ function ShiftReportModal({ allRows, overrides = {}, selectedLeader, lineDown = 
   // Load safety/NC logs for the selected shift
   useEffect(() => {
     if (!shiftLogsRef) return;
-    const dateISO = reportDate.toISOString().slice(0, 10);
+    const dateISO = toLocalISODate(reportDate);
     shiftLogsRef
       .where("shiftDate", "==", dateISO)
       .where("shiftId", "==", reportShiftId)
@@ -4218,7 +4232,7 @@ function ShiftReportModal({ allRows, overrides = {}, selectedLeader, lineDown = 
     if (!shiftReportsRef) return;
     setSaveState("saving");
     try {
-      const dateISO = reportDate.toISOString().slice(0, 10);
+      const dateISO = toLocalISODate(reportDate);
       const woList = [];
       for (const [res, data] of reportData.byResource.entries()) {
         for (const { row, entry } of data.entries) {
@@ -4510,7 +4524,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
   const [logs, setLogs] = React.useState([]);
   const [logsLoading, setLogsLoading] = React.useState(false);
 
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = toLocalISODate(new Date());
   const { shiftId: currentShiftId } = React.useMemo(() => getCurrentShift(new Date()), []);
   const [resource, setResource] = React.useState("");
   const [wo, setWo] = React.useState("");
@@ -4567,7 +4581,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
 
   const filteredLogs = React.useMemo(() => {
     const now = new Date();
-    const ymd = (d) => d.toISOString().slice(0,10);
+    const ymd = (d) => toLocalISODate(d);
     const sow = (d) => { const r=new Date(d); r.setDate(r.getDate()-r.getDay()); r.setHours(0,0,0,0); return r; };
     let fromISO = "", toISO = ymd(now);
     if (histRange === "this_week") {
