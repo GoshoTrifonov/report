@@ -416,7 +416,8 @@ function parseLabourTicketsForWOs(workbook) {
   //   Continental Days (CONT A/B)   ? Afternoons  (shiftId 3)
   //   Continental Nights (CONT C/D) ? Midnights   (shiftId 1)
   // Matches Report app's SHIFT_ORDER grouping exactly.
-  const SHIFT2_MAP = { "MID": 1, "DAY": 2, "AFT": 3 };
+  // Shift lookup — mirrors Production Report (index.html) exactly.
+  // ID column is the primary source; SHIFT2 (MID/DAY/AFT) is a fallback only.
   const ID_SHIFT_MAP = {
     "ASSEMBLY 1":1, "ASSEMBLY 2":2, "ASSEMBLY 3":3,
     "EXTRUDER 1":1, "EXTRUDER 2":2, "EXTRUDER 3":3,
@@ -425,6 +426,7 @@ function parseLabourTicketsForWOs(workbook) {
     "CONT A":3, "CONT B":3, "CONT C":1, "CONT D":1,
     "CONT A- MOLD":3, "CONT B - MOLD":3, "CONT C - MOLD":1, "CONT D - MOLD":1,
   };
+  const SHIFT2_MAP = { "MID": 1, "DAY": 2, "AFT": 3 };
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
@@ -434,8 +436,8 @@ function parseLabourTicketsForWOs(workbook) {
   const COL_WO     = col(["WORKORDER_ID", "WORKORDER", "WO", "WORK_ORDER"], 10);
   const COL_QTY    = col(["GOOD_QTY", "QTY", "UNITS"], 7);
   const COL_DATE   = col(["TRANSACTION_DATE", "DATE"], 2);
-  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT   preferred
-  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 etc   fallback
+  const COL_ID     = col(["ID"], 11);               // ASSEMBLY 1/2/3 — primary (matches Production Report)
+  const COL_SHIFT2 = col(["SHIFT2"], -1);          // MID/DAY/AFT   — fallback only
   const COL_HRS      = col(["HOURS_WORKED", "HRS", "HOURS"], 4);
   const COL_EARNED   = col(["EARNED", "EARNED_HRS"], 19); // eff = earned/hrs*100
   const COL_LOST     = col(["LOST", "LOST_HRS"], 20);
@@ -466,16 +468,10 @@ function parseLabourTicketsForWOs(workbook) {
       dateISO = isNaN(d) ? "" : toLocalISODate(d);
     }
     if (!dateISO) continue;
-    // Resolve shiftId: prefer SHIFT2 (MID/DAY/AFT), fall back to ID column.
-    // SHIFT2 is "0" or blank for continental rows ? use ID column for those.
+    // Resolve shiftId: ID column first (matches Production Report), then SHIFT2 fallback.
     const idCode = String(r[COL_ID] || "").trim().toUpperCase();
-    let shiftId = 2;
-    if (COL_SHIFT2 >= 0) {
-      const s2 = String(r[COL_SHIFT2] || "").trim().toUpperCase();
-      shiftId = SHIFT2_MAP[s2] || ID_SHIFT_MAP[idCode] || 2;
-    } else {
-      shiftId = ID_SHIFT_MAP[idCode] || 2;
-    }
+    const s2Val  = COL_SHIFT2 >= 0 ? String(r[COL_SHIFT2] || "").trim().toUpperCase() : "";
+    const shiftId = ID_SHIFT_MAP[idCode] || SHIFT2_MAP[s2Val] || 2;
     const hrs    = parseFloat(r[COL_HRS])    || 0;
     const earned = COL_EARNED >= 0 ? (parseFloat(r[COL_EARNED]) || 0) : 0;
     const lost   = COL_LOST   >= 0 ? (parseFloat(r[COL_LOST])   || 0) : 0;
