@@ -295,8 +295,8 @@ const RESOURCE_BU_MAP = {
   "Off Line Cuttin":"BU Molding","16":"BU Molding","4A":"BU Molding","6":"BU Molding",
   "8":"BU Molding","9":"BU Molding","14":"BU Molding","18":"BU Molding","22":"BU Molding",
   "28":"BU Molding","33":"BU Molding","34":"BU Molding","40":"BU Molding","10":"BU Molding",
-  "11":"BU Molding","12":"BU Molding","13":"BU Molding","17":"BU Molding","23":"BU Molding",
-  "26":"BU Molding","38":"BU Molding","4":"BU Molding","Smith Housings":"BU Molding",
+  "11":"BU Molding","12":"BU Molding","13":"BU Molding","17":"BU Molding",
+  "26":"BU Molding","4":"BU Molding","Smith Housings":"BU Molding",
   "GRP085":"BU Molding","46":"BU Molding","48":"BU Molding","47":"BU Molding",
   "41":"BU Molding","Pad Printer":"BU Molding","Days SV8":"BU Molding","GRP075":"BU Molding",
   "Afternoons SV4":"BU Molding","Days SV4":"BU Molding","CRH":"BU Molding",
@@ -306,9 +306,9 @@ const RESOURCE_BU_MAP = {
   "43":"BU Verathon","LoPro Pack #1":"BU Verathon","LoPro Pack #2":"BU Verathon",
   "LoPro Pack #3":"BU Verathon","LoPro/Mac":"BU Verathon","Multivac":"BU Verathon",
   "Stylet Pack":"BU Verathon","LoPro/Mac 3":"BU Verathon","2":"BU Verathon",
-  "2A":"BU Verathon","7":"BU Verathon","21":"BU Verathon","24":"BU Verathon",
+  "2A":"BU Verathon","7":"BU Verathon","21":"BU Verathon","23":"BU Verathon","24":"BU Verathon",
   "25":"BU Verathon","36":"BU Verathon","37":"BU Verathon","30":"BU Verathon",
-  "39":"BU Verathon","LoPro/Mac 2":"BU Verathon","LoPro Merged":"BU Verathon",
+  "38":"BU Verathon","39":"BU Verathon","LoPro/Mac 2":"BU Verathon","LoPro Merged":"BU Verathon",
   "Multivac 2":"BU Verathon","LoPro Merged S3":"BU Verathon","LoPro Spectrum":"BU Verathon",
   "Zone 3- CR":"BU Verathon","LoPro S3 HDMI":"BU Verathon","LoPro S4 HDMI":"BU Verathon",
   "SC Sub Assembly":"BU Verathon","Camera printing":"BU Verathon","Camera Printing":"BU Verathon",
@@ -572,34 +572,33 @@ const readyCount = (row) => {
 //   1: 11pm-7am (overnight)   wall-clock window [23, 24) ? [0, 7)
 //   2: 7am-3pm (day)
 //   3: 3pm-11pm (evening)
-// Grace window: 1 hour past end of a shift, the system still defaults to that ended shift
-// (lets supervisors log the shift they just finished).
+// Shift schedule: S1 11pm-7:30am, S2 7am-3:30pm, S3 3pm-11:30pm
+// Grace window extended to 8am / 4pm / midnight so outgoing supervisor
+// has time to add notes after handoff.
 const SHIFTS = [
-  { id: 1, label: "Shift 1", time: "11pm-7am" },
-  { id: 2, label: "Shift 2", time: "7am-3pm" },
-  { id: 3, label: "Shift 3", time: "3pm-11pm" },
+  { id: 1, label: "Shift 1", time: "11pm-7:30am" },
+  { id: 2, label: "Shift 2", time: "7am-3:30pm" },
+  { id: 3, label: "Shift 3", time: "3pm-11:30pm" },
 ];
 // Returns { shiftId, shiftDate } where shiftDate is the calendar date that "owns" this shift.
-// (For Shift 1 in early-morning hours, the shift began the previous evening.)
+// Shift 1 (11pm-7:30am) is owned by the ENDING day — the morning it finishes.
+// e.g. 11pm Nov 24 → 7:30am Nov 25 is the Nov 25 Shift 1 report.
+// So during early morning (midnight–8am) shiftDate = today (not yesterday).
+// During evening (11pm onward) shiftDate = tomorrow (the day S1 will finish on).
 const getCurrentShift = (date = new Date()) => {
   const h = date.getHours() + date.getMinutes() / 60;
-  // 1-hour grace: shift "just ended" still defaults to that shift
-  // Active windows + grace:
-  // Shift 1 active: 23:00-06:59, grace until 07:59
-  // Shift 2 active: 07:00-14:59, grace until 15:59
-  // Shift 3 active: 15:00-22:59, grace until 23:59 (already covers full window)
   let shiftId, shiftDate = new Date(date);
   shiftDate.setHours(0, 0, 0, 0);
-  if (h >= 7 && h < 16) shiftId = 2;       // Shift 2 active or just ended
-  else if (h >= 16 && h < 23) shiftId = 3; // Shift 3 active
+  if (h >= 8 && h < 16) shiftId = 2;       // Shift 2 — owns today
+  else if (h >= 16 && h < 24) shiftId = 3; // Shift 3 — owns today
   else {
-    // Shift 1 (overnight). Owns date = the *evening start* date.
+    // Shift 1 (midnight–8am, or 11pm onward)
     shiftId = 1;
-    if (h < 8) {
-      // Early morning   shift started yesterday evening
-      shiftDate.setDate(shiftDate.getDate() - 1);
+    if (h >= 23) {
+      // Evening start — S1 belongs to tomorrow (the day it ends)
+      shiftDate.setDate(shiftDate.getDate() + 1);
     }
-    // h >= 23   shift just started this evening, shiftDate = today (already correct)
+    // h < 8 — early morning, shiftDate = today already (the day S1 ends). No change needed.
   }
   return { shiftId, shiftDate };
 };
@@ -2147,7 +2146,7 @@ function BuildTracker() {
         {showNextSummary && <NextSummaryModal rows={stats.nextAllList} nowZeroQtyList={stats.nowZeroQtyList} allRows={allRows} lastLabourUpdate={lastLabourUpdate} onSelect={(r) => { setSelectedWo(r); setShowNextSummary(false); }} onClose={() => setShowNextSummary(false)} setReadinessCheck={setReadinessCheck} />}
         {showNextNotReady && <NextNotReadyModal rows={stats.nextNotReadyList} onSelect={(r) => { setSelectedWo(r); setShowNextNotReady(false); }} onClose={() => setShowNextNotReady(false)} />}
         {materialsModal && <MaterialsNeededModal kind={materialsModal} entries={materialsModal === "setups" ? (stats.nextSetupsList || []).map(r => ({ row: r, startsInHrs: r._nowRunHrs || 0, startsAt: new Date(Date.now() + (r._nowRunHrs||0)*3600000) })) : (upcomingNotReady[materialsModal] || [])} selectedLeader={selectedLeader} onSelect={(r) => { setSelectedWo(r); setMaterialsModal(null); }} onClose={() => setMaterialsModal(null)} />}
-        {showShiftReport && <ShiftReportModal allRows={allRows} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
+        {showShiftReport && <ShiftReportModal allRows={allRows} overrides={overrides} selectedLeader={selectedLeader} lineDown={lineDown} shiftReportsRef={BT_SHIFT_REPORTS_REF} shiftLogsRef={BT_SHIFT_LOGS_REF} leaderList={leaderList} onClose={() => setShowShiftReport(false)} />}
         {showLogModal && <ShiftLogModal type={showLogModal} allRows={allRows} selectedLeader={selectedLeader} shiftLogsRef={BT_SHIFT_LOGS_REF} userInitials={userInitials} onClose={() => setShowLogModal(null)} />}
       </div>
     );
@@ -2165,11 +2164,11 @@ function BuildTracker() {
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const hr = now.getHours();
     // Shift detection based on actual shift hours:
-    // MID: 11pm - 7:30am  (23:00 - 07:30)
-    // DAY: 7am  - 3:30pm  (07:00 - 15:30)
-    // AFT: 3pm  - 11:30pm (15:00 - 23:30)
+    // MID: 11pm - 7:30am  (holds until 08:00)
+    // DAY: 7am  - 3:30pm  (holds until 16:00)
+    // AFT: 3pm  - 11:30pm (holds until 00:00)
     const mins = hr * 60 + now.getMinutes();
-    const shiftNowId = (mins >= 7*60 && mins < 15*60+30) ? "DAY" : (mins >= 15*60 && mins < 23*60+30) ? "AFT" : "MID";
+    const shiftNowId = (mins >= 8*60 && mins < 16*60) ? "DAY" : (mins >= 16*60) ? "AFT" : "MID";
     const shiftNextId = shiftNowId === "MID" ? "DAY" : shiftNowId === "DAY" ? "AFT" : "MID";
     const shiftNow = shiftNowId;
     const shiftNext = shiftNextId;
@@ -2511,6 +2510,7 @@ function BuildTracker() {
       {showShiftReport && (
         <ShiftReportModal
           allRows={allRows}
+          overrides={overrides}
           selectedLeader={selectedLeader}
           lineDown={lineDown}
           shiftReportsRef={BT_SHIFT_REPORTS_REF}
@@ -3611,7 +3611,7 @@ function DowntimeCard({ r }) {
   );
 }
 
-  const generateShiftReportHTML = (reportData, shiftMeta, reportDate, selectedLeader, shiftLogs) => {
+  const generateShiftReportHTML = (reportData, shiftMeta, reportDate, selectedLeader, shiftLogs, bodyOnly = false) => {
     const buLabel = selectedLeader === "__ALL__" ? "All BUs" : buName(selectedLeader);
     const dateStr = reportDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const timeStr = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -3797,6 +3797,31 @@ function DowntimeCard({ r }) {
       (reportData.downLines.length>0 ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:#fca5a5;font-weight:700">⚠️ ${reportData.downLines.length} line${reportData.downLines.length!==1?"s":""} down</span>` : "") +
       (allInc.length>0 ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:#fbbf24;font-weight:700">⚠️ ${allInc.length} incident${allInc.length!==1?"s":""}</span>` : "");
 
+    // Body-only fragment for clipboard (Outlook paste)
+    const reportBodyHtml =
+      `<div style="max-width:920px;margin:0 auto;padding:20px;font-family:Arial,Helvetica,sans-serif;background:white">` +
+      `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px">` +
+      `<tr>` +
+      `<td style="background:#0f172a;padding:16px 20px;border-radius:8px 8px 0 0">` +
+      `<div style="color:#94a3b8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Shift Production Report</div>` +
+      `<div style="color:#ffffff;font-size:22px;font-weight:800;margin-bottom:2px">${buLabel}</div>` +
+      `<div style="color:#94a3b8;font-size:13px">${dateStr}&nbsp;·&nbsp;${shiftMeta.label}&nbsp;(${shiftMeta.time})</div>` +
+      `</td>` +
+      `<td style="background:#1e293b;padding:16px 20px;border-radius:0 8px 0 0;text-align:right;vertical-align:top;white-space:nowrap">` +
+      `<div style="color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Generated</div>` +
+      `<div style="color:#e2e8f0;font-size:13px;font-weight:600">${timeStr}</div>` +
+      `</td></tr>` +
+      `<tr><td colspan="2" style="background:#334155;padding:8px 20px;border-radius:0 0 8px 8px">` +
+      `<span style="color:#cbd5e1;font-size:11px">${subLine}</span>` +
+      `</td></tr></table>` +
+      statsHtml + incidentHtml + mainTableHtml + downHtml + reasonsHtml +
+      `<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;text-align:center">` +
+      `<a href="https://goshotrifonov.github.io/report/ShiftReport.html" style="display:inline-block;font-size:12px;font-weight:700;color:#0ea5e9;text-decoration:none;border:1px solid #bae6fd;padding:7px 20px;border-radius:20px">📊 More Shift Reports — View History →</a>` +
+      `<div style="margin-top:8px;font-size:10px;color:#94a3b8">SMI Build Plan Tracker · ${buLabel} · ${shiftMeta.label} · ${dateStr}</div>` +
+      `</div></div>`;
+
+    if (bodyOnly) return reportBodyHtml;
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3867,7 +3892,7 @@ function selectAll(){
 </html>`;
   };
 
-function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
+function ShiftReportModal({ allRows, overrides = {}, selectedLeader, lineDown = {}, shiftReportsRef, shiftLogsRef, leaderList = [], onClose }) {
   // Default to "current" shift but let user pick which shift to report on
   const { shiftId: nowShiftId, shiftDate: nowShiftDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [reportShiftId, setReportShiftId] = useState(nowShiftId);
@@ -3949,6 +3974,73 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       const match = entries.find(e => shiftEntryKey(parseLocalDate(e.shiftDateISO), e.shiftId) === targetKey);
       if (match) downLines.push({ resource: (res||"").trim(), ...match });
     }
+    // --- Second pass: pick up labour-only WOs not in BUILD_DATA ---
+    // These WOs have shifts entries stored in overrides but no matching row in allRows.
+    const allRowsWoSet = new Set(allRows.map(r => r.wo).filter(Boolean));
+    const BU_TO_LEADER_SR = {
+      "bu verathon":             "BU Verathon",
+      "bu molding":              "BU Molding",
+      "bu tier 1":               "BU Tier 1",
+      "bu tier 1 - respiratory": "BU Tier 1 - Respiratory",
+      "bu tier 1 - blades":      "BU Tier 1 - Blades",
+      "bu tier 2":               "BU Tier 2",
+      "bu tier 2 - dna":         "BU Tier 2 - DNA",
+      "bu tier 2 - flex":        "BU Tier 2 - FLEX",
+      "bu bellfarm":             "BU Bell Farm",
+      "bu bell farm":            "BU Bell Farm",
+    };
+    for (const [key, ov] of Object.entries(overrides)) {
+      const wo = (ov.wo || key.split("__")[1] || "").trim();
+      if (!wo || allRowsWoSet.has(wo)) continue; // skip WOs already handled above
+      const labourShifts = (ov.shifts || []).filter(s =>
+        s.source === "labour" &&
+        shiftEntryKey(parseLocalDate(s.shiftDateISO), s.shiftId) === targetKey
+      );
+      if (labourShifts.length === 0) continue;
+      // Determine leader from BU field on the labour entry
+      const s0 = labourShifts[0];
+      const buLower = (s0.bu || "").toLowerCase().trim();
+      let entryLeader = BU_TO_LEADER_SR[buLower] || null;
+      if (!entryLeader && buLower) {
+        entryLeader = Object.entries(BU_TO_LEADER_SR).find(([bu]) => buLower.includes(bu) || bu.includes(buLower))?.[1] || null;
+      }
+      // Filter by selected leader if not __ALL__
+      if (selectedLeader !== "__ALL__" && entryLeader && entryLeader !== selectedLeader) continue;
+      // Build a synthetic row
+      const resource = (s0.resource || ov.resource || key.split("__")[0] || "").trim();
+      const totalQty    = labourShifts.reduce((acc, s) => acc + (s.qty    || 0), 0);
+      const totalHrsS   = labourShifts.reduce((acc, s) => acc + (s.hrs    || 0), 0);
+      const totalEarnedS= labourShifts.reduce((acc, s) => acc + (s.earned || 0), 0);
+      const totalLostS  = labourShifts.reduce((acc, s) => acc + (s.lost   || 0), 0);
+      const synthRow = {
+        resource,
+        wo,
+        leader: entryLeader || selectedLeader || "",
+        part: ov.part || "",
+        descr: ov.descr || "",
+        start_qty: ov.start_qty || 0,
+        comp_qty: ov.comp_qty || totalQty,
+        status: ov.status || "wip",
+        shifts: ov.shifts || [],
+        _syntheticLabour: true,
+      };
+      const merged = {
+        qty:    totalQty,
+        hrs:    totalHrsS,
+        earned: totalEarnedS,
+        lost:   totalLostS,
+        eff:    totalHrsS > 0 ? Math.round((totalEarnedS / totalHrsS * 100) * 10) / 10 : null,
+        source: "labour",
+        by:     labourShifts.map(s => s.by).filter(Boolean).join(", "),
+        notes:  labourShifts.map(s => s.notes).filter(Boolean).join(" | "),
+        reason: labourShifts.map(s => s.reason).filter(Boolean).join(", "),
+        downtimeReason: "",
+        downtimeDuration: 0,
+      };
+      woEntries.push({ row: synthRow, entry: merged });
+    }
+    // ----------------------------------------------------------------
+
     // Deduplicate woEntries by resource+WO — same WO can appear in multiple build plan slots
     const seenWoKeys = new Set();
     const dedupedEntries = woEntries.filter(item => {
@@ -3986,17 +4078,40 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
       if (d.reason) reasonsCount[d.reason] = (reasonsCount[d.reason] || 0) + 1;
     }
     return { byResource, totalUnits, totalEntries, totalHrs, totalEarned, totalLost, totalEff, reasonsCount, downLines };
-  }, [allRows, selectedLeader, reportShiftId, reportDate, lineDown]);
+  }, [allRows, overrides, selectedLeader, reportShiftId, reportDate, lineDown]);
 
   const meta = SHIFTS.find(s => s.id === reportShiftId);
   const dateLabel = reportDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
 
-  const openEmailReport = () => {
+  const [emailCopyState, setEmailCopyState] = React.useState("idle"); // idle | copying | done | error | fallback
+
+  const openEmailReport = async () => {
     const shiftMeta = SHIFTS.find(s => s.id === reportShiftId) || { label: "S"+reportShiftId, time: "" };
-    const html = generateShiftReportHTML(reportData, shiftMeta, reportDate, selectedLeader, shiftLogs);
+
+    // Try modern ClipboardItem API — copies rich HTML so Outlook receives formatted content on paste
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      try {
+        setEmailCopyState("copying");
+        const bodyHtml = generateShiftReportHTML(reportData, shiftMeta, reportDate, selectedLeader, shiftLogs, true);
+        const blob = new Blob([bodyHtml], { type: "text/html" });
+        await navigator.clipboard.write([new ClipboardItem({ "text/html": blob })]);
+        setEmailCopyState("done");
+        setTimeout(() => setEmailCopyState("idle"), 5000);
+        return;
+      } catch (e) {
+        // Fall through to popup fallback
+      }
+    }
+
+    // Fallback: open popup window so user can Select All + Ctrl+C
+    setEmailCopyState("fallback");
+    setTimeout(() => setEmailCopyState("idle"), 6000);
+    const fullHtml = generateShiftReportHTML(reportData, shiftMeta, reportDate, selectedLeader, shiftLogs, false);
     const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
+    if (win) {
+      win.document.write(fullHtml);
+      win.document.close();
+    }
   };
 
   const printReport = () => {
@@ -4165,7 +4280,22 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Report for shift:</div>
               <div className="grid grid-cols-3 gap-1.5">
                 {SHIFTS.map(s => (
-                  <button key={s.id} onClick={() => setReportShiftId(s.id)}
+                  <button key={s.id} onClick={() => {
+                    setReportShiftId(s.id);
+                    // Recalculate the correct date for the selected shift.
+                    // All shifts use getCurrentShift's shiftDate logic:
+                    //   S1 morning (0–8am)  → today  (the day it ends)
+                    //   S1 evening (23pm+)  → tomorrow (the day it will end)
+                    //   S2 & S3             → today
+                    const { shiftDate } = getCurrentShift(new Date());
+                    if (s.id === 1) {
+                      setReportDate(shiftDate);
+                    } else {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      setReportDate(today);
+                    }
+                  }}
                     className={`px-2 py-1.5 rounded-md border-2 text-left ${reportShiftId === s.id ? "bg-emerald-600 border-emerald-700 text-white" : "bg-white border-stone-200 hover:border-emerald-400"}`}>
                     <div className="text-[11px] font-bold">{s.label}{s.id === nowShiftId && <span className="ml-1 text-[9px] font-semibold uppercase tracking-wider opacity-80">NOW</span>}</div>
                     <div className={`text-[9px] ${reportShiftId === s.id ? "text-emerald-100" : "text-slate-500"}`}>{s.time}</div>
@@ -4335,11 +4465,29 @@ function ShiftReportModal({ allRows, selectedLeader, lineDown = {}, shiftReports
                 <div className="text-[11px] text-slate-400 text-center italic mb-2">No saved report yet for this shift</div>
               )}
               <div className="flex gap-2">
-                <button onClick={openEmailReport} style={{flex:1,padding:"9px 12px",borderRadius:6,background:"#2563eb",color:"#ffffff",fontSize:13,fontWeight:700,border:"none",cursor:"pointer"}}>✉ Open for Email (Outlook)</button>
+                <button onClick={openEmailReport} disabled={emailCopyState==="copying"}
+                  style={{flex:1,padding:"9px 12px",borderRadius:6,
+                    background: emailCopyState==="done" ? "#16a34a" : emailCopyState==="error" ? "#dc2626" : "#2563eb",
+                    color:"#ffffff",fontSize:13,fontWeight:700,border:"none",cursor: emailCopyState==="copying" ? "wait" : "pointer",
+                    transition:"background 0.2s"}}>
+                  {emailCopyState==="copying" ? "⏳ Copying…"
+                    : emailCopyState==="done"  ? "✅ Copied! Paste into Outlook"
+                    : emailCopyState==="fallback" ? "📋 Select All + Ctrl+C in tab"
+                    : "✉ Copy for Outlook"}
+                </button>
                 <button onClick={copyReport} style={{padding:"9px 14px",borderRadius:6,background:"#475569",color:"#ffffff",fontSize:13,fontWeight:600,border:"none",cursor:"pointer"}}>Copy Text</button>
-                <button onClick={printReport} className="px-3 py-2 rounded-md bg-stone-200 hover:bg-stone-300 text-slate-800 text-sm font-semibold">Print</button>
+                <button onClick={() => {
+                  const shiftMeta = SHIFTS.find(s => s.id === reportShiftId) || { label: "S"+reportShiftId, time: "" };
+                  const fullHtml = generateShiftReportHTML(reportData, shiftMeta, reportDate, selectedLeader, shiftLogs, false);
+                  const win = window.open("", "_blank");
+                  if (win) { win.document.write(fullHtml); win.document.close(); }
+                }} style={{padding:"9px 14px",borderRadius:6,background:"#0ea5e9",color:"#ffffff",fontSize:13,fontWeight:600,border:"none",cursor:"pointer"}}>🌐 Open</button>
               </div>
-              <p style={{fontSize:"10px",color:"#94a3b8",textAlign:"center",marginTop:6,fontStyle:"italic"}}>Opens a new tab → click "Select All" → Ctrl+C → paste into Outlook</p>
+              <p style={{fontSize:"10px",color:"#94a3b8",textAlign:"center",marginTop:6,fontStyle:"italic"}}>
+                {emailCopyState==="done" ? "✅ Rich HTML copied — open Outlook, New Email, then Ctrl+V" :
+                 emailCopyState==="fallback" ? "⚠️ Clipboard API unavailable — use the opened tab: Select All → Ctrl+C → paste in Outlook" :
+                 "Copies formatted HTML to clipboard — paste directly into a new Outlook email"}
+              </p>
             </div>
           </React.Fragment>
 
@@ -4578,7 +4726,7 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                       <span className="text-[11px] font-bold px-1.5 py-0.5 rounded text-white" style={{backgroundColor: typeColor(log.type)}}>{typeLabel(log.type)}</span>
                       <span className="text-[11px] font-semibold text-slate-600">{log.severity}</span>
                       {log.resource && <span className="text-[11px] text-slate-400">· {log.resource}</span>}
-                      {log.wo && <span className="text-[11px] text-slate-400">· {log.wo}</span>}
+                      {log.ncNum && <span className="text-[11px] font-semibold text-orange-700">· {log.ncNum}</span>}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-[11px] font-semibold text-slate-700">{log.shiftDate}</div>
@@ -4586,6 +4734,12 @@ function ShiftLogModal({ type, allRows, selectedLeader, shiftLogsRef, userInitia
                     </div>
                   </div>
                   <div className="text-xs text-slate-600">{log.description}</div>
+                  {(log.wo || log.ncPart) && (
+                    <div className="flex gap-3 mt-1">
+                      {log.wo && <span className="text-[10px] text-slate-400">WO: {log.wo}</span>}
+                      {log.ncPart && <span className="text-[10px] text-slate-400">Part: {log.ncPart}</span>}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -4609,7 +4763,7 @@ function ReportStat({ label, value }) {
   );
 }
 
-function ShiftEntryPanel({ row, logShiftEntry }) {
+function ShiftEntryPanel({ row, logShiftEntry, updateRow }) {
   const { shiftId: defaultShift, shiftDate: defaultDate } = useMemo(() => getCurrentShift(new Date()), []);
   const [shiftId, setShiftId] = useState(defaultShift);
   const [qty, setQty] = useState("");
@@ -4661,6 +4815,21 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
     setShowDowntime(false);
     setDowntimeReason("");
     setDowntimeDuration(8);
+  };
+
+  const deleteEntry = (index) => {
+    const pwd = prompt("Enter password to delete this entry:");
+    if (pwd === null) return; // cancelled
+    if (pwd !== "chepelare") { alert("Incorrect password."); return; }
+    const entry = history[index]; // history is sorted newest-first
+    // Find the actual index in row.shifts (unsorted)
+    const rawShifts = row.shifts || [];
+    // Match by loggedAt (unique timestamp) to find the right one
+    const rawIndex = rawShifts.findIndex(s => s.loggedAt === entry.loggedAt);
+    if (rawIndex === -1) { alert("Entry not found — may have already been deleted."); return; }
+    const newShifts = rawShifts.filter((_, i) => i !== rawIndex);
+    const newComp = Math.max(0, (row.comp_qty || 0) - (entry.qty || 0));
+    updateRow(row, { shifts: newShifts, comp_qty: newComp });
   };
 
   const meta = SHIFTS.find(s => s.id === shiftId);
@@ -4875,14 +5044,21 @@ function ShiftEntryPanel({ row, logShiftEntry }) {
                 {entry.notes && (
                   <div className="text-[11px] text-slate-600 mt-1 leading-snug italic">"{entry.notes}"</div>
                 )}
-                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center gap-1 flex-wrap">
-                  {isLabour
-                    ? <span className="text-slate-400">🎫 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                    : entry.by
-                      ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
-                      : null
-                  }
-                  {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                <div className="text-[9px] text-slate-400 mt-1.5 flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {isLabour
+                      ? <span className="text-slate-400">🎫 Labour tickets · {new Date(entry.loggedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                      : entry.by
+                        ? <span className="font-semibold text-slate-500 bg-slate-100 px-1 rounded">{entry.by}</span>
+                        : null
+                    }
+                    {!isLabour && <span>logged {new Date(entry.loggedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
+                  </div>
+                  {!isLabour && updateRow && (
+                    <button onClick={() => deleteEntry(i)}
+                      className="text-[10px] text-rose-400 hover:text-rose-600 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-transparent hover:border-rose-200 transition-colors font-semibold"
+                      title="Delete entry (password required)">🗑</button>
+                  )}
                 </div>
               </div>
             );
@@ -5073,7 +5249,7 @@ function DetailPanel({ row, onClose, updateRow, setReadinessCheck, logShiftEntry
 
                     {/* Shift entry   only for production-active WOs (todo & wip) */}
           {(row.status === "todo" || row.status === "wip") && (
-            <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} />
+            <ShiftEntryPanel row={row} logShiftEntry={logShiftEntry} updateRow={updateRow} />
           )}
 
           {/* Context actions */}
